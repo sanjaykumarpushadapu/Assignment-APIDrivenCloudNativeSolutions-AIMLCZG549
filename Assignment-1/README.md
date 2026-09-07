@@ -21,6 +21,8 @@ infra/          Placeholder for selected-cloud deployment assets
 
 Requires Python 3.11 or newer.
 
+**Windows (PowerShell):**
+
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -28,16 +30,42 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
+**macOS / Linux (Terminal):**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+```
+
 Run the local pipeline with the sample data:
+
+**Windows (PowerShell):**
 
 ```powershell
 python -m diabetes_risk.pipeline --help
 pytest
 ```
 
+**macOS / Linux (Terminal):**
+
+```bash
+python -m diabetes_risk.pipeline --help
+pytest
+```
+
 Run the API:
 
+**Windows (PowerShell):**
+
 ```powershell
+uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
+```
+
+**macOS / Linux (Terminal):**
+
+```bash
 uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
 ```
 
@@ -45,7 +73,15 @@ OpenAPI documentation is available at `http://127.0.0.1:9000/docs`.
 
 Run the dashboard:
 
+**Windows (PowerShell):**
+
 ```powershell
+streamlit run src/diabetes_risk/dashboard/app.py
+```
+
+**macOS / Linux (Terminal):**
+
+```bash
 streamlit run src/diabetes_risk/dashboard/app.py
 ```
 
