@@ -32,14 +32,13 @@ Do not remove an open question until the team or instructor has answered it. Res
 
 ## 1.1 Business problem
 
-Healthcare organizations collect health and lifestyle data, but identifying individuals with a higher risk of diabetes can be difficult when the information is analyzed manually.
+Healthcare organizations collect large volumes of patient health and lifestyle data, but identifying people at risk of diabetes can be challenging when the data is analyzed manually. Early risk screening can help healthcare providers take preventive measures, prioritize support, and improve patient outcomes.
 
-Delayed identification may result in:
+### Current state
 
-- Delayed preventive care
-- Increased healthcare costs
-- More serious health complications
-- Difficulty prioritizing high-risk individuals
+- Patient health and lifestyle data is available but not fully utilized.
+- Identifying people at higher risk can be time-consuming.
+- Delayed risk identification may contribute to health complications and increased treatment costs.
 
 ## 1.2 Proposed solution
 
@@ -49,14 +48,14 @@ Create a cloud-based data pipeline that:
 2. Checks and preprocesses the data.
 3. Performs exploratory data analysis.
 4. Identifies important diabetes-risk indicators.
-5. Optionally builds a diabetes-risk prediction model.
+5. Builds and evaluates a diabetes-risk prediction model as a value-added component.
 6. Automates preprocessing and EDA activities.
 7. Runs the workflow every two minutes.
 8. Records execution details.
 9. Displays activity information on a cloud dashboard.
 10. Provides at least four application details through accepted built-in APIs.
 
-The result must be described as a **risk-screening or risk-prediction system**, not as a medical diagnosis system.
+This enables earlier intervention and better decision-making. The result must be described as a **risk-screening or risk-prediction system**, not as a medical diagnosis system.
 
 ## 1.3 Required assignment scope
 
