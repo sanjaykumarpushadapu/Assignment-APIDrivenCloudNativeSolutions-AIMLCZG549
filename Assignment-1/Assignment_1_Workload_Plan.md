@@ -252,6 +252,20 @@ Also explain why the confirmed row count is sufficient for the planned EDA and, 
 
 Do not assume these values from memory. Confirm them after import.
 
+#### Verified dataset profile
+
+- **Filename:** `diabetes_012_health_indicators_BRFSS2015.csv`
+- **Source URL:** https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset
+- **Row count:** 253,680
+- **Column count:** 22
+- **Target column:** `Diabetes_012`
+- **Feature columns:** `HighBP`, `HighChol`, `CholCheck`, `BMI`, `Smoker`, `Stroke`, `HeartDiseaseorAttack`, `PhysActivity`, `Fruits`, `Veggies`, `HvyAlcoholConsump`, `AnyHealthcare`, `NoDocbcCost`, `GenHlth`, `MentHlth`, `PhysHlth`, `DiffWalk`, `Sex`, `Age`, `Education`, and `Income`
+- **Data types:** All stored columns are numeric. Several features are binary or ordinal-coded and should be treated according to their documented meaning during EDA and modelling.
+- **Missing values:** 0
+- **Target-value distribution:** `0.0` = 213,703, `1.0` = 4,631, and `2.0` = 35,346
+
+The dataset is sufficiently large for meaningful EDA and a held-out model evaluation. Its class distribution is imbalanced, particularly for class `1.0`, so the model evaluation must report class-aware metrics and document any imbalance-handling approach.
+
 ### Step 5: Prepare the data dictionary
 
 For every column, record:

@@ -6,6 +6,7 @@ __pycache__/
 .env
 
 data/raw/*
+!data/raw/diabetes_012_health_indicators_BRFSS2015.csv
 data/processed/*
 reports/generated/*
 !data/raw/.gitkeep
