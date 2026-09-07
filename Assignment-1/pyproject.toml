@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diabetes-risk-prediction"
+version = "0.1.0"
+description = "Platform-neutral data pipeline skeleton for diabetes risk screening."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pandas>=2.2,<3",
+  "scikit-learn>=1.5,<2",
+  "streamlit>=1.40,<2",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27,<1",
+  "pytest>=8.3,<9",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
