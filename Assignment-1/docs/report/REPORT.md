@@ -8,11 +8,15 @@ section's content under the matching heading below.
 
 ## 1. Business Understanding, Dataset, and Ingestion
 
-### 1.1 Project topic
+### 1.1 Introduction
+
+This report documents Group 49's Assignment 1 submission for AIMLCZG549 (API-Driven Cloud-Native Solutions): a cloud-based, API-accessible data pipeline for **diabetes risk screening from health and lifestyle indicators**. The pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI). Section 1 below covers Person 1's work package -- business understanding, dataset selection, and data ingestion -- which the rest of the pipeline (Sections 2-4) builds on.
+
+### 1.2 Project topic
 
 **Diabetes Risk Prediction Using Health and Lifestyle Indicators**
 
-### 1.2 Business problem
+### 1.3 Business problem
 
 Healthcare organizations collect large volumes of patient health and lifestyle data — clinical measurements, lifestyle habits, and demographic indicators — but converting that data into early diabetes-risk screening is difficult in practice. Manual chart-by-chart review does not scale across thousands of patient records, so at-risk individuals are often identified only after symptoms are already present or during unrelated visits, rather than through proactive screening.
 
@@ -22,7 +26,7 @@ An automated, data-driven risk-screening pipeline addresses this by continuously
 
 **Who uses the results:** primarily healthcare providers and care coordinators, who can use the risk-screening output to prioritize outreach and preventive care for higher-risk patients, and secondarily program administrators, who can use the aggregated dashboard view to understand risk distribution across a patient population. The output is explicitly a **risk-screening signal**, not a diagnosis — final clinical decisions remain with a qualified provider.
 
-### 1.3 Current and proposed states
+### 1.4 Current and proposed states
 
 **Current state**
 
@@ -32,7 +36,25 @@ Patient health and lifestyle data is already being collected by healthcare organ
 
 Health and lifestyle data flows through an automated cloud-based pipeline that ingests the dataset, checks and cleans it, and analyzes diabetes-risk indicators (BMI, blood pressure, cholesterol, activity level, general health, etc.) without manual intervention. This analysis reruns on a fixed schedule, so results stay current rather than being a one-time snapshot. The outcomes — risk indicators, key drivers, and pipeline activity — are made visible through a cloud dashboard and exposed through APIs, giving healthcare providers and administrators continuous, up-to-date visibility into risk patterns instead of periodic manual reviews.
 
-### 1.4 Dataset profile
+### 1.5 Objectives and benefits
+
+**Objectives**
+
+- Ingest and validate a real, sufficiently large public health dataset (BRFSS 2015 diabetes indicators) with automated checks on schema, target column, and row count.
+- Preprocess and clean the data (missing-value handling, encoding, normalization) so it is ready for repeatable analysis.
+- Run exploratory data analysis (distribution, correlation, binning, feature importance) to surface diabetes-risk indicators.
+- Automate the full pipeline on a fixed (2-minute) schedule with execution logging, so results stay current without manual reruns.
+- Expose pipeline results and at least four application operations through a documented, testable REST API (Swagger/OpenAPI), and visualize them on a cloud dashboard.
+
+**Benefits**
+
+- **For healthcare providers/care coordinators:** a continuously updated risk-screening signal that helps prioritize outreach to higher-risk patients, instead of relying on manual chart review.
+- **For program administrators:** an aggregated dashboard view of risk distribution across a patient population, supporting resource and program planning.
+- **For the team:** a working, end-to-end demonstration of the assignment's required architecture (ingestion -> preprocessing -> EDA -> scheduled DataOps -> API layer), directly mapped to the grading rubric.
+
+As with the rest of this report, all outputs are a **risk-screening signal**, not a clinical diagnosis.
+
+### 1.6 Dataset profile
 
 - **Filename:** `diabetes_012_health_indicators_BRFSS2015.csv`
 - **Source:** Kaggle — Diabetes Health Indicators Dataset (https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset)
@@ -46,7 +68,11 @@ Health and lifestyle data flows through an automated cloud-based pipeline that i
 
 **Why this is sufficient:** At 253,680 rows, even the smallest class (prediabetes, 4,631 rows) comfortably supports EDA (correlation analysis, binning, feature importance) and, if a model is included, a held-out test split — a standard 80/20 split still leaves roughly 900+ minority-class examples for evaluation. The dataset's scale also means a full preprocessing + EDA pass is fast enough to comfortably fit inside the assignment's every-2-minute scheduled run.
 
-### 1.5 Data dictionary
+**Evidence -- raw dataset source (Kaggle):**
+
+![Raw dataset screenshot: Kaggle "Diabetes Health Indicators Dataset" page showing the dataset title, source URL, target column (`Diabetes_012`) and feature definitions, and file summary](imgs/dataset.png)
+
+### 1.7 Data dictionary
 
 All columns are stored as numeric (float64); "Role" marks the prediction target vs. feature. Ranges below are confirmed against the raw CSV, not assumed.
 
@@ -75,7 +101,7 @@ All columns are stored as numeric (float64); "Role" marks the prediction target 
 | `Education` | Education level | 1 = none/kindergarten … 6 = college 4+ years (ordinal) | Feature (ordinal) |
 | `Income` | Household income bracket | 1 = <$10k … 8 = $75k+ (ordinal) | Feature (ordinal) |
 
-### 1.6 Suitability and limitations
+### 1.8 Suitability and limitations
 
 **Why this dataset suits the assignment**
 
@@ -98,7 +124,7 @@ Derived from the CDC's public **Behavioral Risk Factor Surveillance System (BRFS
 - **Bias and fairness:** `Income`, `Education`, and `AnyHealthcare`/`NoDocbcCost` reflect healthcare-access disparities as much as biological risk — correlations involving these fields should be discussed as access/equity signals, not purely clinical ones. `Sex` is recorded as a binary field only, per the original survey design.
 - **Not a diagnosis:** consistent with the rest of this report, all outputs are a **risk-screening signal**, not a clinical diagnosis, and must not be presented or used as one.
 
-### 1.7 Data ingestion evidence
+### 1.9 Data ingestion evidence
 
 Implemented as `src/diabetes_risk/pipeline/ingestion.py` (`ingest()`), covering the required checks: file opens successfully, all 21 expected feature columns plus the `Diabetes_012` target are present, and the row count is recorded and compared against the verified profile (253,680). The raw CSV is never modified or duplicated -- each ingestion run instead appends a timestamped, SHA-256-hashed entry to `data/raw/ingestion_manifest.json`, so the exact file used stays verifiable and any future drift (a different file swapped in under the same name) would be visible immediately as a hash or row-count change.
 
