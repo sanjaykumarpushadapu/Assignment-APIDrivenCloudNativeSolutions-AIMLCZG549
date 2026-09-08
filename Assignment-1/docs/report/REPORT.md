@@ -105,8 +105,10 @@ Implemented as `src/diabetes_risk/pipeline/ingestion.py` (`ingest()`), covering 
 Run with:
 
 ```bash
-python -m diabetes_risk.pipeline.ingestion --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
 ```
+
+(The screenshot below was captured before the pipeline's commands were consolidated into one CLI, so it shows the earlier form `python -m diabetes_risk.pipeline.ingestion ...` -- the result is identical either way, since the underlying `ingest()` function didn't change.)
 
 **Verified result (first import):**
 

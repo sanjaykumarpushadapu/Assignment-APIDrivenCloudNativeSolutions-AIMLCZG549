@@ -10,16 +10,13 @@ silently changed between runs.
 
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
-import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-from dotenv import load_dotenv
 
 # The exact column order confirmed against the raw CSV (see REPORT.md,
 # section 1.5 "Data dictionary"). Used both to check nothing is missing
@@ -159,33 +156,3 @@ def ingest(source_path: Path, manifest_path: Path) -> IngestionReport:
 
     return report
 
-
-def main() -> None:
-    """CLI entry point: `python -m diabetes_risk.pipeline.ingestion [--source ...] [--manifest ...]`.
-
-    Defaults read ``DIABETES_DATASET_PATH`` from the environment (see
-    `.env.example`) so this can run unconfigured with sensible defaults,
-    or be pointed at a different file/manifest for testing. ``load_dotenv()``
-    reads a local ``.env`` file (if one exists) into the environment first,
-    so a value set there is picked up the same way an exported shell
-    variable would be -- without it, ``.env`` would just be an inert text
-    file that nothing actually reads.
-    """
-    load_dotenv()
-    parser = argparse.ArgumentParser(description="Validate and log an ingestion of the raw dataset.")
-    parser.add_argument(
-        "--source",
-        type=Path,
-        default=Path(os.environ.get("DIABETES_DATASET_PATH", "data/raw/diabetes_012_health_indicators_BRFSS2015.csv")),
-    )
-    parser.add_argument("--manifest", type=Path, default=Path("data/raw/ingestion_manifest.json"))
-    args = parser.parse_args()
-
-    report = ingest(args.source, args.manifest)
-    # Printed as JSON (not a human-readable summary) so this output can be
-    # captured directly as evidence or piped into another tool if needed.
-    print(json.dumps(report.as_dict(), indent=2))
-
-
-if __name__ == "__main__":
-    main()

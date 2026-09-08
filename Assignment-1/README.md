@@ -64,7 +64,7 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-Run the local pipeline with the sample data:
+Every pipeline stage runs through one command: `python -m diabetes_risk.pipeline <command> ...`. Run `--help` to see all commands, and run the tests:
 
 **Windows (PowerShell):**
 
@@ -114,26 +114,24 @@ streamlit run src/diabetes_risk/dashboard/app.py
 
 Download the approved Kaggle dataset and place the selected CSV in `data/raw/`. Do not commit dataset files or credentials. The expected input path is configured with `DIABETES_DATASET_PATH`.
 
-Validate and log an ingestion of the raw file (checks columns, target, and row count, then appends a timestamped, hashed entry to a manifest for evidence). `--source` and `--manifest` are both optional — without them, `--source` falls back to the `DIABETES_DATASET_PATH` environment variable (or `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` if that isn't set), and `--manifest` falls back to `data/raw/ingestion_manifest.json`:
+### `ingest` — validate and log an ingestion of the raw file
 
-**Windows (PowerShell):**
-
-```powershell
-# using the built-in defaults
-python -m diabetes_risk.pipeline.ingestion
-
-# specifying explicit paths instead of the defaults
-python -m diabetes_risk.pipeline.ingestion --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
-```
-
-**macOS / Linux (Terminal):**
+Checks columns, target, and row count, then appends a timestamped, hashed entry to a manifest for evidence. `--source` and `--manifest` are both optional — without them, `--source` falls back to the `DIABETES_DATASET_PATH` environment variable (or `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` if that isn't set), and `--manifest` falls back to `data/raw/ingestion_manifest.json`. Same command on both OSes, since it's the Python CLI, not a shell script:
 
 ```bash
 # using the built-in defaults
-python -m diabetes_risk.pipeline.ingestion
+python -m diabetes_risk.pipeline ingest
 
 # specifying explicit paths instead of the defaults
-python -m diabetes_risk.pipeline.ingestion --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+```
+
+### `run` — preprocess an input CSV
+
+Cleans, imputes, and normalizes an input file (see `pipeline/preprocessing.py`), then writes `processed.csv` and `run_summary.json` to `--output-dir` (default `data/processed`). Pass `--target-column` so the label column is excluded from normalization:
+
+```bash
+python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012
 ```
 
 ## Project report
