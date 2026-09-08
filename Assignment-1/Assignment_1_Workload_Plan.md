@@ -25,6 +25,22 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Dataset source:** https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset
 - **API documentation/testing tool:** Swagger/OpenAPI where available; otherwise an API client or the selected platform's API explorer
 - **Submission deadline:** Friday, 18 September 2026
+- **Current workload status:** Person 1 is complete; Person 2, Person 3, and Person 4 remain pending.
+
+---
+
+## Current Delivery Status
+
+- **Person 1:** Complete. Business understanding, dataset verification, and raw-data ingestion have been documented and validated.
+- **Person 2:** Pending. Data quality, preprocessing, automation, and logging still need to be completed.
+- **Person 3:** Pending. EDA, feature importance, and optional-model analysis still need to be completed.
+- **Person 4:** Pending. Dashboard, APIs, and the final demonstration remain to be completed.
+
+## Team progress summary
+
+- **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation.
+- **Still required before final submission:** Person 2 preprocessing + scheduled workflow, Person 3 EDA/feature-importance analysis, and Person 4 dashboard + API + demo evidence.
+- **Current project status:** Local pipeline foundation is in place; cloud-platform decisions, workflow automation, dashboard, APIs, and final submission materials are still pending.
 
 ---
 
@@ -206,6 +222,10 @@ All members participate in final review, but each person retains ownership of th
 ---
 
 # 5. Person 1 — Business Understanding, Dataset, and Ingestion
+
+## Status
+
+**Complete.** The project topic, business problem, verified dataset profile, data dictionary, and raw-data ingestion evidence have been completed and documented.
 
 ## Objective
 

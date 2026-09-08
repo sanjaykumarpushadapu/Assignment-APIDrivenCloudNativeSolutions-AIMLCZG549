@@ -1,10 +1,17 @@
 # Diabetes Risk Prediction
 
-Project skeleton for Group 49's **Diabetes Risk Prediction Using Health and Lifestyle Indicators** assignment.
+Project repository for Group 49's **Diabetes Risk Prediction Using Health and Lifestyle Indicators** assignment.
 
-The implementation is intentionally platform-neutral until the team resolves the cloud platform questions in `Assignment_1_Workload_Plan.md`.
+This project currently contains the local Python foundation for the assignment: dataset ingestion validation, a reusable pipeline CLI, and a project structure for the later cloud/dashboard/API work. The platform decision and the final cloud implementation are still pending as recorded in `Assignment_1_Workload_Plan.md`.
 
-## Structure
+## Current status
+
+- **Person 1:** Complete. Business context, dataset verification, and ingestion validation are in place.
+- **Person 2:** Pending. Data quality, preprocessing, workflow automation, and execution logging remain.
+- **Person 3:** Pending. EDA, feature importance, and optional model analysis remain.
+- **Person 4:** Pending. Dashboard, API testing, and final demonstration remain.
+
+## Project structure
 
 ```text
 src/diabetes_risk/
@@ -64,23 +71,47 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-Every pipeline stage runs through one command: `python -m diabetes_risk.pipeline <command> ...`. Run `--help` to see all commands, and run the tests:
+## Run the pipeline
+
+Every pipeline stage runs through one CLI command: `python -m diabetes_risk.pipeline <command> ...`.
 
 **Windows (PowerShell):**
 
 ```powershell
 python -m diabetes_risk.pipeline --help
-pytest
+python -m diabetes_risk.pipeline ingest
 ```
 
 **macOS / Linux (Terminal):**
 
 ```bash
 python -m diabetes_risk.pipeline --help
-pytest
+python -m diabetes_risk.pipeline ingest
 ```
 
-Run the API:
+### Ingestion command
+
+```bash
+python -m diabetes_risk.pipeline ingest
+```
+
+Or with explicit paths:
+
+```bash
+python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+```
+
+This validates the dataset, checks required columns and the target field, computes the SHA-256 hash, and appends a timestamped entry to the ingestion manifest.
+
+### Preprocessing command
+
+```bash
+python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012
+```
+
+This cleans and normalizes the CSV and writes processed output to the default `data/processed` directory.
+
+## Run the API
 
 **Windows (PowerShell):**
 
@@ -96,7 +127,7 @@ uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
 
 OpenAPI documentation is available at `http://127.0.0.1:9000/docs`.
 
-Run the dashboard:
+## Run the dashboard
 
 **Windows (PowerShell):**
 
@@ -112,35 +143,43 @@ streamlit run src/diabetes_risk/dashboard/app.py
 
 ## Dataset
 
-Download the approved Kaggle dataset and place the selected CSV in `data/raw/`. Do not commit dataset files or credentials. The expected input path is configured with `DIABETES_DATASET_PATH`.
+The approved dataset is the Kaggle BRFSS diabetes health indicators dataset. The confirmed raw file is:
 
-### `ingest` — validate and log an ingestion of the raw file
-
-Checks columns, target, and row count, then appends a timestamped, hashed entry to a manifest for evidence. `--source` and `--manifest` are both optional — without them, `--source` falls back to the `DIABETES_DATASET_PATH` environment variable (or `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` if that isn't set), and `--manifest` falls back to `data/raw/ingestion_manifest.json`. Same command on both OSes, since it's the Python CLI, not a shell script:
-
-```bash
-# using the built-in defaults
-python -m diabetes_risk.pipeline ingest
-
-# specifying explicit paths instead of the defaults
-python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+```text
+data/raw/diabetes_012_health_indicators_BRFSS2015.csv
 ```
 
-### `run` — preprocess an input CSV
+The project expects the following verified dataset profile:
 
-Cleans, imputes, and normalizes an input file (see `pipeline/preprocessing.py`), then writes `processed.csv` and `run_summary.json` to `--output-dir` (default `data/processed`). Pass `--target-column` so the label column is excluded from normalization:
+- **Row count:** 253,680
+- **Column count:** 22
+- **Target column:** `Diabetes_012`
+- **Source:** Kaggle Diabetes Health Indicators Dataset
 
-```bash
-python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012
-```
+Do not commit dataset files or credentials.
 
 ## Project report
 
-The shared, editable content for the final submission lives in
-[`docs/report/REPORT.md`](docs/report/REPORT.md) — one file, four numbered
-sections (one per team member's work package), filled in step by step
-alongside `Assignment_1_Workload_Plan.md`.
+The shared report for the final submission lives in [`docs/report/REPORT.md`](docs/report/REPORT.md). The workload and delivery plan are in `Assignment_1_Workload_Plan.md`.
 
-## Next decisions
+## Remaining assignment work
 
-Before adding cloud-specific code, record the selected platform, storage, scheduler, dashboard, API set, authentication, and region in the workload plan.
+Before final submission, the team must still complete the following:
+
+1. Person 2: data-quality checks, preprocessing, workflow automation, and execution logging
+2. Person 3: EDA, feature-importance analysis, and any optional model evaluation
+3. Person 4: dashboard, four API details, API testing evidence, and final demo video
+4. Final review, documentation, screenshots, and submission upload
+
+## Next platform decision
+
+Before the cloud-specific implementation is finalized, the group must decide:
+
+- selected cloud platform
+- region and account access
+- schedule cadence and execution method
+- dashboard technology
+- API set and authentication method
+- deployment or hosting method
+
+This decision should be recorded in `Assignment_1_Workload_Plan.md` before the final cloud implementation is locked in.
