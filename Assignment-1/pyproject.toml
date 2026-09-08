@@ -9,6 +9,7 @@ description = "Platform-neutral data pipeline skeleton for diabetes risk screeni
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1",
+  "python-dotenv>=1.0,<2",
   "pandas>=2.2,<3",
   "scikit-learn>=1.5,<2",
   "streamlit>=1.40,<2",

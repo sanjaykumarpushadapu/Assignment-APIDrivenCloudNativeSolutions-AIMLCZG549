@@ -15,6 +15,31 @@ tests/          Focused tests for the local pipeline
 data/           Local raw, processed, and output data (ignored by Git)
 reports/        Generated charts and summary outputs (ignored by Git)
 infra/          Placeholder for selected-cloud deployment assets
+docs/report/    Shared REPORT.md — final submission content, built step by step
+```
+
+## Environment setup
+
+Copy the example file to create your own local `.env` (it's gitignored — never commit it). It's loaded automatically by pipeline commands via `python-dotenv`, so any value you change here takes effect without exporting shell variables manually.
+
+**Windows (PowerShell):**
+
+```powershell
+copy .env.example .env
+```
+
+**macOS / Linux (Terminal):**
+
+```bash
+cp .env.example .env
+```
+
+The defaults are already correct for local development — you only need to edit `.env` if you move the dataset, want processed output written somewhere else, or point at a different report directory:
+
+```text
+DIABETES_DATASET_PATH=data/raw/diabetes_012_health_indicators_BRFSS2015.csv
+DIABETES_OUTPUT_DIR=data/processed
+DIABETES_REPORT_DIR=reports/generated
 ```
 
 ## Local setup
@@ -88,6 +113,35 @@ streamlit run src/diabetes_risk/dashboard/app.py
 ## Dataset
 
 Download the approved Kaggle dataset and place the selected CSV in `data/raw/`. Do not commit dataset files or credentials. The expected input path is configured with `DIABETES_DATASET_PATH`.
+
+Validate and log an ingestion of the raw file (checks columns, target, and row count, then appends a timestamped, hashed entry to a manifest for evidence). `--source` and `--manifest` are both optional — without them, `--source` falls back to the `DIABETES_DATASET_PATH` environment variable (or `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` if that isn't set), and `--manifest` falls back to `data/raw/ingestion_manifest.json`:
+
+**Windows (PowerShell):**
+
+```powershell
+# using the built-in defaults
+python -m diabetes_risk.pipeline.ingestion
+
+# specifying explicit paths instead of the defaults
+python -m diabetes_risk.pipeline.ingestion --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+```
+
+**macOS / Linux (Terminal):**
+
+```bash
+# using the built-in defaults
+python -m diabetes_risk.pipeline.ingestion
+
+# specifying explicit paths instead of the defaults
+python -m diabetes_risk.pipeline.ingestion --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
+```
+
+## Project report
+
+The shared, editable content for the final submission lives in
+[`docs/report/REPORT.md`](docs/report/REPORT.md) — one file, four numbered
+sections (one per team member's work package), filled in step by step
+alongside `Assignment_1_Workload_Plan.md`.
 
 ## Next decisions
 

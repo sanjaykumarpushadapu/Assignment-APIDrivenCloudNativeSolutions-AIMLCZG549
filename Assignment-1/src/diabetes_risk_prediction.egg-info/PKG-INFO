@@ -4,6 +4,7 @@ Version: 0.1.0
 Summary: Platform-neutral data pipeline skeleton for diabetes risk screening.
 Requires-Python: >=3.11
 Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: python-dotenv<2,>=1.0
 Requires-Dist: pandas<3,>=2.2
 Requires-Dist: scikit-learn<2,>=1.5
 Requires-Dist: streamlit<2,>=1.40

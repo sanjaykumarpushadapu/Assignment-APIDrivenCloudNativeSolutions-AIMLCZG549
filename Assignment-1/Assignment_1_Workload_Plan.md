@@ -4,7 +4,7 @@
 
 These questions must be answered by the team or instructor before the platform and final implementation are locked.
 
-1. Which cloud platform can all four team members access: Azure, AWS, Google Cloud, Databricks, Dataiku, KNIME, or another approved platform? Does the university provide accounts, licenses, or student credits?
+1. Which cloud platform can all four team members access: Azure, AWS, Google Cloud, Databricks, Dataiku, KNIME, or another approved platform? Does the university provide accounts, licenses, or student credits? A comparison of the candidates is in `docs/platform_comparison.md` for the team to discuss, but no platform has been chosen yet.
 2. Is the required two-minute schedule supported by the selected platform and account plan?
 3. Should the dashboard display EDA charts, or are activity metrics, logs, and summary results sufficient?
 4. Is the prediction model compulsory, or is it an optional value-added component?
@@ -122,6 +122,8 @@ The final platform must support:
 
 ## Platform decision record
 
+_Status: **not yet decided.** Nothing below is confirmed — this platform has not been chosen by the team._
+
 After the team chooses a platform, record:
 
 - Selected platform
@@ -138,6 +140,16 @@ After the team chooses a platform, record:
 - Overlapping-run policy
 - Person responsible for platform administration
 - Platform decision date and fallback platform
+
+A candidate comparison (Azure, GCP, Prefect Cloud, AWS, Databricks) is
+available in `docs/platform_comparison.md` for the team's reference and
+discussion, but it is a comparison document only, not a decision.
+
+**Note on the BITS-provided AWS Virtual Lab:** BITS offers an optional AWS
+"Virtual Lab Session" for this course (API Gateway, CloudWatch, EC2, Glue,
+IAM, Lambda, SageMaker, Bedrock, etc.), not mandatory to use. See
+`docs/platform_comparison.md` for details and open questions about it
+(e.g., whether it persists across sessions).
 
 ## Platform-neutral architecture
 
