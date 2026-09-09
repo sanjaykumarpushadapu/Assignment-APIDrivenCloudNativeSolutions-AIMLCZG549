@@ -307,7 +307,49 @@ Automated EDA artifact generation
 Structured execution log
 ```
 
-The runner records the status of each execution and writes outputs to predictable locations. A successful local run against the repository's actual raw dataset completed in approximately **14.27 seconds** and produced the expected 229,781-row processed outputs.
+The runner records the status of each execution and writes outputs to predictable locations. The verified full-dataset local execution (run ID `20260909T063214670950Z`) started at `2026-09-09T06:32:14.670942Z`, completed at `2026-09-09T06:32:31.222395Z`, and finished in **16.55 seconds**. It read all **253,680** raw records and produced the expected 229,781-row processed outputs.
+
+### 2.7 Verified full-dataset execution result
+
+To remove ambiguity about the size of the data actually processed, Person 2 retained **one fresh successful end-to-end run only** against the complete raw CSV. No two-record test fixture is represented in the retained pipeline outputs or execution results. The test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file.
+
+| Execution metric | Verified result |
+|---|---:|
+| Run ID | `20260909T063214670950Z` |
+| Input file | `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` |
+| Input rows read | **253,680** |
+| Input columns | **22** |
+| Missing values | **0** |
+| Exact duplicate records detected | **23,899 (9.42%)** |
+| Rows after duplicate removal | **229,781** |
+| Cleaned dataset | **229,781 × 22** |
+| Model-ready dataset | **229,781 × 22** |
+| Invalid target values | **0** |
+| Invalid known numeric-range values | **0** |
+| Invalid binary values | **0** |
+| Quality status | `PASS_WITH_WARNINGS` |
+| Execution status | `SUCCESS` |
+| Runtime | **16.55 seconds** |
+
+The deduplicated target distribution used by the refreshed EDA artifacts is:
+
+| `Diabetes_012` | Records | Percentage |
+|---:|---:|---:|
+| 0 | 190,055 | 82.71% |
+| 1 | 4,629 | 2.01% |
+| 2 | 35,097 | 15.27% |
+| **Total** | **229,781** | **100.00%** |
+
+The original raw target distribution documented in Section 1 remains unchanged; the table above reflects the **post-duplicate-removal dataset** used for Person 2's refreshed EDA outputs. The raw CSV itself remains immutable.
+
+The authoritative execution record is stored at:
+
+```text
+data/outputs/execution/run_20260909T063214670950Z.json
+data/outputs/execution/latest_run.json
+```
+
+The generated EDA artifacts, quality report, cleaned dataset, and model-ready dataset all correspond to this same full-dataset execution.
 
 ### 2.7 Execution logging and monitoring information
 
@@ -334,7 +376,7 @@ data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
-For the verified final local execution, the execution status was **`SUCCESS`**, the quality status was **`PASS_WITH_WARNINGS`**, 253,680 records were processed, and 229,781 records were written to the cleaned/model-ready outputs.
+For the verified final local execution (`20260909T063214670950Z`), the execution status was **`SUCCESS`**, the quality status was **`PASS_WITH_WARNINGS`**, **253,680** records were read and processed, **23,899** exact duplicates were detected and removed, and **229,781** records were written to both the cleaned and model-ready outputs. No missing, invalid-target, invalid-known-range, or invalid-binary values were detected.
 
 ### 2.8 Airflow orchestration and two-minute schedule
 

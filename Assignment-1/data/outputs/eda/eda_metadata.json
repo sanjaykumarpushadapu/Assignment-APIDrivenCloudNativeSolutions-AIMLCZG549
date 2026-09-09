@@ -1,5 +1,5 @@
 {
-  "rows": 2,
+  "rows": 229781,
   "columns": 22,
   "target_column": "diabetes_012",
   "summary_statistics": "data/outputs/eda/summary_statistics.csv",

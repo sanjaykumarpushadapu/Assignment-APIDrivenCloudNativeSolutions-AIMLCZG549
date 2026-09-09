@@ -21,9 +21,9 @@ data/processed/diabetes_cleaned.csv
 
 Verified source row count: 253,680.
 
-Verified exact duplicate count: 23,899.
+Verified exact duplicate count: 23,899 (9.42%) in the full source.
 
-Expected cleaned row count: 229,781 for the current source when exact duplicates are removed.
+Verified cleaned row count: 229,781 after removing the 23,899 exact duplicates detected in the full 253,680-row source.
 
 ## EDA contract for Person 3
 
@@ -43,3 +43,18 @@ Person 3 should use `diabetes_cleaned.csv` for interpretable EDA. If Person 3's 
 ## Important boundary
 
 Person 2 has not implemented model training, model deployment, final dashboarding, or APIs. Those remain with Persons 3 and 4 according to the workload plan.
+
+## Verified full-dataset execution
+
+The handoff artifacts were refreshed from exactly one full-dataset end-to-end run:
+
+- Run ID: `20260909T063214670950Z`
+- Input rows read: 253,680
+- Input columns: 22
+- Exact duplicates detected: 23,899
+- Cleaned/model-ready rows: 229,781
+- Execution status: `SUCCESS`
+- Quality status: `PASS_WITH_WARNINGS`
+- Runtime: 16.55 seconds
+
+The authoritative execution log is `data/outputs/execution/run_20260909T063214670950Z.json`. The refreshed EDA outputs correspond to this same execution.
