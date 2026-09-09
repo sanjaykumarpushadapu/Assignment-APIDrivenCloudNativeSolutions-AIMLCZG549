@@ -1,20 +1,4 @@
-"""Single command-line entry point for every pipeline stage.
-
-Rather than each stage module (``ingestion.py``, ``runner.py``, and
-future stages like an EDA module) defining its own ``main()`` and being
-invoked via a different ``python -m diabetes_risk.pipeline.<module>``
-path, all stages are wired into one consistent command surface here:
-
-    python -m diabetes_risk.pipeline ingest [--source ...] [--manifest ...]
-    python -m diabetes_risk.pipeline run <input.csv> [--output-dir ...]
-
-Each stage's actual logic stays in its own module and is fully testable
-and importable on its own (see ``ingestion.ingest()`` and
-``runner.run()``) -- this file only parses arguments and dispatches to
-them, so adding a new stage later means adding one subcommand here, not
-inventing a new invocation pattern.
-"""
-
+"""Single command-line entry point for ingestion and Person-2 pipeline stages."""
 from __future__ import annotations
 
 import argparse
@@ -31,54 +15,45 @@ DEFAULT_DATASET_PATH = "data/raw/diabetes_012_health_indicators_BRFSS2015.csv"
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="python -m diabetes_risk.pipeline",
-        description="Diabetes risk data pipeline commands.",
-    )
+    parser = argparse.ArgumentParser(prog="python -m diabetes_risk.pipeline", description="Diabetes risk data pipeline commands.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    ingest_parser = subparsers.add_parser(
-        "ingest", help="Validate the raw dataset and log the result to an ingestion manifest."
-    )
-    ingest_parser.add_argument(
-        "--source",
-        type=Path,
-        default=Path(os.environ.get("DIABETES_DATASET_PATH", DEFAULT_DATASET_PATH)),
-        help="Path to the raw CSV (default: $DIABETES_DATASET_PATH, falling back to the known raw file).",
-    )
-    ingest_parser.add_argument(
-        "--manifest",
-        type=Path,
-        default=Path("data/raw/ingestion_manifest.json"),
-        help="Path to the ingestion manifest to append to.",
-    )
+    ingest_parser = subparsers.add_parser("ingest", help="Validate the raw dataset and append an ingestion manifest entry.")
+    ingest_parser.add_argument("--source", type=Path, default=Path(os.environ.get("DIABETES_DATASET_PATH", DEFAULT_DATASET_PATH)))
+    ingest_parser.add_argument("--manifest", type=Path, default=Path("data/raw/ingestion_manifest.json"))
 
-    run_parser = subparsers.add_parser("run", help="Preprocess an input CSV and write the cleaned output.")
-    run_parser.add_argument("input", type=Path, help="Path to the input CSV file")
-    run_parser.add_argument("--output-dir", type=Path, default=Path("data/processed"))
-    run_parser.add_argument(
-        "--target-column",
-        default=None,
-        help="Target column to exclude from normalization (e.g. Diabetes_012).",
-    )
-
+    run_parser = subparsers.add_parser("run", help="Run data quality, preprocessing and automated EDA.")
+    run_parser.add_argument("input", type=Path, nargs="?", default=None, help="Input CSV; defaults to DIABETES_DATASET_PATH.")
+    run_parser.add_argument("--output-dir", type=Path, default=None)
+    run_parser.add_argument("--report-dir", type=Path, default=None)
+    run_parser.add_argument("--target-column", default=None)
+    run_parser.add_argument("--keep-duplicates", action="store_true", help="Do not remove exact duplicate records.")
     return parser
 
 
 def main(argv: list[str] | None = None) -> None:
-    # A local .env (see .env.example) is loaded once here, at the single
-    # entry point, so every subcommand picks up its variables the same way.
     load_dotenv()
-
     parser = _build_parser()
     args = parser.parse_args(argv)
 
     if args.command == "ingest":
         report = ingest(args.source, args.manifest)
         print(json.dumps(report.as_dict(), indent=2))
-    elif args.command == "run":
-        summary = run(args.input, args.output_dir, target_column=args.target_column)
-        print(json.dumps(summary, indent=2))
+        return
+
+    if args.command == "run":
+        input_path = args.input or Path(os.environ.get("DIABETES_DATASET_PATH", DEFAULT_DATASET_PATH))
+        output_dir = args.output_dir or Path(os.environ.get("DIABETES_OUTPUT_DIR", "data/processed"))
+        report_dir = args.report_dir or Path(os.environ.get("DIABETES_REPORT_DIR", "data/outputs"))
+        target = args.target_column or os.environ.get("DIABETES_TARGET_COLUMN", "Diabetes_012")
+        summary = run(
+            input_path,
+            output_dir,
+            target_column=target,
+            report_dir=report_dir,
+            drop_duplicates=not args.keep_duplicates,
+        )
+        print(json.dumps(summary, indent=2, default=str))
 
 
 if __name__ == "__main__":

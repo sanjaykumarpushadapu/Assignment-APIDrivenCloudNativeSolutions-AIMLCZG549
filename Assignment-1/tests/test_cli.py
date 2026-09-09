@@ -24,11 +24,15 @@ def test_cli_ingest_subcommand(tmp_path, capsys) -> None:
 
 def test_cli_run_subcommand(tmp_path, capsys) -> None:
     input_path = tmp_path / "input.csv"
-    pd.DataFrame({"Age": [20, 40], "Diabetes_012": [0, 1]}).to_csv(input_path, index=False)
+    frame = pd.DataFrame({column: [0.0, 1.0] for column in EXPECTED_COLUMNS})
+    frame["BMI"] = [20.0, 30.0]
+    frame["Diabetes_012"] = [0.0, 1.0]
+    input_path = tmp_path / "input.csv"
+    frame.to_csv(input_path, index=False)
     output_dir = tmp_path / "out"
 
     main(["run", str(input_path), "--output-dir", str(output_dir), "--target-column", "Diabetes_012"])
 
     output = json.loads(capsys.readouterr().out)
     assert output["input_rows"] == 2
-    assert (output_dir / "processed.csv").exists()
+    assert (output_dir / "diabetes_cleaned.csv").exists()

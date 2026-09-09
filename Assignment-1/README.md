@@ -2,12 +2,12 @@
 
 Project repository for Group 49's **Diabetes Risk Prediction Using Health and Lifestyle Indicators** assignment.
 
-This project currently contains the local Python foundation for the assignment: dataset ingestion validation, a reusable pipeline CLI, and a project structure for the later cloud/dashboard/API work. The platform decision and the final cloud implementation are still pending as recorded in `Assignment_1_Workload_Plan.md`.
+The project contains a platform-neutral Python data pipeline, cloud-neutral Apache Airflow orchestration, and placeholders for the later dashboard/API work. GCP Cloud Composer is the planned production deployment target, but the core pipeline and DAG do not depend on GCP SDKs.
 
 ## Current status
 
 - **Person 1:** Complete. Business context, dataset verification, and ingestion validation are in place.
-- **Person 2:** Pending. Data quality, preprocessing, workflow automation, and execution logging remain.
+- **Person 2:** Complete for the local implementation. Data quality, preprocessing, automated EDA generation, Airflow DAG, scheduling configuration, execution logging, tests, and handoff documentation are implemented. Cloud Composer scheduled-run evidence remains a deployment-time activity.
 - **Person 3:** Pending. EDA, feature importance, and optional model analysis remain.
 - **Person 4:** Pending. Dashboard, API testing, and final demonstration remain.
 
@@ -17,11 +17,11 @@ This project currently contains the local Python foundation for the assignment: 
 src/diabetes_risk/
   api/          FastAPI application and OpenAPI endpoints
   dashboard/    Streamlit dashboard entry point
-  pipeline/     Ingestion, validation, preprocessing, and EDA stages
-tests/          Focused tests for the local pipeline
-data/           Local raw, processed, and output data (ignored by Git)
-reports/        Generated charts and summary outputs (ignored by Git)
-infra/          Placeholder for selected-cloud deployment assets
+  pipeline/     Ingestion, data quality, preprocessing, EDA, runner, and logging
+tests/          Focused unit/integration tests
+data/           Raw, processed, and generated pipeline artifacts
+dags/           Cloud-neutral Apache Airflow DAG
+infra/          GCP deployment notes for Cloud Composer
 docs/report/    Shared REPORT.md — final submission content, built step by step
 ```
 
@@ -109,7 +109,7 @@ This validates the dataset, checks required columns and the target field, comput
 python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012
 ```
 
-This cleans and normalizes the CSV and writes processed output to the default `data/processed` directory.
+This runs data-quality validation, removes exact duplicates, imputes missing values where required, creates the analytical cleaned dataset, creates a standardized model-ready dataset, generates EDA artifacts, and writes a structured execution log.
 
 ## Run the API
 
@@ -164,22 +164,14 @@ The shared report for the final submission lives in [`docs/report/REPORT.md`](do
 
 ## Remaining assignment work
 
-Before final submission, the team must still complete the following:
+Person 2 implementation is complete. The remaining team work is:
 
-1. Person 2: data-quality checks, preprocessing, workflow automation, and execution logging
-2. Person 3: EDA, feature-importance analysis, and any optional model evaluation
-3. Person 4: dashboard, four API details, API testing evidence, and final demo video
-4. Final review, documentation, screenshots, and submission upload
+1. Person 3: EDA interpretation, feature-importance analysis, and any optional model evaluation
+2. Person 4: dashboard, four API details, API testing evidence, and final demo video
+3. Final review, documentation, screenshots, and submission upload
 
-## Next platform decision
+## Orchestration and deployment
 
-Before the cloud-specific implementation is finalized, the group must decide:
+The Airflow DAG in `dags/diabetes_risk_pipeline.py` is cloud agnostic and schedules the complete Person-2 pipeline every two minutes with `max_active_runs=1`. The same DAG is intended for local Airflow testing and later deployment to GCP Cloud Composer. GCP-specific deployment notes live under `infra/gcp/`.
 
-- selected cloud platform
-- region and account access
-- schedule cadence and execution method
-- dashboard technology
-- API set and authentication method
-- deployment or hosting method
-
-This decision should be recorded in `Assignment_1_Workload_Plan.md` before the final cloud implementation is locked in.
+Do not commit credentials, service-account keys, or environment-specific secrets.

@@ -1,0 +1,29 @@
+{
+  "rows": 2,
+  "columns": 22,
+  "target_column": "diabetes_012",
+  "summary_statistics": "data/outputs/eda/summary_statistics.csv",
+  "missing_value_summary": "data/outputs/eda/missing_value_summary.csv",
+  "target_distribution": "data/outputs/eda/target_distribution.csv",
+  "target_distribution_chart": "data/outputs/eda/target_distribution.png",
+  "feature_distribution_charts": [
+    "data/outputs/eda/feature_distributions/bmi_distribution.png",
+    "data/outputs/eda/feature_distributions/age_distribution.png",
+    "data/outputs/eda/feature_distributions/genhlth_distribution.png",
+    "data/outputs/eda/feature_distributions/highbp_distribution.png",
+    "data/outputs/eda/feature_distributions/highchol_distribution.png",
+    "data/outputs/eda/feature_distributions/physactivity_distribution.png",
+    "data/outputs/eda/feature_distributions/cholcheck_distribution.png",
+    "data/outputs/eda/feature_distributions/smoker_distribution.png"
+  ],
+  "correlation_matrix": "data/outputs/eda/correlation_matrix.csv",
+  "bivariate_outputs": [
+    "data/outputs/eda/bivariate/bmi_vs_target.png",
+    "data/outputs/eda/bivariate/age_vs_target.png",
+    "data/outputs/eda/bivariate/highbp_vs_target.png",
+    "data/outputs/eda/bivariate/highchol_vs_target.png",
+    "data/outputs/eda/bivariate/physactivity_vs_target.png",
+    "data/outputs/eda/bivariate/genhlth_vs_target.png"
+  ],
+  "binned_features": "data/outputs/eda/binned_features.csv"
+}
