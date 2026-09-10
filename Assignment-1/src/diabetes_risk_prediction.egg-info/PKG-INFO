@@ -6,6 +6,7 @@ Requires-Python: >=3.11
 Requires-Dist: fastapi<1,>=0.115
 Requires-Dist: python-dotenv<2,>=1.0
 Requires-Dist: pandas<3,>=2.2
+Requires-Dist: matplotlib<4,>=3.9
 Requires-Dist: scikit-learn<2,>=1.5
 Requires-Dist: streamlit<2,>=1.40
 Requires-Dist: uvicorn[standard]<1,>=0.30

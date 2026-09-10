@@ -1,6 +1,7 @@
 fastapi<1,>=0.115
 python-dotenv<2,>=1.0
 pandas<3,>=2.2
+matplotlib<4,>=3.9
 scikit-learn<2,>=1.5
 streamlit<2,>=1.40
 uvicorn[standard]<1,>=0.30
