@@ -8,8 +8,14 @@ src/diabetes_risk/dashboard/app.py
 src/diabetes_risk/pipeline/__init__.py
 src/diabetes_risk/pipeline/__main__.py
 src/diabetes_risk/pipeline/cli.py
+src/diabetes_risk/pipeline/config.py
+src/diabetes_risk/pipeline/data_quality.py
+src/diabetes_risk/pipeline/eda.py
 src/diabetes_risk/pipeline/ingestion.py
+src/diabetes_risk/pipeline/logging_utils.py
+src/diabetes_risk/pipeline/model_evaluation.py
 src/diabetes_risk/pipeline/preprocessing.py
+src/diabetes_risk/pipeline/randomforestclassifier.py
 src/diabetes_risk/pipeline/runner.py
 src/diabetes_risk_prediction.egg-info/PKG-INFO
 src/diabetes_risk_prediction.egg-info/SOURCES.txt
@@ -18,6 +24,9 @@ src/diabetes_risk_prediction.egg-info/requires.txt
 src/diabetes_risk_prediction.egg-info/top_level.txt
 tests/test_api.py
 tests/test_cli.py
+tests/test_dag.py
+tests/test_data_quality.py
+tests/test_eda.py
 tests/test_ingestion.py
 tests/test_preprocessing.py
 tests/test_runner.py

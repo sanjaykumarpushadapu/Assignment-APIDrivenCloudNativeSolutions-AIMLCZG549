@@ -13,4 +13,7 @@ reports/generated/*
 !data/processed/.gitkeep
 !reports/generated/.gitkeep
 
+data/outputs/*
+!data/outputs/.gitkeep
+
 .streamlit/secrets.toml
