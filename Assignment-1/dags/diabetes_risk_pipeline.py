@@ -1,69 +1,189 @@
 """
-Cloud-agnostic Airflow DAG for the complete diabetes risk pipeline.
+Cloud Composer deployment DAG for the complete diabetes risk pipeline.
 
 Pipeline:
-
 1. Data quality + preprocessing + EDA
 2. Random Forest + feature importance
 3. Logistic Regression + model evaluation
 
-Person 3 models consume the model-ready dataset generated
-by the Person 2 pipeline:
-
-    data/processed/diabetes_model_ready.csv
+Cloud Storage is used as the persistent hand-off between Airflow tasks.
+The core pipeline code remains storage/orchestration neutral.
 """
 
 from __future__ import annotations
 
 import os
+import shutil
 from datetime import timedelta
 from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from pendulum import datetime
+from google.cloud import storage
 
 from diabetes_risk.pipeline.runner import run
 
 
 # ============================================================
-# PIPELINE PATHS
+# GCP / GCS CONFIGURATION
 # ============================================================
 
-def get_pipeline_paths() -> tuple[Path, Path, Path, str]:
-    """Return dataset, processed, report and target paths."""
+GCS_BUCKET = os.getenv(
+    "DIABETES_GCS_BUCKET",
+    "apicloudsolutions49-diabetes-pipeline",
+)
 
-    input_path = Path(
-        os.getenv(
-            "DIABETES_DATASET_PATH",
-            "data/raw/diabetes_012_health_indicators_BRFSS2015.csv",
+GCS_RAW_PREFIX = "data/raw"
+GCS_PROCESSED_PREFIX = "data/processed"
+GCS_OUTPUT_PREFIX = "data/outputs"
+
+
+# ============================================================
+# LOCAL WORKSPACE
+# ============================================================
+
+LOCAL_BASE_DIR = Path("/tmp/diabetes_risk_pipeline")
+LOCAL_RAW_DIR = LOCAL_BASE_DIR / "data" / "raw"
+LOCAL_PROCESSED_DIR = LOCAL_BASE_DIR / "data" / "processed"
+LOCAL_OUTPUT_DIR = LOCAL_BASE_DIR / "data" / "outputs"
+
+LOCAL_RAW_DATASET = (
+    LOCAL_RAW_DIR
+    / "diabetes_012_health_indicators_BRFSS2015.csv"
+)
+
+
+# ============================================================
+# GCS HELPERS
+# ============================================================
+
+def get_gcs_client() -> storage.Client:
+    """Create a GCS client using the Composer service account."""
+    return storage.Client()
+
+
+def upload_directory_to_gcs(
+    local_dir: Path,
+    gcs_prefix: str,
+) -> None:
+    """Upload all files under a local directory to GCS."""
+    client = get_gcs_client()
+    bucket = client.bucket(GCS_BUCKET)
+
+    if not local_dir.exists():
+        raise FileNotFoundError(
+            f"Local directory does not exist: {local_dir}"
         )
-    )
 
-    processed_dir = Path(
-        os.getenv(
-            "DIABETES_OUTPUT_DIR",
-            "data/processed",
+    for local_file in local_dir.rglob("*"):
+        if not local_file.is_file():
+            continue
+
+        relative_path = local_file.relative_to(local_dir)
+        blob_name = f"{gcs_prefix}/{relative_path}"
+
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(str(local_file))
+
+        print(
+            f"Uploaded {local_file} "
+            f"to gs://{GCS_BUCKET}/{blob_name}"
         )
+
+
+def download_gcs_object(
+    gcs_object: str,
+    local_path: Path,
+) -> None:
+    """Download one GCS object to a local file."""
+    client = get_gcs_client()
+    bucket = client.bucket(GCS_BUCKET)
+    blob = bucket.blob(gcs_object)
+
+    local_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
-    report_dir = Path(
-        os.getenv(
-            "DIABETES_REPORT_DIR",
-            "data/outputs",
+    blob.download_to_filename(str(local_path))
+
+    print(
+        f"Downloaded gs://{GCS_BUCKET}/{gcs_object} "
+        f"to {local_path}"
+    )
+
+
+def download_gcs_prefix(
+    gcs_prefix: str,
+    local_dir: Path,
+) -> None:
+    """Download all objects under a GCS prefix."""
+    client = get_gcs_client()
+    bucket = client.bucket(GCS_BUCKET)
+
+    local_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    blobs = client.list_blobs(
+        GCS_BUCKET,
+        prefix=gcs_prefix,
+    )
+
+    found = False
+
+    for blob in blobs:
+        if blob.name.endswith("/"):
+            continue
+
+        found = True
+
+        relative_path = Path(
+            blob.name[len(gcs_prefix):].lstrip("/")
         )
-    )
 
-    target_column = os.getenv(
-        "DIABETES_TARGET_COLUMN",
-        "Diabetes_012",
-    )
+        local_path = local_dir / relative_path
+        local_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    return (
-        input_path,
-        processed_dir,
-        report_dir,
-        target_column,
+        blob.download_to_filename(str(local_path))
+
+        print(
+            f"Downloaded gs://{GCS_BUCKET}/{blob.name} "
+            f"to {local_path}"
+        )
+
+    if not found:
+        raise FileNotFoundError(
+            f"No GCS objects found under gs://"
+            f"{GCS_BUCKET}/{gcs_prefix}"
+        )
+
+
+# ============================================================
+# WORKSPACE SETUP
+# ============================================================
+
+def reset_workspace() -> None:
+    """Create a clean local workspace for the task."""
+    if LOCAL_BASE_DIR.exists():
+        shutil.rmtree(LOCAL_BASE_DIR)
+
+    LOCAL_RAW_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    LOCAL_PROCESSED_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    LOCAL_OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
 
@@ -73,18 +193,42 @@ def get_pipeline_paths() -> tuple[Path, Path, Path, str]:
 # ============================================================
 
 def run_diabetes_pipeline() -> dict[str, object]:
-    """Run the complete Person-2 data pipeline."""
+    """
+    Download raw data from GCS, execute the existing Person-2
+    pipeline, and upload generated artifacts back to GCS.
+    """
 
-    input_path, processed_dir, report_dir, target_column = (
-        get_pipeline_paths()
+    reset_workspace()
+
+    download_gcs_object(
+        f"{GCS_RAW_PREFIX}/"
+        "diabetes_012_health_indicators_BRFSS2015.csv",
+        LOCAL_RAW_DATASET,
     )
 
-    return run(
-        input_path=input_path,
-        output_dir=processed_dir,
+    target_column = os.getenv(
+        "DIABETES_TARGET_COLUMN",
+        "Diabetes_012",
+    )
+
+    summary = run(
+        input_path=LOCAL_RAW_DATASET,
+        output_dir=LOCAL_PROCESSED_DIR,
         target_column=target_column,
-        report_dir=report_dir,
+        report_dir=LOCAL_OUTPUT_DIR,
     )
+
+    upload_directory_to_gcs(
+        LOCAL_PROCESSED_DIR,
+        GCS_PROCESSED_PREFIX,
+    )
+
+    upload_directory_to_gcs(
+        LOCAL_OUTPUT_DIR,
+        GCS_OUTPUT_PREFIX,
+    )
+
+    return summary
 
 
 # ============================================================
@@ -94,30 +238,33 @@ def run_diabetes_pipeline() -> dict[str, object]:
 
 def run_random_forest() -> dict[str, str]:
     """
-    Train Random Forest using the model-ready dataset
-    generated by the Person-2 preprocessing stage.
+    Download the model-ready dataset from GCS, train Random Forest,
+    and upload the model and feature-importance artifacts.
     """
+
+    reset_workspace()
+
+    download_gcs_object(
+        f"{GCS_PROCESSED_PREFIX}/diabetes_model_ready.csv",
+        LOCAL_PROCESSED_DIR / "diabetes_model_ready.csv",
+    )
 
     from diabetes_risk.pipeline.randomforestclassifier import (
         train_random_forest,
     )
 
-    _, processed_dir, report_dir, _ = get_pipeline_paths()
-
-    model_ready_path = (
-        processed_dir / "diabetes_model_ready.csv"
+    result = train_random_forest(
+        input_path=LOCAL_PROCESSED_DIR
+        / "diabetes_model_ready.csv",
+        report_dir=LOCAL_OUTPUT_DIR,
     )
 
-    if not model_ready_path.exists():
-        raise FileNotFoundError(
-            "Model-ready dataset not found: "
-            f"{model_ready_path}"
-        )
-
-    return train_random_forest(
-        input_path=model_ready_path,
-        report_dir=report_dir,
+    upload_directory_to_gcs(
+        LOCAL_OUTPUT_DIR,
+        GCS_OUTPUT_PREFIX,
     )
+
+    return result
 
 
 # ============================================================
@@ -127,30 +274,39 @@ def run_random_forest() -> dict[str, str]:
 
 def run_model_evaluation() -> dict[str, str]:
     """
-    Evaluate Random Forest and Logistic Regression
-    using the model-ready dataset.
+    Download the model-ready dataset and Random Forest model,
+    evaluate the models, and upload evaluation artifacts.
     """
+
+    reset_workspace()
+
+    download_gcs_object(
+        f"{GCS_PROCESSED_PREFIX}/diabetes_model_ready.csv",
+        LOCAL_PROCESSED_DIR / "diabetes_model_ready.csv",
+    )
+
+    # Random Forest model generated by Task 2.
+    download_gcs_object(
+        f"{GCS_OUTPUT_PREFIX}/random_forest_model.joblib",
+        LOCAL_OUTPUT_DIR / "random_forest_model.joblib",
+    )
 
     from diabetes_risk.pipeline.model_evaluation import (
         evaluate_models,
     )
 
-    _, processed_dir, report_dir, _ = get_pipeline_paths()
-
-    model_ready_path = (
-        processed_dir / "diabetes_model_ready.csv"
+    result = evaluate_models(
+        input_path=LOCAL_PROCESSED_DIR
+        / "diabetes_model_ready.csv",
+        report_dir=LOCAL_OUTPUT_DIR,
     )
 
-    if not model_ready_path.exists():
-        raise FileNotFoundError(
-            "Model-ready dataset not found: "
-            f"{model_ready_path}"
-        )
-
-    return evaluate_models(
-        input_path=model_ready_path,
-        report_dir=report_dir,
+    upload_directory_to_gcs(
+        LOCAL_OUTPUT_DIR,
+        GCS_OUTPUT_PREFIX,
     )
+
+    return result
 
 
 # ============================================================
@@ -168,12 +324,12 @@ with DAG(
     ),
 
     # Assignment requirement:
-    # run every 2 minutes
+    # run every 2 minutes.
     schedule="*/2 * * * *",
 
     catchup=False,
 
-    # Prevent overlapping pipeline runs
+    # Prevent overlapping complete pipeline executions.
     max_active_runs=1,
 
     default_args={
@@ -190,44 +346,30 @@ with DAG(
         "dataops",
         "person-2",
         "person-3",
+        "gcp",
+        "composer",
     ],
 
     description=(
         "Complete diabetes risk data and ML pipeline "
-        "running every two minutes."
+        "running every two minutes on Cloud Composer."
     ),
 ) as dag:
-
-    # --------------------------------------------------------
-    # TASK 1
-    # --------------------------------------------------------
 
     data_quality_preprocessing_and_eda = PythonOperator(
         task_id="data_quality_preprocessing_and_eda",
         python_callable=run_diabetes_pipeline,
     )
 
-    # --------------------------------------------------------
-    # TASK 2
-    # --------------------------------------------------------
-
     random_forest = PythonOperator(
         task_id="random_forest",
         python_callable=run_random_forest,
     )
 
-    # --------------------------------------------------------
-    # TASK 3
-    # --------------------------------------------------------
-
     model_evaluation = PythonOperator(
         task_id="model_evaluation",
         python_callable=run_model_evaluation,
     )
-
-    # --------------------------------------------------------
-    # TASK DEPENDENCIES
-    # --------------------------------------------------------
 
     data_quality_preprocessing_and_eda >> random_forest
     random_forest >> model_evaluation
