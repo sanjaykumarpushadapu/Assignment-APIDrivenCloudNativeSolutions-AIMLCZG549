@@ -4,14 +4,7 @@
 
 These questions must be answered by the team or instructor before the platform and final implementation are locked.
 
-1. Which cloud platform can all four team members access: Azure, AWS, Google Cloud, Databricks, Dataiku, KNIME, or another approved platform? Does the university provide accounts, licenses, or student credits? A comparison of the candidates is in `docs/platform_comparison.md` for the team to discuss, but no platform has been chosen yet.
-2. Is the required two-minute schedule supported by the selected platform and account plan?
-3. Should the dashboard display EDA charts, or are activity metrics, logs, and summary results sufficient?
-4. Is the prediction model compulsory, or is it an optional value-added component?
-5. If a model is built, must it be deployed as an endpoint?
-6. Are there university restrictions on cloud regions, services, or student credits?
-7. Is there a required demonstration-video length or format?
-8. Does the API requirement mean the cloud platform's built-in APIs, a team-created API, or either one?
+1. Is there a required demonstration-video length or format?
 
 Do not remove an open question until the team or instructor has answered it. Resolved decisions should be moved to the section below.
 
@@ -24,6 +17,12 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Approved dataset:** Kaggle Diabetes Health Indicators Dataset
 - **Dataset source:** https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset
 - **API documentation/testing tool:** Swagger/OpenAPI where available; otherwise an API client or the selected platform's API explorer
+- **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the two-minute schedule
+- **Cloud dashboard scope:** Per the assessment PDF (Sub-Objective 1, activity 1.5), the wording is "logging all activity details and displaying them on a Cloud dashboard" — "them" refers to the logged activity details, not EDA charts. So the graded requirement is execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and are a nice-to-have on the dashboard, not a rubric requirement. This is a document-interpretation reading, not confirmed by the instructor.
+- **Prediction model:** Not required by the assessment and removed from project scope. The full assessment PDF was checked directly (Sub-Objective 1: business understanding, ingestion, preprocessing, EDA incl. feature importance, DataOps/2-minute scheduling; Sub-Objective 2: built-in APIs) — "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. No model will be built for this assignment; the endpoint-deployment question is therefore not applicable.
+- **API requirement:** Per the assessment PDF (activity 3.1), "Retrieve Key Application Details: **Use Built-in APIs** to access important application information (e.g., flow, deployment etc.)" — this means the cloud platform's own built-in APIs (e.g., Cloud Composer/Airflow REST API, Cloud Monitoring/Logging), not a custom team-built API server. The required "at least four application details" (3.2) should come from those built-in APIs. The existing custom FastAPI app (`src/diabetes_risk/api/`) is not what's graded here and should be reconsidered or reframed by Person 4.
+- **Video submission:** Per the assessment PDF, no length or format is specified, but the delivery mechanism is: "Upload the Video into a google drive that will be shared" — Google Drive with a shared link, not the assignment portal.
+- **University restrictions:** None. Confirmed by the team — no BITS/university restrictions on cloud regions, services, or student credits apply to this assignment.
 - **Submission deadline:** Friday, 18 September 2026
 - **Current workload status:** Person 1 is complete; Person 2, Person 3, and Person 4 remain pending.
 
@@ -40,7 +39,7 @@ Do not remove an open question until the team or instructor has answered it. Res
 
 - **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation.
 - **Still required before final submission:** Person 2 preprocessing + scheduled workflow, Person 3 EDA/feature-importance analysis, and Person 4 dashboard + API + demo evidence.
-- **Current project status:** Local pipeline foundation is in place; cloud-platform decisions, workflow automation, dashboard, APIs, and final submission materials are still pending.
+- **Current project status:** Local pipeline foundation is in place and the cloud platform (GCP) is confirmed; workflow automation deployment, dashboard, APIs, and final submission materials are still pending.
 
 ---
 
@@ -138,58 +137,60 @@ The final platform must support:
 
 ## Platform decision record
 
-_Status: **not yet decided.** Nothing below is confirmed — this platform has not been chosen by the team._
+_Status: **Confirmed — Google Cloud Platform (GCP).** Recorded per the team's decision._
 
-After the team chooses a platform, record:
+- **Selected platform:** Google Cloud Platform (GCP)
+- **Account, license, or student-credit source:** _TBD — team to confirm (BITS AWS Virtual Lab is AWS-only and does not apply to this GCP decision; see note below)._
+- **Selected region or workspace:** _TBD — team to confirm._
+- **Required services:** Cloud Composer (managed Apache Airflow), Cloud Storage, Cloud Logging/Monitoring
+- **Two-minute scheduling method:** Airflow DAG (`dags/diabetes_risk_pipeline.py`) with `schedule="*/2 * * * *"`, deployed to Cloud Composer. **Confirmed supported** — Cloud Composer schedules are plain Airflow cron expressions with no documented minimum-interval restriction (verified against Google's Cloud Composer scheduling docs). The only real constraint is cost, not the schedule itself: Cloud Composer is an always-on managed environment with a baseline cost (~$44/month minimum for Composer 3, more for Composer 2) regardless of how often the DAG runs — this should be covered by the $300/90-day Google Cloud free trial credit for the assignment's ~3-week duration, but the team should confirm Composer is included under whichever account/credits are actually used.
+- **Exact four APIs:** _TBD — Person 4's work package._
+- **Dashboard method:** _TBD — Person 4's work package._
+- **Authentication method:** _TBD — team to confirm._
+- **Cost limit:** _TBD — team to confirm._
+- **Data-storage locations:** `data/raw/` (immutable source), `data/processed/` (cleaned + model-ready datasets), `data/outputs/` (quality, EDA, execution logs) — mapped to Cloud Storage once deployed
+- **Failure-handling method:** One retry with a one-minute retry delay (DAG `default_args`)
+- **Overlapping-run policy:** `max_active_runs=1` (DAG-level, prevents concurrent pipeline runs)
+- **Person responsible for platform administration:** _TBD — team to confirm._
+- **Platform decision date and fallback platform:** _TBD — team to confirm; Azure was the next-ranked candidate in the prior comparison._
 
-- Selected platform
-- Account, license, or student-credit source
-- Selected region or workspace
-- Required services
-- Two-minute scheduling method
-- Exact four APIs
-- Dashboard method
-- Authentication method
-- Cost limit
-- Data-storage locations
-- Failure-handling method
-- Overlapping-run policy
-- Person responsible for platform administration
-- Platform decision date and fallback platform
-
-A candidate comparison (Azure, GCP, Prefect Cloud, AWS, Databricks) is
-available in `docs/platform_comparison.md` for the team's reference and
-discussion, but it is a comparison document only, not a decision.
+Note: `docs/platform_comparison.md` (the earlier Azure/GCP/Prefect/AWS/Databricks
+comparison referenced above) is no longer present in the project folder as of
+this update.
 
 **Note on the BITS-provided AWS Virtual Lab:** BITS offers an optional AWS
 "Virtual Lab Session" for this course (API Gateway, CloudWatch, EC2, Glue,
-IAM, Lambda, SageMaker, Bedrock, etc.), not mandatory to use. See
-`docs/platform_comparison.md` for details and open questions about it
-(e.g., whether it persists across sessions).
+IAM, Lambda, SageMaker, Bedrock, etc.), not mandatory to use. It is AWS-only
+and does not apply now that the team has chosen GCP; kept here for reference
+in case the platform decision is revisited.
 
-## Platform-neutral architecture
-
-Replace the boxes with the selected platform's actual services after the platform decision.
+## Platform-neutral architecture (mapped to GCP)
 
 ```text
 Approved Kaggle Dataset
           ↓
-Raw Data Storage
+Raw Data Storage            -> Cloud Storage (data/raw/)
           ↓
-Data Ingestion
+Data Ingestion               -> Python pipeline (ingestion.py)
           ↓
-Data-Quality Checks
+Data-Quality Checks          -> Python pipeline (data_quality.py), orchestrated by Cloud Composer
           ↓
-Preprocessing
+Preprocessing                -> Python pipeline (preprocessing.py), orchestrated by Cloud Composer
           ↓
-Automated EDA Outputs
+Automated EDA Outputs        -> Python pipeline (eda.py) -> Cloud Storage (data/outputs/)
           ↓
-Optional Prediction Model
+Optional Prediction Model    -> TBD (Person 3)
           ↓
-Dashboard and Execution Logs
+Dashboard and Execution Logs -> Cloud Logging/Monitoring + TBD dashboard (Person 4)
           ↓
-Built-in Application APIs
+Built-in Application APIs    -> TBD (Person 4)
 ```
+
+Orchestration/scheduling for the middle stages is Cloud Composer (managed
+Apache Airflow) running `dags/diabetes_risk_pipeline.py` on the
+`*/2 * * * *` schedule. Region, storage bucket names, and authentication
+method are still to be confirmed by the team (see Platform decision record
+above).
 
 ---
 
