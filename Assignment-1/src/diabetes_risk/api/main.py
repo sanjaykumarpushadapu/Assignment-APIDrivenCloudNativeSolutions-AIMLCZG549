@@ -28,9 +28,12 @@ and `local_service.py`. Nothing below needs to change once those are
 implemented.
 """
 
+import os
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from . import gcp_service, local_service
 
@@ -39,6 +42,35 @@ app = FastAPI(
     version="0.1.0",
     description="Non-diagnostic risk-screening pipeline endpoints.",
 )
+
+# The dashboard (src/diabetes_risk/dashboard/app.py) runs on a different
+# port and calls this API from browser-side JS, so it needs CORS enabled.
+# DASHBOARD_ORIGIN defaults to the dashboard's documented local port
+# (see README.md "Run the dashboard"); override in .env if you serve it
+# elsewhere. "*" is fine for local development/demo, not for production.
+_DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "*")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[_DASHBOARD_ORIGIN] if _DASHBOARD_ORIGIN != "*" else ["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(NotImplementedError)
+def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONResponse:
+    """Turn a skeleton function's NotImplementedError into a clean 501.
+
+    Without this, FastAPI would return a generic 500 for every endpoint
+    that still delegates to an unimplemented gcp_service/local_service
+    function. A 501 is the honest, correct status code for "this route
+    exists but isn't implemented yet" -- useful to show during API testing
+    (activity 3.3) even before gcp_service.py is filled in for real.
+    """
+    return JSONResponse(
+        status_code=501,
+        content={"error": "not_implemented", "detail": str(exc)},
+    )
 
 
 @app.get("/health", tags=["system"])

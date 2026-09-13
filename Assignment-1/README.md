@@ -151,17 +151,21 @@ To implement and run them against a live environment:
 
 ## Run the dashboard
 
+The dashboard is a small FastAPI app (its own server, separate from `api/main.py`) that displays activity/execution details (assessment activity 1.5) by calling the real API's endpoints client-side -- it has no hard-coded data of its own. Run the API first (see "Run the API" above, default port 9000), then start the dashboard on a different port:
+
 **Windows (PowerShell):**
 
 ```powershell
-streamlit run src/diabetes_risk/dashboard/app.py
+uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 ```
 
 **macOS / Linux (Terminal):**
 
 ```bash
-streamlit run src/diabetes_risk/dashboard/app.py
+uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 ```
+
+Open `http://127.0.0.1:8000/` in a browser. If you run the API on a different host/port, set `DIABETES_API_BASE_URL` in `.env` to match. Until `gcp_service.py`/`local_service.py` are implemented, most panels will correctly show "Not implemented yet" (a 501 from the API) rather than fake numbers.
 
 ## Dataset
 
