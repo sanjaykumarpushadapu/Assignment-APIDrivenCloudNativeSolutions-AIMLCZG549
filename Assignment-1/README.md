@@ -7,8 +7,8 @@ The project contains a platform-neutral Python data pipeline, cloud-neutral Apac
 ## Current status
 
 - **Person 1:** Complete. Business context, dataset verification, and ingestion validation are in place.
-- **Person 2:** Complete for the local implementation. Data quality, preprocessing, automated EDA generation, Airflow DAG, scheduling configuration, execution logging, tests, and handoff documentation are implemented. Cloud Composer scheduled-run evidence remains a deployment-time activity.
-- **Person 3:** Pending. EDA, feature importance, and optional model analysis remain.
+- **Person 2:** Complete, including verified Cloud Composer deployment evidence (two consecutive scheduled runs, two minutes apart, all tasks successful).
+- **Person 3:** Complete. EDA interpretation (dataset overview, target distribution, feature distribution, correlation, bivariate analysis) is documented in `docs/report/REPORT.md` Section 3. An optional Random Forest vs. Logistic Regression model comparison is also implemented and evaluated, including feature importance and class-level metrics.
 - **Person 4:** Pending. Dashboard, API testing, and final demonstration remain.
 
 ## Project structure
@@ -46,7 +46,7 @@ The defaults are already correct for local development — you only need to edit
 ```text
 DIABETES_DATASET_PATH=data/raw/diabetes_012_health_indicators_BRFSS2015.csv
 DIABETES_OUTPUT_DIR=data/processed
-DIABETES_REPORT_DIR=reports/generated
+DIABETES_REPORT_DIR=data/outputs
 ```
 
 ## Local setup
@@ -111,6 +111,15 @@ python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRF
 
 This runs data-quality validation, removes exact duplicates, imputes missing values where required, creates the analytical cleaned dataset, creates a standardized model-ready dataset, generates EDA artifacts, and writes a structured execution log.
 
+### Optional model comparison commands
+
+```bash
+python -m diabetes_risk.pipeline randomforestclassifier
+python -m diabetes_risk.pipeline model_evaluation
+```
+
+`randomforestclassifier` trains a Random Forest on `data/processed/diabetes_model_ready.csv` (override with `DIABETES_MODEL_READY_PATH`) and writes the model, feature-importance CSV, and feature-importance plot to `data/outputs` (override with `DIABETES_REPORT_DIR`). `model_evaluation` must be run after it -- it loads the saved Random Forest model, trains a Logistic Regression model for comparison, and writes `model_evaluation.csv`, `model_comparison.png`, and per-model classification-report/confusion-matrix CSVs to the same report directory. See `docs/report/REPORT.md` Section 3.8 for the verified results.
+
 ## Run the API
 
 **Windows (PowerShell):**
@@ -126,6 +135,19 @@ uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
 ```
 
 OpenAPI documentation is available at `http://127.0.0.1:9000/docs`.
+
+### GCP setup for the API layer
+
+The API's application-detail endpoints (`/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, `/api/v1/schedule`, `/api/v1/model`) are currently skeletons (`src/diabetes_risk/api/gcp_service.py`, `src/diabetes_risk/api/local_service.py`) that call GCP's built-in APIs -- Cloud Composer, the Airflow REST API, and Cloud Storage -- per the assessment's "Use Built-in APIs" requirement (activity 3.1). `/health` and `/api/v1/metadata` work today without any GCP setup; the rest raise `NotImplementedError` until implemented.
+
+To implement and run them against a live environment:
+
+1. Bring up the Cloud Composer environment (see `infra/gcp/composer/README.md`).
+2. Create a service account with `roles/composer.viewer`, `roles/monitoring.viewer`, and `roles/storage.objectViewer`; download its key JSON (never commit it).
+3. Install the GCP client libraries: `pip install -e ".[gcp]"`.
+4. In `.env`, set `GCP_PROJECT_ID`, `GCP_LOCATION`, `GCP_COMPOSER_ENVIRONMENT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `DIABETES_GCS_BUCKET` (the same bucket name used by `dags/diabetes_risk_pipeline.py`).
+5. Implement the functions in `gcp_service.py` (Composer Environments API, Airflow REST API) and `local_service.py` (Cloud Storage API) -- see each function's docstring for the exact API call and required IAM role.
+6. See `infra/gcp/api/README.md` for the Airflow REST API's IAP-authentication step, which is separate from the service-account auth used for the other calls.
 
 ## Run the dashboard
 
@@ -156,7 +178,7 @@ The project expects the following verified dataset profile:
 - **Target column:** `Diabetes_012`
 - **Source:** Kaggle Diabetes Health Indicators Dataset
 
-Do not commit dataset files or credentials.
+The raw dataset CSV above is intentionally committed (see `.gitignore`) since it is CC0/public-domain and keeps the repository clone-and-run without a separate download step. Do not commit any other generated data files or credentials.
 
 ## Project report
 
@@ -164,11 +186,10 @@ The shared report for the final submission lives in [`docs/report/REPORT.md`](do
 
 ## Remaining assignment work
 
-Person 2 implementation is complete. The remaining team work is:
+Person 2 and Person 3 implementation are complete. The remaining team work is:
 
-1. Person 3: EDA interpretation, feature-importance analysis, and any optional model evaluation
-2. Person 4: dashboard, four API details, API testing evidence, and final demo video
-3. Final review, documentation, screenshots, and submission upload
+1. Person 4: dashboard, four API details, API testing evidence, and final demo video
+2. Final review, documentation, screenshots, and submission upload
 
 ## Orchestration and deployment
 

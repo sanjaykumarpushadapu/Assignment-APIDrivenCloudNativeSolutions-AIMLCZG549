@@ -1,8 +1,16 @@
 # Diabetes Risk Prediction Using Health and Lifestyle Indicators
 
-Group 49 — final submission report content. Built step by step per
-`Assignment_1_Workload_Plan.md`. Everyone edits this same file — add your
-section's content under the matching heading below.
+**Course:** AIMLCZG549 — API-Driven Cloud-Native Solutions
+**Assignment:** Assignment I
+**Group:** 49
+**Institution:** BITS Pilani, Work Integrated Learning Programmes
+
+This report documents the design, implementation, and verification of a cloud-based,
+API-accessible data pipeline for diabetes-risk screening from health and lifestyle
+indicators, delivered as four work packages: (1) business understanding, dataset
+selection, and ingestion; (2) data-quality validation, preprocessing, and scheduled
+pipeline automation; (3) exploratory data analysis and an optional predictive-model
+comparison; and (4) dashboard, APIs, and demonstration.
 
 ---
 
@@ -10,7 +18,7 @@ section's content under the matching heading below.
 
 ### 1.1 Introduction
 
-This report documents Group 49's Assignment 1 submission for AIMLCZG549 (API-Driven Cloud-Native Solutions): a cloud-based, API-accessible data pipeline for **diabetes risk screening from health and lifestyle indicators**. The pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI). Section 1 below covers Person 1's work package -- business understanding, dataset selection, and data ingestion -- which the rest of the pipeline (Sections 2-4) builds on.
+This section covers the business problem, dataset selection, and data ingestion that the rest of the pipeline (Sections 2-4) builds on. In outline, the pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results intended to be exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI).
 
 ### 1.2 Project topic
 
@@ -151,29 +159,29 @@ python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_in
 }
 ```
 
-Processed output (Person 2's stage) is written to `data/processed/`, kept separate from `data/raw/` so the original file is always preserved untouched. Covered by 5 automated tests in `tests/test_ingestion.py` (valid file, manifest append behavior, missing target column, missing feature column, missing file).
+Processed output (the preprocessing stage in Section 2) is written to `data/processed/`, kept separate from `data/raw/` so the original file is always preserved untouched. Covered by 5 automated tests in `tests/test_ingestion.py` (valid file, manifest append behavior, missing target column, missing feature column, missing file).
 
-**Evidence — terminal run (Person 1's machine):**
+**Evidence — terminal run:**
 
 ![Step 7 ingestion evidence: pytest passing and ingestion command output](imgs/p1-s7.png)
 
-All 7 tests pass, and the ingestion run against the real dataset matches the result recorded above exactly (same SHA-256 hash, same row/column counts), confirming it's reproducible outside the verification environment too.
+All 7 tests in the whole suite at that time pass (the project had 7 tests in total before later work packages added more), and the ingestion run against the real dataset matches the result recorded above exactly (same SHA-256 hash, same row/column counts), confirming it's reproducible outside the verification environment too.
 
-**Person 1 is now complete** -- topic confirmed, business problem written, dataset profiled and verified against the real file, data dictionary complete, suitability/limitations documented with a confirmed CC0 license, and raw data ingested, validated, and logged for Person 2 to build on.
+In summary, the business problem, dataset profile, and data dictionary are established and verified against the real file, suitability and limitations are documented with a confirmed CC0 license, and the raw data has been ingested, validated, and logged, providing a verified foundation for the preprocessing stage in Section 2.
 
 ---
 
 ## 2. Data Quality, Preprocessing, and Pipeline Automation
 
-### 2.1 Person 2 scope
+### 2.1 Scope
 
-Person 2's work package covers **data-quality validation, preprocessing, automated EDA generation, DataOps execution, two-minute scheduling, execution logging, verification, and handoff to Person 3**. The implementation is deliberately platform-neutral so that the same Python processing code can run locally or under Apache Airflow, with Google Cloud Composer documented as the planned production orchestration environment.
+This section covers **data-quality validation, preprocessing, automated EDA generation, DataOps execution, two-minute scheduling, execution logging, verification, and handoff to the EDA and modeling stage (Section 3)**. The implementation is deliberately platform-neutral so that the same Python processing code can run locally or under Apache Airflow, with Google Cloud Composer documented as the planned production orchestration environment.
 
-The raw dataset supplied by Person 1 remains immutable. All transformed datasets, analytical artifacts, and execution logs are written to separate `data/processed/` and `data/outputs/` locations.
+The raw dataset from Section 1 remains immutable. All transformed datasets, analytical artifacts, and execution logs are written to separate `data/processed/` and `data/outputs/` locations.
 
 ### 2.2 Data-quality validation
 
-Person 2 implemented a reusable validation module in `src/diabetes_risk/pipeline/data_quality.py`. The module validates the approved dataset before preprocessing and produces machine-readable quality results.
+A reusable validation module is implemented in `src/diabetes_risk/pipeline/data_quality.py`. The module validates the approved dataset before preprocessing and produces machine-readable quality results.
 
 The implemented checks include:
 
@@ -211,7 +219,7 @@ data/outputs/quality/missing_values.csv
 
 ### 2.3 Preprocessing and cleaned-data generation
 
-Person 2 implemented the transformation contract in `src/diabetes_risk/pipeline/preprocessing.py`. The preprocessing flow is applied consistently on every pipeline execution:
+The transformation contract is implemented in `src/diabetes_risk/pipeline/preprocessing.py`. The preprocessing flow is applied consistently on every pipeline execution:
 
 1. Normalize column names to lowercase snake case for downstream processing consistency.
 2. Detect and remove exact duplicate records, retaining the first occurrence.
@@ -220,7 +228,7 @@ Person 2 implemented the transformation contract in `src/diabetes_risk/pipeline/
 5. One-hot encode non-numeric categorical fields where required.
 6. Preserve existing binary and ordinal indicators in interpretable form.
 7. Keep the target separate from feature standardization.
-8. Write an analytical cleaned dataset for Person 3.
+8. Write an analytical cleaned dataset for the EDA stage (Section 3).
 9. Write a separate standardized model-ready dataset for optional downstream model work.
 
 For the current approved dataset, no imputation was required because the raw file contains **zero missing values**. Likewise, no one-hot categorical encoding was required in the current run because the dataset fields are already represented as numeric, binary, or ordinal values.
@@ -240,11 +248,11 @@ The current execution produced:
 
 Two processed datasets are intentionally maintained rather than applying the same transformation to both analytical and modelling use cases.
 
-**`data/processed/diabetes_cleaned.csv`** is the primary handoff to Person 3. It retains the original, interpretable feature scales so that BMI, health-day counts, age groups, and other indicators remain meaningful in EDA charts and tables.
+**`data/processed/diabetes_cleaned.csv`** is the primary handoff to the EDA stage (Section 3). It retains the original, interpretable feature scales so that BMI, health-day counts, age groups, and other indicators remain meaningful in EDA charts and tables.
 
 **`data/processed/diabetes_model_ready.csv`** is a separate downstream modelling output. Z-score standardization is applied to the continuous/count fields `BMI`, `MentHlth`, and `PhysHlth`, while binary and ordinal indicators remain interpretable and the target is not scaled.
 
-This separation satisfies the assignment's normalization/standardization requirement without making the EDA outputs harder to interpret. It also leaves Person 3 free to use the model-ready dataset if the optional prediction model is included.
+This separation satisfies the assignment's normalization/standardization requirement without making the EDA outputs harder to interpret. It also leaves the optional model-comparison stage (Section 3.8) free to use the model-ready dataset.
 
 The preprocessing module writes its transformation summary to:
 
@@ -254,7 +262,7 @@ data/processed/preprocessing_report.json
 
 ### 2.5 Automated EDA artifact generation
 
-Person 2 automated the **generation** of the EDA artifacts in `src/diabetes_risk/pipeline/eda.py`. Person 3 remains responsible for the analytical interpretation and final EDA narrative.
+This section automates the **generation** of the EDA artifacts in `src/diabetes_risk/pipeline/eda.py`. Section 3 remains responsible for the analytical interpretation and final EDA narrative.
 
 Each successful pipeline run refreshes the following outputs required by the workload plan:
 
@@ -287,7 +295,7 @@ The automated bivariate outputs cover six selected relationships against the dia
 - Physical Activity vs. target
 - General Health vs. target
 
-This design allows the EDA artifacts to be refreshed automatically without requiring Person 3 to rerun notebooks or manually regenerate charts.
+This design allows the EDA artifacts to be refreshed automatically without requiring manual notebook reruns or chart regeneration downstream.
 
 ### 2.6 End-to-end DataOps runner
 
@@ -307,15 +315,15 @@ Automated EDA artifact generation
 Structured execution log
 ```
 
-The runner records the status of each execution and writes outputs to predictable locations. The verified full-dataset local execution (run ID `20260909T063214670950Z`) started at `2026-09-09T06:32:14.670942Z`, completed at `2026-09-09T06:32:31.222395Z`, and finished in **16.55 seconds**. It read all **253,680** raw records and produced the expected 229,781-row processed outputs.
+The runner records the status of each execution and writes outputs to predictable locations. The verified full-dataset local execution (run ID `20260912T025251232582Z`) started at `2026-09-12T02:52:51.232576Z`, completed at `2026-09-12T02:52:56.336563Z`, and finished in **5.10 seconds**. It read all **253,680** raw records and produced the expected 229,781-row processed outputs.
 
 ### 2.7 Verified full-dataset execution result
 
-To remove ambiguity about the size of the data actually processed, Person 2 retained **one fresh successful end-to-end run only** against the complete raw CSV. No two-record test fixture is represented in the retained pipeline outputs or execution results. The test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file.
+To remove ambiguity about the size of the data actually processed, this section retained **one fresh successful end-to-end run only** against the complete raw CSV. No two-record test fixture is represented in the retained pipeline outputs or execution results. The test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file.
 
 | Execution metric | Verified result |
 |---|---:|
-| Run ID | `20260909T063214670950Z` |
+| Run ID | `20260912T025251232582Z` |
 | Input file | `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` |
 | Input rows read | **253,680** |
 | Input columns | **22** |
@@ -329,7 +337,7 @@ To remove ambiguity about the size of the data actually processed, Person 2 reta
 | Invalid binary values | **0** |
 | Quality status | `PASS_WITH_WARNINGS` |
 | Execution status | `SUCCESS` |
-| Runtime | **16.55 seconds** |
+| Runtime | **5.10 seconds** |
 
 The deduplicated target distribution used by the refreshed EDA artifacts is:
 
@@ -340,20 +348,20 @@ The deduplicated target distribution used by the refreshed EDA artifacts is:
 | 2 | 35,097 | 15.27% |
 | **Total** | **229,781** | **100.00%** |
 
-The original raw target distribution documented in Section 1 remains unchanged; the table above reflects the **post-duplicate-removal dataset** used for Person 2's refreshed EDA outputs. The raw CSV itself remains immutable.
+The original raw target distribution documented in Section 1 remains unchanged; the table above reflects the **post-duplicate-removal dataset** used for the refreshed EDA outputs in this section. The raw CSV itself remains immutable.
 
 The authoritative execution record is stored at:
 
 ```text
-data/outputs/execution/run_20260909T063214670950Z.json
+data/outputs/execution/run_20260912T025251232582Z.json
 data/outputs/execution/latest_run.json
 ```
 
 The generated EDA artifacts, quality report, cleaned dataset, and model-ready dataset all correspond to this same full-dataset execution.
 
-### 2.7 Execution logging and monitoring information
+### 2.8 Execution logging and monitoring information
 
-Person 2 implemented `src/diabetes_risk/pipeline/logging_utils.py` for structured JSON execution logging. Each pipeline run records:
+`src/diabetes_risk/pipeline/logging_utils.py` implements structured JSON execution logging. Each pipeline run records:
 
 - Unique run ID
 - Start timestamp
@@ -376,9 +384,9 @@ data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
-For the verified final local execution (`20260909T063214670950Z`), the execution status was **`SUCCESS`**, the quality status was **`PASS_WITH_WARNINGS`**, **253,680** records were read and processed, **23,899** exact duplicates were detected and removed, and **229,781** records were written to both the cleaned and model-ready outputs. No missing, invalid-target, invalid-known-range, or invalid-binary values were detected.
+For the verified final local execution (`20260912T025251232582Z`), the execution status was **`SUCCESS`**, the quality status was **`PASS_WITH_WARNINGS`**, **253,680** records were read and processed, **23,899** exact duplicates were detected and removed, and **229,781** records were written to both the cleaned and model-ready outputs. No missing, invalid-target, invalid-known-range, or invalid-binary values were detected.
 
-### 2.8 Airflow orchestration and two-minute schedule
+### 2.9 Airflow orchestration and two-minute schedule
 
 `dags/diabetes_risk_pipeline.py` implements the orchestration layer using **Apache Airflow**. The DAG is intentionally cloud agnostic and invokes the same platform-neutral Python runner used for local execution.
 
@@ -400,9 +408,42 @@ The reliability configuration includes:
 
 The planned production deployment target is **Google Cloud Composer**, which provides managed Apache Airflow. GCP-specific deployment notes are isolated under `infra/gcp/`, while the core Python processing and DAG remain portable.
 
-### 2.9 Configuration and local execution
+#### Cloud Composer deployment verification
 
-Person 2 added environment-driven configuration through `src/diabetes_risk/pipeline/config.py` and a unified command-line entry point through `src/diabetes_risk/pipeline/cli.py`.
+The DAG was deployed to a live **Google Cloud Composer** environment to verify the two-minute schedule under real managed-orchestration infrastructure, separate from local Airflow unit testing.
+
+| Deployment detail | Value |
+|---|---|
+| GCP project | `diabetes-risk-group49` |
+| Composer environment | `diabetes-risk-env` |
+| Location | `us-central1` |
+| Airflow version | `2.11.1` |
+| Confirmed schedule interval (Composer console) | `*/2 * * * *` |
+
+![Cloud Composer DAGs list showing diabetes_risk_pipeline with schedule interval */2 * * * *, active state, and successful run counts](imgs/p2-composer-1.png)
+
+The Cloud Storage bucket managed by the environment is used as the data hand-off between Airflow tasks: the raw dataset is read from `data/raw/`, and processed/EDA/model outputs are written back to `data/processed/` and `data/outputs/`.
+
+Two consecutive scheduled runs, exactly two minutes apart, were captured as evidence of the configured cadence:
+
+| DAG run (UTC) | Task | Status | Start (UTC) | End (UTC) | Duration |
+|---|---|---|---|---|---|
+| `scheduled__2026-09-12T12:10:00+00:00` | data_quality_preprocessing_and_eda | Success | 12:12 PM | 12:12 PM | 17.88 s |
+| `scheduled__2026-09-12T12:10:00+00:00` | random_forest | Success | 12:12 PM | 12:13 PM | 1 min 19.59 s |
+| `scheduled__2026-09-12T12:10:00+00:00` | model_evaluation | Success | 12:13 PM | 12:15 PM | 1 min 25.61 s |
+| `scheduled__2026-09-12T12:12:00+00:00` | data_quality_preprocessing_and_eda | Success | 12:15 PM | 12:16 PM | 53.00 s |
+| `scheduled__2026-09-12T12:12:00+00:00` | random_forest | Success | 12:16 PM | 12:19 PM | 3 min 6.47 s |
+| `scheduled__2026-09-12T12:12:00+00:00` | model_evaluation | Success | 12:19 PM | 12:21 PM | 1 min 36.85 s |
+
+![Cloud Composer run history: scheduled run at 12:10 PM UTC with all three tasks (data_quality_preprocessing_and_eda, random_forest, model_evaluation) showing Success](imgs/p2-composer-3.png)
+
+![Cloud Composer run history: scheduled run at 12:12 PM UTC, exactly two minutes after the previous run, with all three tasks showing Success](imgs/p2-composer-2.png)
+
+All three tasks completed successfully for both scheduled runs, confirming that the DAG executes the complete data-quality, preprocessing, EDA, and model pipeline automatically every two minutes as required. The environment was torn down after evidence capture to avoid ongoing Cloud Composer billing; it can be recreated from the same DAG and infrastructure notes at any time.
+
+### 2.10 Configuration and local execution
+
+Environment-driven configuration is provided through `src/diabetes_risk/pipeline/config.py`, along with a unified command-line entry point through `src/diabetes_risk/pipeline/cli.py`.
 
 The pipeline can therefore be executed locally without GCP dependencies. The main commands are:
 
@@ -413,15 +454,17 @@ python -m diabetes_risk.pipeline run
 
 The default configuration uses the repository's raw dataset and separates processed and reporting outputs. Environment variables can override the dataset, target column, processed-output directory, and report-output directory when the same code is deployed to another environment.
 
-### 2.10 Verification and test results
+### 2.11 Verification and test results
 
-The Person 2 implementation was verified using both automated tests and an end-to-end run against the real repository dataset.
+This implementation was verified using both automated tests and an end-to-end run against the real repository dataset.
 
 **Automated verification:**
 
 ```text
 17 passed, 1 skipped
 ```
+
+(This count reflects the test suite at the time this section was completed, before the model-evaluation tests in Section 3.8 were added. The full suite, including `tests/test_randomforestclassifier.py` and `tests/test_model_evaluation.py`, now passes 20 tests with 1 skipped -- see Section 3.8.)
 
 The one skipped test is Airflow-specific because an Airflow runtime is not installed in the local development environment. Airflow is intentionally kept outside the core Python dependency set because it is expected to be supplied by the orchestration runtime, such as Cloud Composer.
 
@@ -432,9 +475,9 @@ Additional validation completed successfully:
 - End-to-end execution against the actual 253,680-row raw CSV
 - Generated processed datasets and EDA artifacts verified at the expected output locations
 
-### 2.11 Person 2 evidence
+### 2.12 Evidence summary
 
-The Person 2 evidence index is maintained under `docs/evidence/person2/`. The local validation record documents the actual data-quality, preprocessing, output, test, and scheduling results.
+The evidence index for this section is maintained under `docs/evidence/person2/`. The local validation record documents the actual data-quality, preprocessing, output, test, and scheduling results.
 
 The verified local evidence includes:
 
@@ -450,33 +493,157 @@ The verified local evidence includes:
 - Structured execution log
 - Airflow DAG configuration
 
-**Deployment-time evidence still required:** screenshots of **two consecutive scheduled runs approximately two minutes apart**, including trigger time, completion status, distinct execution-log entries, and refreshed EDA timestamps. These screenshots have deliberately not been fabricated because Cloud Composer/Airflow deployment evidence is environment-specific.
+**Deployment-time evidence:** captured. Two consecutive Cloud Composer scheduled runs (`12:10 PM` and `12:12 PM`, exactly two minutes apart) both completed successfully across all three tasks, and the Composer console confirms the `*/2 * * * *` schedule interval. See "Cloud Composer deployment verification" under Section 2.9 for the full run table.
 
-### 2.12 Handoff to Person 3
+### 2.13 Summary
 
-Person 2's primary analytical handoff is:
-
-```text
-data/processed/diabetes_cleaned.csv
-```
-
-The handoff includes the cleaned dataset, preprocessing contract, data-quality results, automated EDA outputs, execution logs, and documentation. Person 3 should use `diabetes_cleaned.csv` for interpretable EDA and may use `diabetes_model_ready.csv` if an optional prediction model is included.
-
-The automated EDA contract provides target distribution, selected feature distributions, correlation results, selected bivariate analyses, and Age/BMI binning. Person 3 owns interpretation of these outputs and any optional model development.
-
-Person 2 does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those remain with the subsequent work packages defined in the project plan.
-
-### 2.13 Person 2 completion statement
-
-Person 2 is complete for the local implementation stage: the approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy, and the complete implementation has passed the available automated verification suite.
-
-The only remaining Person 2 evidence item is deployment-time proof of consecutive scheduled Airflow/Cloud Composer runs once the team's cloud environment is available.
+The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy, verified against a live Cloud Composer deployment (Section 2.9, Section 2.12). The complete implementation has passed the available automated verification suite. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
 
 ---
 
 ## 3. EDA, Optional Model, and Dashboard Analysis
 
-_Pending._
+### 3.1 Scope
+
+This section covers interpretation of the automated EDA outputs from Section 2, plus an optional (not required by the assessment) predictive-model comparison built on top of the model-ready dataset. It does not implement the dashboard or the four required application APIs; those are covered in Section 4.
+
+**Source:** the EDA interpretation and charts in Sections 3.2-3.7 are drawn from [`Diabetes_EDA_Person3.pptx`](../../Diabetes_EDA_Person3.pptx) (the original analysis deck for this section); the four chart images embedded below are extracted directly from that file. Section 3.8's model implementation, evaluation, and evidence were independently run and verified for this report (see Section 3.9 for the reproducibility distinction between the two).
+
+### 3.2 Dataset overview and completeness
+
+The interpretation is based on the analytical dataset produced in Section 2 after exact-duplicate removal:
+
+| Metric | Value |
+|---|---:|
+| Analyzed records | **229,781** |
+| Variables | **22** |
+| Target classes | **3** (`Diabetes_012`) |
+| Missing values | **0** (0.0% across every field) |
+
+The 22 features group into four categories: clinical (high BP, high cholesterol, stroke, heart disease), lifestyle (physical activity, smoking, fruit/vegetable intake), health status (BMI, general/mental/physical health, mobility), and demographic (age band, education, income, sex).
+
+Because the missing-value summary reports zero missing observations across all 22 analyzed variables, no rows required exclusion for missingness at this stage; this conclusion applies specifically to the processed analytical dataset used for these outputs.
+
+### 3.3 Target distribution
+
+The target is strongly imbalanced, particularly for the prediabetes class:
+
+| `Diabetes_012` | Records | Percentage |
+|---:|---:|---:|
+| 0 — No diabetes | 190,055 | 82.71% |
+| 1 — Prediabetes | 4,629 | 2.01% |
+| 2 — Diabetes | 35,097 | 15.27% |
+
+![Diabetes risk target distribution: bar chart showing 190,055 records for class 0, 4,629 for class 1, and 35,097 for class 2](imgs/p3-target-distribution.png)
+
+**Modeling implication:** with this degree of imbalance, accuracy alone is not a reliable measure of model quality. Class-level precision, recall, and F1-score must be reported alongside it — this is confirmed empirically in Section 3.8 below.
+
+### 3.4 Feature distribution analysis
+
+The population combines high cardiometabolic exposure with widespread reported physical activity:
+
+![Feature distribution: share of respondents reporting High BP (45.4%), High cholesterol (44.2%), Physical activity (73.3%), Smoker (46.6%), Stroke (4.5%), and Heart disease/attack (10.3%)](imgs/p3-feature-distribution.png)
+
+Selected distribution statistics:
+
+| Feature | Mean | Median | Range / Scale |
+|---|---:|---:|---|
+| BMI | 28.69 | 27 | 12 to 98 |
+| Age band | 8.09 | 8 | 1 to 13 |
+| General health | 2.60 | 3 | 1 to 5 |
+
+High BP and high cholesterol each affect roughly 4 in 10 respondents (45.4% and 44.2% respectively), while 73.3% report physical activity, 46.6% report smoking, 10.3% report heart disease/attack, and 4.5% report a prior stroke.
+
+### 3.5 Correlation analysis
+
+Associations with `Diabetes_012` are modest; no single feature dominates:
+
+![Pearson correlation of 12 features with Diabetes_012, ranging from +0.285 (General health) to -0.147 (Income)](imgs/p3-correlation-analysis.png)
+
+| Strongest positive | r | Strongest negative | r |
+|---|---:|---|---:|
+| General health | +0.285 | Income | −0.147 |
+| High BP | +0.262 | Education | −0.108 |
+| BMI | +0.212 | Physical activity | −0.103 |
+| Difficulty walking | +0.211 | Heavy alcohol consumption | −0.067 |
+| High cholesterol | +0.203 | | |
+
+Correlation indicates association, not causation.
+
+### 3.6 Bivariate analysis
+
+Six priority features were compared against the ordered diabetes outcome:
+
+![Bivariate analysis: correlation of BMI, Age, High BP, High cholesterol, Physical activity, and General health with Diabetes_012](imgs/p3-bivariate-analysis.png)
+
+General health has the strongest of the six associations (+0.285). High BP (+0.262), BMI (+0.212), and high cholesterol (+0.203) all rise with the ordered target, and age is positively associated (+0.185). Physical activity is inversely associated (−0.103).
+
+**Interpretation boundary:** these values summarize linear association; they do not prove a causal effect or substitute for group-level significance tests.
+
+### 3.7 Consolidated EDA findings
+
+- **Data quality:** 229,781 complete records; zero missing values across all 22 analyzed fields.
+- **Target risk:** 82.71% of records are class 0; prediabetes is only 2.01%, creating severe class imbalance.
+- **Health signals:** general health, high BP, BMI, mobility difficulty, and high cholesterol show the largest positive associations with the target.
+- **Protective associations:** income, education, and physical activity show the largest negative correlations with the target.
+
+### 3.8 Optional model implementation and evaluation
+
+An optional predictive-model comparison was implemented on top of the model-ready dataset, even though the assessment does not require a prediction model (see the Workload Plan's Project Details). This is additive, value-added analysis rather than a required deliverable.
+
+**Implementation:** `src/diabetes_risk/pipeline/randomforestclassifier.py` trains a Random Forest (200 trees, `random_state=42`) on an 80/20 stratified train/test split (183,824 train / 45,957 test records) and saves feature importances. `src/diabetes_risk/pipeline/model_evaluation.py` reproduces the same split, trains a Logistic Regression model (`class_weight="balanced"`, `StandardScaler`-normalized features), and evaluates both models side by side. Both are exposed as CLI subcommands (`python -m diabetes_risk.pipeline randomforestclassifier` and `python -m diabetes_risk.pipeline model_evaluation`) and as separate Cloud Composer DAG tasks (Section 2.9).
+
+**Verified local run result** (executed against the real 229,781-row model-ready dataset):
+
+| Model | Accuracy | Balanced Accuracy | Precision (weighted) | Recall (weighted) | F1 (weighted) |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 62.92% | **51.35%** | 83.69% | 62.92% | 70.33% |
+| Random Forest | **82.47%** | 38.39% | 77.42% | 82.47% | 78.74% |
+
+![Model performance comparison: grouped bar chart of Accuracy, Balanced Accuracy, Precision, Recall, and F1 Score for Logistic Regression and Random Forest](imgs/p3-model-comparison.png)
+
+**Random Forest has the higher raw accuracy but the lower balanced accuracy — this is the class-imbalance effect flagged in Section 3.3, and it shows up directly in the per-class results.** Random Forest's classification report scores **0.0 precision, recall, and F1 for class 1 (prediabetes)** — it never predicts the minority class at all (confusion matrix: 0 of 926 true prediabetes cases predicted correctly). Logistic Regression, trained with `class_weight="balanced"`, trades off overall accuracy for materially better minority-class handling: 30.3% recall on class 1 and 59.3% recall on class 2, at the cost of much lower precision on class 0.
+
+| Random Forest confusion matrix | Pred 0 | Pred 1 | Pred 2 |
+|---|---:|---:|---:|
+| True 0 | 36,568 | 55 | 1,389 |
+| True 1 | 820 | **0** | 106 |
+| True 2 | 5,682 | 6 | 1,331 |
+
+| Logistic Regression confusion matrix | Pred 0 | Pred 1 | Pred 2 |
+|---|---:|---:|---:|
+| True 0 | 24,469 | 6,729 | 6,814 |
+| True 1 | 265 | 281 | 380 |
+| True 2 | 1,206 | 1,649 | 4,164 |
+
+**Conclusion:** neither model is production-ready for the minority prediabetes class, and accuracy alone would have hidden this — Random Forest's 82.5% accuracy looks strong until the per-class breakdown shows it never identifies a single prediabetes case. This confirms the EDA's own modeling-implication warning (Section 3.3) with actual model results rather than assumption.
+
+Covered by automated tests in `tests/test_randomforestclassifier.py` (verifies the model artifact, feature-importance CSV/plot, and that the target column is excluded from feature importances) and `tests/test_model_evaluation.py` (verifies both models train, all comparison/report/confusion-matrix artifacts are written, and that evaluation fails clearly if the Random Forest model has not been trained first). Both use synthetic fixtures via pytest's `tmp_path`, matching the existing test style; the full suite passes 20 tests with 1 skipped (Section 2.11).
+
+**Feature importance** (Random Forest, top 10 of 21):
+
+![Random Forest feature importance: BMI highest at 0.183, followed by Age, Income, Physical health, Education, General health, Mental health, High BP, Fruits, and Smoker](imgs/p3-feature-importance.png)
+
+| Feature | Importance |
+|---|---:|
+| BMI | 0.183 |
+| Age | 0.124 |
+| Income | 0.102 |
+| Physical health (days) | 0.085 |
+| Education | 0.073 |
+| General health | 0.065 |
+| Mental health (days) | 0.065 |
+| High BP | 0.040 |
+| Fruits | 0.035 |
+| Smoker | 0.034 |
+
+Note that Random Forest's feature-importance ranking (BMI, age, income) differs from the EDA's linear-correlation ranking (general health, high BP, BMI) — this is expected, since feature importance captures non-linear and interaction effects the Pearson correlation in Section 3.5 does not.
+
+### 3.9 Known limitations
+
+- The four EDA charts in this section were authored as a standalone analysis with embedded static images; there is no checked-in reproducible script that regenerates them from the dataset. The model-evaluation charts and metrics in Section 3.8, by contrast, were regenerated from a fresh local pipeline run for this report and are fully reproducible via the two CLI commands listed above.
+- The optional model (Section 3.8) is not integrated into the automated `run()` pipeline or DAG Task 1 from Section 2 — it runs as separate CLI commands / DAG tasks, consistent with it being optional, additive analysis rather than part of the required DataOps pipeline.
+
 
 ---
 

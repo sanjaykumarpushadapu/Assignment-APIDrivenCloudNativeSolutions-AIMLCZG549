@@ -30,9 +30,22 @@ def test_cli_run_subcommand(tmp_path, capsys) -> None:
     input_path = tmp_path / "input.csv"
     frame.to_csv(input_path, index=False)
     output_dir = tmp_path / "out"
+    # Isolate quality/EDA/execution-log output under tmp_path too, so this test
+    # can never write into the real project's data/outputs/ (that used to
+    # silently overwrite real pipeline evidence with this test's 2-row fixture
+    # whenever anyone ran `pytest`).
+    report_dir = tmp_path / "report"
 
-    main(["run", str(input_path), "--output-dir", str(output_dir), "--target-column", "Diabetes_012"])
+    main([
+        "run",
+        str(input_path),
+        "--output-dir", str(output_dir),
+        "--report-dir", str(report_dir),
+        "--target-column", "Diabetes_012",
+    ])
 
     output = json.loads(capsys.readouterr().out)
     assert output["input_rows"] == 2
     assert (output_dir / "diabetes_cleaned.csv").exists()
+    assert (report_dir / "quality" / "data_quality.json").exists()
+    assert (report_dir / "execution" / "latest_run.json").exists()

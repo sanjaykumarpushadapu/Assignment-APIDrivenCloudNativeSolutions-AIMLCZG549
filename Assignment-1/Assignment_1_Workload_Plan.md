@@ -19,27 +19,27 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **API documentation/testing tool:** Swagger/OpenAPI where available; otherwise an API client or the selected platform's API explorer
 - **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the two-minute schedule
 - **Cloud dashboard scope:** Per the assessment PDF (Sub-Objective 1, activity 1.5), the wording is "logging all activity details and displaying them on a Cloud dashboard" — "them" refers to the logged activity details, not EDA charts. So the graded requirement is execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and are a nice-to-have on the dashboard, not a rubric requirement. This is a document-interpretation reading, not confirmed by the instructor.
-- **Prediction model:** Not required by the assessment and removed from project scope. The full assessment PDF was checked directly (Sub-Objective 1: business understanding, ingestion, preprocessing, EDA incl. feature importance, DataOps/2-minute scheduling; Sub-Objective 2: built-in APIs) — "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. No model will be built for this assignment; the endpoint-deployment question is therefore not applicable.
-- **API requirement:** Per the assessment PDF (activity 3.1), "Retrieve Key Application Details: **Use Built-in APIs** to access important application information (e.g., flow, deployment etc.)" — this means the cloud platform's own built-in APIs (e.g., Cloud Composer/Airflow REST API, Cloud Monitoring/Logging), not a custom team-built API server. The required "at least four application details" (3.2) should come from those built-in APIs. The existing custom FastAPI app (`src/diabetes_risk/api/`) is not what's graded here and should be reconsidered or reframed by Person 4.
+- **Prediction model:** Not required by the assessment. The full assessment PDF was checked directly (Sub-Objective 1: business understanding, ingestion, preprocessing, EDA incl. feature importance, DataOps/2-minute scheduling; Sub-Objective 2: built-in APIs) — "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. **Update:** the team chose to build an optional Random Forest vs. Logistic Regression comparison anyway, as additive analysis on top of the required EDA/feature-importance work (see Section 7, Steps 9-10, and `docs/report/REPORT.md` Section 3.8). It is not deployed as a service, so the endpoint-deployment question remains not applicable, and it does not replace or reduce any required deliverable.
+- **API requirement (revised):** Per the assessment PDF Objective 2, "Access **the application's** details using APIs," and activity 3.1, "Retrieve Key Application Details: Use Built-in APIs to access important application information (e.g., flow, deployment etc.)" -- "the application" is the team's own diabetes-risk pipeline, not the GCP platform itself. Read together with 3.3's testing style (an API client, HTTP status codes, request/response screenshots) and the course name (API-*Driven*), this points to building and testing the application's own API layer -- "built-in" meaning the framework's built-in API/OpenAPI tooling (FastAPI), not Google Cloud's admin APIs. The existing `src/diabetes_risk/api/` FastAPI app is therefore the right direction and should be extended with real endpoints (backed by real pipeline data) rather than reframed away. This is still a document-interpretation reading, not confirmed by the instructor -- worth a quick confirmation email given it is worth 5 marks.
 - **Video submission:** Per the assessment PDF, no length or format is specified, but the delivery mechanism is: "Upload the Video into a google drive that will be shared" — Google Drive with a shared link, not the assignment portal.
 - **University restrictions:** None. Confirmed by the team — no BITS/university restrictions on cloud regions, services, or student credits apply to this assignment.
 - **Submission deadline:** Friday, 18 September 2026
-- **Current workload status:** Person 1 is complete; Person 2, Person 3, and Person 4 remain pending.
+- **Current workload status:** Person 1, Person 2, and Person 3 are complete; Person 4 remains pending.
 
 ---
 
 ## Current Delivery Status
 
 - **Person 1:** Complete. Business understanding, dataset verification, and raw-data ingestion have been documented and validated.
-- **Person 2:** Pending. Data quality, preprocessing, automation, and logging still need to be completed.
-- **Person 3:** Pending. EDA, feature importance, and optional-model analysis still need to be completed.
+- **Person 2:** Complete. Data quality, preprocessing, automation, execution logging, and the two-minute scheduled Airflow/Cloud Composer deployment have been implemented and verified against a live Cloud Composer environment (see `docs/report/REPORT.md` Section 2).
+- **Person 3:** Complete. EDA interpretation and an optional Random Forest vs. Logistic Regression model comparison have been implemented, evaluated, tested, and documented (see `docs/report/REPORT.md` Section 3).
 - **Person 4:** Pending. Dashboard, APIs, and the final demonstration remain to be completed.
 
 ## Team progress summary
 
-- **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation.
-- **Still required before final submission:** Person 2 preprocessing + scheduled workflow, Person 3 EDA/feature-importance analysis, and Person 4 dashboard + API + demo evidence.
-- **Current project status:** Local pipeline foundation is in place and the cloud platform (GCP) is confirmed; workflow automation deployment, dashboard, APIs, and final submission materials are still pending.
+- **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation; Person 2 data quality, preprocessing, automation, logging, and verified two-minute Cloud Composer scheduling; Person 3 EDA interpretation, feature importance, and the optional model comparison.
+- **Still required before final submission:** Person 4 dashboard + API + demo evidence, plus final review and submission upload.
+- **Current project status:** The pipeline, EDA, and optional model are implemented and verified end-to-end, including a live Cloud Composer deployment; only the dashboard, APIs, and final submission materials remain.
 
 ---
 
@@ -68,7 +68,7 @@ Create a cloud-based data pipeline that:
 7. Runs the workflow every two minutes.
 8. Records execution details.
 9. Displays activity information on a cloud dashboard.
-10. Provides at least four application details through accepted built-in APIs.
+10. Provides at least four application details through the application's own tested API endpoints.
 
 This enables earlier intervention and better decision-making. The result must be described as a **risk-screening or risk-prediction system**, not as a medical diagnosis system.
 
@@ -179,11 +179,11 @@ Preprocessing                -> Python pipeline (preprocessing.py), orchestrated
           ↓
 Automated EDA Outputs        -> Python pipeline (eda.py) -> Cloud Storage (data/outputs/)
           ↓
-Optional Prediction Model    -> TBD (Person 3)
+Optional Prediction Model    -> Implemented (Person 3): Random Forest + Logistic Regression
           ↓
 Dashboard and Execution Logs -> Cloud Logging/Monitoring + TBD dashboard (Person 4)
           ↓
-Built-in Application APIs    -> TBD (Person 4)
+Application APIs (FastAPI)   -> TBD (Person 4)
 ```
 
 Orchestration/scheduling for the middle stages is Cloud Composer (managed
@@ -586,6 +586,8 @@ Tell Person 2 exactly which outputs must refresh on every workflow run:
 
 ### Step 9: Decide whether to include the optional model
 
+**Decision made: the model is included.** See `docs/report/REPORT.md` Section 3.8 for the implementation and verified results.
+
 If the team does not include the model, clearly state that the project focuses on the required data pipeline, EDA, DataOps, dashboard, and APIs.
 
 If the team includes the model, document:
@@ -673,7 +675,7 @@ Provide:
 
 ## Completion condition
 
-Person 3 is complete when required EDA activities are finished, outputs are defined for automatic refresh, findings are explained, and optional model results are complete or formally excluded.
+Person 3 is complete when required EDA activities are finished, outputs are defined for automatic refresh, findings are explained, and optional model results are complete or formally excluded. **Status: complete** — see `docs/report/REPORT.md` Section 3.
 
 ---
 
@@ -728,11 +730,11 @@ Display the agreed activity information, including where supported:
 
 Define the source of each dashboard item. For example, activity metrics may come from the platform monitoring service, while EDA charts may come from platform storage or a visualization service.
 
-Add an **API-derived application details** section that visibly presents at least four labelled values retrieved from the selected built-in APIs. For every displayed value, record the API name or endpoint, retrieval time, and the dashboard/report location where it appears.
+Add an **API-derived application details** section that visibly presents at least four labelled values retrieved from the application's own FastAPI endpoints. For every displayed value, record the endpoint, retrieval time, and the dashboard/report location where it appears.
 
 ### Step 4: Confirm four APIs before implementation is complete
 
-After the platform is selected, confirm that the following types of application details are available through accepted built-in APIs:
+Confirm that the following types of application details are available through the application's own FastAPI endpoints:
 
 1. Workflow or pipeline information
 2. Latest execution status
@@ -762,10 +764,10 @@ Do not expose passwords, tokens, or private credentials.
 
 | API | Purpose | Method | Returned detail | Status code | Screenshot |
 |---|---|---|---|---|---|
-| API 1 | Workflow/pipeline detail | Confirm after platform selection | Confirm after testing | Confirm after testing | Required |
-| API 2 | Execution detail | Confirm after platform selection | Confirm after testing | Confirm after testing | Required |
-| API 3 | Processing/data/flow detail | Confirm after platform selection | Confirm after testing | Confirm after testing | Required |
-| API 4 | Schedule/deployment/model/dashboard detail | Confirm after platform selection | Confirm after testing | Confirm after testing | Required |
+| API 1 | Workflow/pipeline detail | GET | Confirm after testing | Confirm after testing | Required |
+| API 2 | Execution detail | GET | Confirm after testing | Confirm after testing | Required |
+| API 3 | Processing/data/flow detail | GET | Confirm after testing | Confirm after testing | Required |
+| API 4 | Schedule/deployment/model/dashboard detail | GET | Confirm after testing | Confirm after testing | Required |
 
 ### Step 7: Record the demonstration video
 
