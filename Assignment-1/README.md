@@ -138,16 +138,71 @@ OpenAPI documentation is available at `http://127.0.0.1:9000/docs`.
 
 ### GCP setup for the API layer
 
-The API's application-detail endpoints (`/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, `/api/v1/schedule`, `/api/v1/model`) are currently skeletons (`src/diabetes_risk/api/gcp_service.py`, `src/diabetes_risk/api/local_service.py`) that call GCP's built-in APIs -- Cloud Composer, the Airflow REST API, and Cloud Storage -- per the assessment's "Use Built-in APIs" requirement (activity 3.1). `/health` and `/api/v1/metadata` work today without any GCP setup; the rest raise `NotImplementedError` until implemented.
+The API's application-detail endpoints (`/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, `/api/v1/schedule`, `/api/v1/model`) call GCP's built-in APIs -- Cloud Composer, the Airflow REST API, and Cloud Storage -- per the assessment's "Use Built-in APIs" requirement (activity 3.1). `/health` and `/api/v1/metadata` need no GCP setup at all.
 
-To implement and run them against a live environment:
+**Current implementation status:**
 
-1. Bring up the Cloud Composer environment (see `infra/gcp/composer/README.md`).
-2. Create a service account with `roles/composer.viewer`, `roles/monitoring.viewer`, and `roles/storage.objectViewer`; download its key JSON (never commit it).
-3. Install the GCP client libraries: `pip install -e ".[gcp]"`.
-4. In `.env`, set `GCP_PROJECT_ID`, `GCP_LOCATION`, `GCP_COMPOSER_ENVIRONMENT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `DIABETES_GCS_BUCKET` (the same bucket name used by `dags/diabetes_risk_pipeline.py`).
-5. Implement the functions in `gcp_service.py` (Composer Environments API, Airflow REST API) and `local_service.py` (Cloud Storage API) -- see each function's docstring for the exact API call and required IAM role.
-6. See `infra/gcp/api/README.md` for the Airflow REST API's IAP-authentication step, which is separate from the service-account auth used for the other calls.
+| Endpoint | Service function | Status |
+|---|---|---|
+| `/api/v1/schedule` | `gcp_service.get_composer_environment_details()` | **Implemented** (Cloud Composer Environments API) |
+| `/api/v1/model` | `local_service.get_model_comparison()` | **Implemented** (Cloud Storage API) |
+| `/api/v1/workflow`, `/api/v1/runs/latest` | `gcp_service.get_dag_run_history()`, `get_task_instance_status()` | Skeleton -- `NotImplementedError` (Airflow REST API, needs IAP auth) |
+| `/api/v1/dataset` | `local_service.get_dataset_quality()` | Skeleton -- `NotImplementedError` (Cloud Storage API) |
+
+The two implemented functions are the reference pattern for the rest -- same config, same credential handling, same "raise a clean `NotImplementedError`/501 if not configured" style. Copy that pattern for `get_dag_run_history()`, `get_task_instance_status()`, `get_environment_health()`, and `get_dataset_quality()`.
+
+**One-time GCP setup (already done for this project's own `diabetes-risk-group49` project -- repeat for a different project/account):**
+
+1. Confirm the Composer environment is running:
+   ```bash
+   gcloud composer environments describe diabetes-risk-env --location=us-central1 --project=<your-project-id>
+   ```
+2. Create a read-only service account and grant it the three required roles:
+   ```bash
+   gcloud iam service-accounts create diabetes-api-reader \
+     --project=<your-project-id> \
+     --display-name="Diabetes API read-only access"
+
+   gcloud projects add-iam-policy-binding <your-project-id> \
+     --member="serviceAccount:diabetes-api-reader@<your-project-id>.iam.gserviceaccount.com" \
+     --role="roles/composer.viewer"
+
+   gcloud projects add-iam-policy-binding <your-project-id> \
+     --member="serviceAccount:diabetes-api-reader@<your-project-id>.iam.gserviceaccount.com" \
+     --role="roles/monitoring.viewer"
+
+   gcloud projects add-iam-policy-binding <your-project-id> \
+     --member="serviceAccount:diabetes-api-reader@<your-project-id>.iam.gserviceaccount.com" \
+     --role="roles/storage.objectViewer"
+   ```
+3. Download a key for that service account (never commit this file):
+   ```bash
+   gcloud iam service-accounts keys create ~/diabetes-api-key.json \
+     --iam-account=diabetes-api-reader@<your-project-id>.iam.gserviceaccount.com
+   ```
+4. Install the GCP client libraries into your virtualenv: `pip install -e ".[gcp]"`.
+5. Copy `.env.example` to `.env` (it's gitignored) and fill in:
+   ```
+   GCP_PROJECT_ID=<your-project-id>
+   GCP_LOCATION=us-central1
+   GCP_COMPOSER_ENVIRONMENT=diabetes-risk-env
+   GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/diabetes-api-key.json
+   DIABETES_GCS_BUCKET=diabetes-risk-group49-pipeline
+   ```
+   `GCP_LOCATION` and `GCP_COMPOSER_ENVIRONMENT` are already filled in `.env.example` for this team's environment. `DIABETES_GCS_BUCKET` is `diabetes-risk-group49-pipeline` -- this is a bucket created directly inside the `diabetes-risk-group49` project (its DAG-code default in `dags/diabetes_risk_pipeline.py`, and the Composer environment's own `DIABETES_GCS_BUCKET` Airflow environment variable, are both set to this value). An earlier bucket, `apicloudsolutions49-diabetes-pipeline`, was used briefly but turned out to belong to a *different* GCP project (`apicloudsolutions49`), where the team's service account couldn't be granted IAM access -- don't use that bucket name.
+6. Run the API (see "Run the API" above) and check `/api/v1/schedule` and `/api/v1/model` return real data, not a 501.
+
+**Giving another teammate access**, instead of sharing the key file, grant their own Google/BITS account the same three roles and have them run `gcloud auth application-default login` (then they can leave `GOOGLE_APPLICATION_CREDENTIALS` blank):
+```bash
+gcloud projects add-iam-policy-binding <your-project-id> \
+  --member="user:teammate@example.com" --role="roles/composer.viewer"
+gcloud projects add-iam-policy-binding <your-project-id> \
+  --member="user:teammate@example.com" --role="roles/monitoring.viewer"
+gcloud projects add-iam-policy-binding <your-project-id> \
+  --member="user:teammate@example.com" --role="roles/storage.objectViewer"
+```
+
+**Implementing the remaining functions:** see `infra/gcp/api/README.md` for the Airflow REST API's IAP-authentication step (needed for `get_dag_run_history()`/`get_task_instance_status()`), which is separate from the service-account auth used for Composer/Storage calls. Each remaining function's docstring in `gcp_service.py`/`local_service.py` names the exact API call, required IAM role, and suggested return shape.
 
 ## Run the dashboard
 
@@ -165,7 +220,7 @@ uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/` in a browser. If you run the API on a different host/port, set `DIABETES_API_BASE_URL` in `.env` to match. Until `gcp_service.py`/`local_service.py` are implemented, most panels will correctly show "Not implemented yet" (a 501 from the API) rather than fake numbers.
+Open `http://127.0.0.1:8000/` in a browser. If you run the API on a different host/port, set `DIABETES_API_BASE_URL` in `.env` to match. The Schedule panel and the Model Comparison chart are backed by real GCP calls (see "GCP setup for the API layer" above) and show real data once `.env` is configured; the remaining panels correctly show "Not implemented yet" (a 501 from the API) until `gcp_service.get_dag_run_history()`/`get_task_instance_status()` and `local_service.get_dataset_quality()` are implemented.
 
 ## Dataset
 

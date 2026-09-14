@@ -29,6 +29,7 @@ gcp = [
   "google-auth>=2.34,<3",
   "google-cloud-orchestration-airflow>=1.14,<2",
   "google-cloud-monitoring>=2.22,<3",
+  "google-cloud-storage>=2.18,<3",
   "requests>=2.32,<3",
 ]
 

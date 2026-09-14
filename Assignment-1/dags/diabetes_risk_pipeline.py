@@ -31,7 +31,7 @@ from diabetes_risk.pipeline.runner import run
 
 GCS_BUCKET = os.getenv(
     "DIABETES_GCS_BUCKET",
-    "apicloudsolutions49-diabetes-pipeline",
+    "diabetes-risk-group49-pipeline",
 )
 
 GCS_RAW_PREFIX = "data/raw"

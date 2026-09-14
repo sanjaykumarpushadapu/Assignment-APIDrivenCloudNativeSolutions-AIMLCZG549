@@ -8,9 +8,12 @@ functions in this module and re-expose the results as the application's
 own tested API (satisfying Objective 2, "Access the application's details
 using APIs").
 
-Every function here is a skeleton only: signature, docstring (exact GCP
-API/method, required IAM role, and a suggested return shape), and a
-`NotImplementedError` body. Implement with either:
+`get_composer_environment_details()` is implemented for real, as a
+reference for the remaining three functions (`get_dag_run_history()`,
+`get_task_instance_status()`, `get_environment_health()`), which are
+still skeletons: signature, docstring (exact GCP API/method, required
+IAM role, and a suggested return shape), and a `NotImplementedError`
+body. Implement those with either:
   - `google-cloud-orchestration-airflow` (Composer Environments API), or
   - direct authenticated HTTP requests (`google-auth` + `requests`) to the
     Composer-hosted Airflow REST API and the Cloud Monitoring REST API.
@@ -25,6 +28,24 @@ with a fake `GCPConfig` instead of hitting real GCP.
 from __future__ import annotations
 
 from .gcp_config import GCPConfig, load_gcp_config
+
+
+def _load_credentials(config: GCPConfig):
+    """Build explicit credentials from GOOGLE_APPLICATION_CREDENTIALS.
+
+    Loading the key file explicitly (rather than relying only on ambient
+    Application Default Credentials) keeps every function here easy to
+    unit test with a fake `GCPConfig`, per this module's own docstring.
+    Falls back to `None` (Application Default Credentials) if no path is
+    configured, so this also works with `gcloud auth application-default
+    login` for teammates who were granted IAM roles directly instead of a
+    shared key file.
+    """
+    if not config.credentials_path:
+        return None
+    from google.oauth2 import service_account
+
+    return service_account.Credentials.from_service_account_file(config.credentials_path)
 
 
 def get_composer_environment_details(config: GCPConfig | None = None) -> dict[str, object]:
@@ -45,9 +66,29 @@ def get_composer_environment_details(config: GCPConfig | None = None) -> dict[st
         }
     """
     config = config or load_gcp_config()
-    raise NotImplementedError(
-        "TODO: call Cloud Composer projects.locations.environments.get and map the response"
-    )
+    if not config.is_configured():
+        raise NotImplementedError(
+            "GCP is not configured: set GCP_PROJECT_ID, GCP_LOCATION and "
+            "GCP_COMPOSER_ENVIRONMENT in .env (see .env.example) before "
+            "calling this endpoint."
+        )
+
+    from google.cloud.orchestration.airflow.service_v1 import EnvironmentsClient
+
+    credentials = _load_credentials(config)
+    client = EnvironmentsClient(credentials=credentials) if credentials else EnvironmentsClient()
+    name = client.environment_path(config.project_id, config.location, config.composer_environment)
+    environment = client.get_environment(name=name)
+
+    dag_gcs_prefix = environment.config.dag_gcs_prefix or ""
+    gcs_bucket = dag_gcs_prefix[len("gs://"):].split("/", 1)[0] if dag_gcs_prefix else ""
+
+    return {
+        "name": environment.name.rsplit("/", 1)[-1],
+        "state": environment.state.name,
+        "airflow_version": environment.config.software_config.image_version,
+        "gcs_bucket": gcs_bucket,
+    }
 
 
 def get_dag_run_history(

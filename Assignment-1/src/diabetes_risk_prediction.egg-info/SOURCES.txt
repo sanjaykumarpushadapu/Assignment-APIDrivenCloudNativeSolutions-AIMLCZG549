@@ -2,6 +2,9 @@ README.md
 pyproject.toml
 src/diabetes_risk/__init__.py
 src/diabetes_risk/api/__init__.py
+src/diabetes_risk/api/gcp_config.py
+src/diabetes_risk/api/gcp_service.py
+src/diabetes_risk/api/local_service.py
 src/diabetes_risk/api/main.py
 src/diabetes_risk/dashboard/__init__.py
 src/diabetes_risk/dashboard/app.py
@@ -28,5 +31,7 @@ tests/test_dag.py
 tests/test_data_quality.py
 tests/test_eda.py
 tests/test_ingestion.py
+tests/test_model_evaluation.py
 tests/test_preprocessing.py
+tests/test_randomforestclassifier.py
 tests/test_runner.py

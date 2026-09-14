@@ -31,11 +31,17 @@ implemented.
 import os
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import gcp_service, local_service
+
+# Load .env once at startup so GCP_PROJECT_ID / DIABETES_GCS_BUCKET / etc.
+# (see .env.example) are available to gcp_service.py and local_service.py
+# without having to export them manually before running uvicorn.
+load_dotenv()
 
 app = FastAPI(
     title="Diabetes Risk Screening API",
@@ -70,6 +76,26 @@ def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONR
     return JSONResponse(
         status_code=501,
         content={"error": "not_implemented", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(Exception)
+def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Turn any other uncaught exception into a clean, CORS-safe 500.
+
+    Without a registered handler, an uncaught exception (e.g. a missing
+    dependency raising ModuleNotFoundError, or a real GCP/auth error) is
+    handled by Starlette's outermost error middleware, which sits OUTSIDE
+    CORSMiddleware -- so the resulting response has no CORS headers, and
+    the browser reports it to the dashboard's JS as "API unreachable"
+    (a network-level failure) instead of a normal error response. This
+    handler runs inside the app's own exception-handling layer (same as
+    the NotImplementedError handler above), so CORSMiddleware still
+    applies and the dashboard can show a real "Error" instead.
+    """
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "detail": str(exc)},
     )
 
 

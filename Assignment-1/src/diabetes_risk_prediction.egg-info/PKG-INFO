@@ -8,8 +8,13 @@ Requires-Dist: python-dotenv<2,>=1.0
 Requires-Dist: pandas<3,>=2.2
 Requires-Dist: matplotlib<4,>=3.9
 Requires-Dist: scikit-learn<2,>=1.5
-Requires-Dist: streamlit<2,>=1.40
 Requires-Dist: uvicorn[standard]<1,>=0.30
 Provides-Extra: dev
 Requires-Dist: httpx<1,>=0.27; extra == "dev"
 Requires-Dist: pytest<9,>=8.3; extra == "dev"
+Provides-Extra: gcp
+Requires-Dist: google-auth<3,>=2.34; extra == "gcp"
+Requires-Dist: google-cloud-orchestration-airflow<2,>=1.14; extra == "gcp"
+Requires-Dist: google-cloud-monitoring<3,>=2.22; extra == "gcp"
+Requires-Dist: google-cloud-storage<3,>=2.18; extra == "gcp"
+Requires-Dist: requests<3,>=2.32; extra == "gcp"

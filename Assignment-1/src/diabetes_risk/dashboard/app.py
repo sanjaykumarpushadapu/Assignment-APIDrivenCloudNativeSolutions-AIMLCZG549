@@ -15,8 +15,12 @@ or made up.
 Per the workload plan's own reading of activity 1.5, the required content
 is *activity/execution* details (status, runtime, records processed,
 error/warning counts, execution history) -- EDA charts and model metrics
-are a nice-to-have, not the graded requirement, so they are not
-duplicated here (they're in docs/report/REPORT.md Section 3 already).
+are a nice-to-have, not the graded requirement. One optional chart is
+included below (Random Forest vs. Logistic Regression, sourced live from
+/api/v1/model, which is backed by local_service.get_model_comparison()
+reading real GCS objects) as a working reference for the remaining
+gcp_service.py/local_service.py functions -- it renders only once real
+data comes back, and stays hidden with an honest placeholder otherwise.
 """
 
 import os
@@ -56,6 +60,7 @@ def render_dashboard() -> HTMLResponse:
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Diabetes Risk Cloud Dashboard - Group 49</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
         <style>
             body {{ background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
             .metric-card {{ background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }}
@@ -127,13 +132,23 @@ def render_dashboard() -> HTMLResponse:
 
             <!-- Execution history -->
             <div class="row mt-3">
-                <div class="col-12">
+                <div class="col-md-7">
                     <div class="metric-card">
                         <h5>Execution History</h5>
                         <table class="table table-sm" id="history-table">
                             <thead><tr><th>Run</th><th>Status</th><th>Start</th><th>End</th></tr></thead>
                             <tbody><tr><td colspan="4" class="pending">Loading...</td></tr></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Reference chart: sourced live from /api/v1/model (local_service.get_model_comparison(),
+                     a real GCS read -- see local_service.py). Hidden until that call succeeds. -->
+                <div class="col-md-5">
+                    <div class="metric-card">
+                        <h5>Model Comparison <span class="text-muted small">(/api/v1/model)</span></h5>
+                        <p class="pending small mb-2" id="model-chart-placeholder">Not implemented yet</p>
+                        <canvas id="model-chart" height="220" hidden></canvas>
                     </div>
                 </div>
             </div>
@@ -209,6 +224,7 @@ def render_dashboard() -> HTMLResponse:
 
                 const model = await fetchJson("/api/v1/model");
                 setSpan("api-model", model, (b) => "ok");
+                renderModelChart(model);
 
                 const historyBody = document.querySelector("#history-table tbody");
                 if (workflow.ok && workflow.body.length) {{
@@ -223,6 +239,55 @@ def render_dashboard() -> HTMLResponse:
                 }} else {{
                     historyBody.innerHTML = '<tr><td colspan="4" class="pending">Not implemented yet</td></tr>';
                 }}
+            }}
+
+            let modelChart = null;
+
+            function renderModelChart(result) {{
+                const placeholder = document.getElementById("model-chart-placeholder");
+                const canvas = document.getElementById("model-chart");
+
+                if (!result.ok) {{
+                    placeholder.hidden = false;
+                    placeholder.textContent = result.unreachable ? "API unreachable" : "Not implemented yet";
+                    canvas.hidden = true;
+                    return;
+                }}
+
+                const body = result.body;
+                const lr = body.logistic_regression || {{}};
+                const rf = body.random_forest || {{}};
+                const metrics = ["accuracy", "precision", "recall", "f1_score"];
+
+                placeholder.hidden = true;
+                canvas.hidden = false;
+
+                if (modelChart) {{
+                    modelChart.destroy();
+                }}
+                modelChart = new Chart(canvas, {{
+                    type: "bar",
+                    data: {{
+                        labels: metrics.map(m => m.replace("_", " ")),
+                        datasets: [
+                            {{
+                                label: "Logistic Regression",
+                                data: metrics.map(m => lr[m] ?? 0),
+                                backgroundColor: "#6c757d",
+                            }},
+                            {{
+                                label: "Random Forest",
+                                data: metrics.map(m => rf[m] ?? 0),
+                                backgroundColor: "#0d6efd",
+                            }},
+                        ],
+                    }},
+                    options: {{
+                        responsive: true,
+                        scales: {{ y: {{ beginAtZero: true, max: 1 }} }},
+                        plugins: {{ title: {{ display: true, text: `Top feature: ${{body.top_feature ?? "-"}}` }} }},
+                    }},
+                }});
             }}
 
             loadDashboard();

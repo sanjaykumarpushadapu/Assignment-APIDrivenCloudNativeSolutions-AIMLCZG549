@@ -7,14 +7,19 @@ the same bucket objects the DAG itself writes
 (`dags/diabetes_risk_pipeline.py` uses `DIABETES_GCS_BUCKET` /
 `GCS_OUTPUT_PREFIX = "data/outputs"`), rather than the local filesystem.
 
-Every function is a skeleton only: signature, docstring naming the exact
-GCS object(s) to read, required IAM role, and a `NotImplementedError`
-body. Implement with `google-cloud-storage` (already a runtime dependency
-of `dags/diabetes_risk_pipeline.py`, so no new package is needed here).
+`get_model_comparison()` is implemented for real, as a reference for the
+remaining two functions (`get_dataset_quality()`, `get_latest_run()`),
+which are still skeletons: signature, docstring naming the exact GCS
+object(s) to read, required IAM role, and a `NotImplementedError` body.
+Implement those the same way, with `google-cloud-storage` (install via
+`pip install -e ".[gcp]"`; it's a build dependency of
+`dags/diabetes_risk_pipeline.py`, but not of this API by default).
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import os
 
 
@@ -26,6 +31,22 @@ def _bucket_name() -> str:
     point at one bucket.
     """
     return os.environ.get("DIABETES_GCS_BUCKET", "")
+
+
+def _read_gcs_text(bucket_name: str, object_name: str) -> str:
+    """Download one GCS object's contents as text.
+
+    Uses `google-cloud-storage` (Cloud Storage JSON API under the hood),
+    the same client library the DAG itself uses. Requires
+    `roles/storage.objectViewer` and picks up credentials the same way
+    as `gcp_service.py`: `GOOGLE_APPLICATION_CREDENTIALS` if set,
+    otherwise Application Default Credentials.
+    """
+    from google.cloud import storage
+
+    client = storage.Client()
+    blob = client.bucket(bucket_name).blob(object_name)
+    return blob.download_as_text()
 
 
 def get_dataset_quality() -> dict[str, object]:
@@ -69,11 +90,32 @@ def get_model_comparison() -> dict[str, object]:
         }
     """
     bucket = _bucket_name()
-    raise NotImplementedError(
-        f"TODO: use google-cloud-storage to read "
-        f"gs://{bucket}/data/outputs/model_evaluation.csv and "
-        f"gs://{bucket}/data/outputs/feature_importance.csv, then return as a JSON-friendly dict"
-    )
+    if not bucket:
+        raise NotImplementedError(
+            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
+            "configure it before calling this endpoint."
+        )
+
+    evaluation_csv = _read_gcs_text(bucket, "data/outputs/model_evaluation.csv")
+    metrics_by_model: dict[str, dict[str, float]] = {}
+    for row in csv.DictReader(io.StringIO(evaluation_csv)):
+        key = row["Model"].strip().lower().replace(" ", "_")
+        metrics_by_model[key] = {
+            "accuracy": float(row["Accuracy"]),
+            "balanced_accuracy": float(row["Balanced Accuracy"]),
+            "precision": float(row["Precision"]),
+            "recall": float(row["Recall"]),
+            "f1_score": float(row["F1 Score"]),
+        }
+
+    importance_csv = _read_gcs_text(bucket, "data/outputs/feature_importance.csv")
+    top_row = next(csv.DictReader(io.StringIO(importance_csv)), {})
+
+    return {
+        "logistic_regression": metrics_by_model.get("logistic_regression", {}),
+        "random_forest": metrics_by_model.get("random_forest", {}),
+        "top_feature": top_row.get("Feature", ""),
+    }
 
 
 def get_latest_run() -> dict[str, object]:
