@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: diabetes-risk:local
+    container_name: diabetes-risk-api-local
+    env_file:
+      - .env
+    environment:
+      # Local browsers may use either localhost or 127.0.0.1.
+      DASHBOARD_ORIGIN: "*"
+      # Use the host's ADC file for local GCP API calls only. It is mounted
+      # read-only and is never copied into the image.
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud/application_default_credentials.json
+    volumes:
+      - ${APPDATA}/gcloud/application_default_credentials.json:/tmp/gcloud/application_default_credentials.json:ro
+    ports:
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: diabetes-risk:local
+    container_name: diabetes-risk-dashboard-local
+    env_file:
+      - .env
+    environment:
+      # The dashboard fetches the API from the user's browser, so localhost
+      # works whether the dashboard is opened by alias or by localhost.
+      DIABETES_API_BASE_URL: http://localhost:8082
+    command:
+      - uvicorn
+      - diabetes_risk.dashboard.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+    ports:
+      - "8083:8080"
+    depends_on:
+      api:
+        condition: service_healthy

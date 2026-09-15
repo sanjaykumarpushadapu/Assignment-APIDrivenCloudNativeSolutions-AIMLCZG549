@@ -1,0 +1,149 @@
+name: Deploy to GCP
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: gcp-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  ARTIFACT_REPOSITORY: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
+  DEPLOYER_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+  RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+  WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+  COMPOSER_ENVIRONMENT: ${{ vars.GCP_COMPOSER_ENVIRONMENT }}
+  GCS_BUCKET: ${{ vars.DIABETES_GCS_BUCKET }}
+  API_SERVICE: diabetes-risk-api
+  DASHBOARD_SERVICE: diabetes-risk-dashboard
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Compile Python sources
+        run: python -m compileall -q src dags tests
+
+  build:
+    needs: ci
+    if: ${{ github.ref == 'refs/heads/main' && needs.ci.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      image_uri: ${{ steps.image.outputs.image_uri }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authenticate Docker to Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push container
+        id: image
+        env:
+          IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/diabetes-risk:${{ github.sha }}
+        run: |
+          docker build --tag "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: build
+    if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_URI: ${{ needs.build.outputs.image_uri }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy API to Cloud Run
+        run: |
+          gcloud run deploy "$API_SERVICE" \
+            --image="$IMAGE_URI" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --service-account="$RUNTIME_SERVICE_ACCOUNT" \
+            --set-env-vars="GCP_PROJECT_ID=$PROJECT_ID,GCP_LOCATION=$REGION,GCP_COMPOSER_ENVIRONMENT=$COMPOSER_ENVIRONMENT,DIABETES_GCS_BUCKET=$GCS_BUCKET,DASHBOARD_ORIGIN=*"
+
+          API_URL=$(gcloud run services describe "$API_SERVICE" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --format="value(status.url)")
+          echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+
+      - name: Deploy dashboard to Cloud Run
+        run: |
+          gcloud run deploy "$DASHBOARD_SERVICE" \
+            --image="$IMAGE_URI" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --command=uvicorn \
+            --args=diabetes_risk.dashboard.app:app,--host,0.0.0.0,--port,8080 \
+            --service-account="$RUNTIME_SERVICE_ACCOUNT" \
+            --set-env-vars="DIABETES_API_BASE_URL=$API_URL"
+
+          DASHBOARD_URL=$(gcloud run services describe "$DASHBOARD_SERVICE" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --format="value(status.url)")
+          echo "DASHBOARD_URL=$DASHBOARD_URL" >> "$GITHUB_ENV"
+
+      - name: Restrict API CORS to deployed dashboard
+        run: |
+          gcloud run services update "$API_SERVICE" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --update-env-vars="DASHBOARD_ORIGIN=$DASHBOARD_URL"
+
+      - name: Smoke-test deployed services
+        run: |
+          curl --fail --retry 5 --retry-delay 3 "$API_URL/health"
+          curl --fail --retry 5 --retry-delay 3 "$DASHBOARD_URL/health"
+          echo "API URL: $API_URL"
+          echo "Dashboard URL: $DASHBOARD_URL"

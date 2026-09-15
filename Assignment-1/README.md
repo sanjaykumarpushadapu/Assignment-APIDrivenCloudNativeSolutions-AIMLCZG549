@@ -216,6 +216,154 @@ gcloud projects add-iam-policy-binding <your-project-id> \
 
 **Airflow REST authentication:** the DAG run history and task status calls require an IAP-authenticated token for Cloud Composer 2. This is separate from the ADC-based Google authentication used for the Composer, Monitoring, and Storage APIs. Each remaining function's docstring in `gcp_service.py`/`local_service.py` names the exact API call, required IAM role, and suggested return shape.
 
+## GCP CI/CD deployment
+
+The repository includes a keyless GitHub Actions deployment workflow at
+`.github/workflows/deploy-gcp.yml`. Every push runs the CI job, which installs
+the development dependencies, runs the tests, and compiles the Python sources.
+Only a successful push to `main` continues to the build job, which builds the
+container in `Dockerfile` and pushes it to Artifact Registry. Deployment then
+waits for that successful image build before deploying two Cloud Run services:
+
+- `diabetes-risk-api` on port 8080
+- `diabetes-risk-dashboard` on port 8080, configured to call the deployed API
+
+Cloud Composer remains responsible for the scheduled Airflow DAG. Cloud Run hosts
+the API and dashboard. The workflow uses GitHub OIDC and Workload Identity
+Federation; no service-account JSON key is stored in GitHub.
+
+### One-time GCP CI/CD bootstrap
+
+Run the following from PowerShell after selecting the correct GCP project. The
+commands create the Artifact Registry repository, deployment identities, and the
+GitHub OIDC trust for this repository. Skip resource-creation commands if the
+resource already exists.
+
+```powershell
+$PROJECT_ID = "diabetes-risk-group49"
+$REGION = "us-central1"
+$GITHUB_REPOSITORY = "sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549"
+$PROJECT_NUMBER = gcloud projects describe $PROJECT_ID --format="value(projectNumber)"
+
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com --project=$PROJECT_ID
+gcloud artifacts repositories create diabetes-risk --repository-format=docker --location=$REGION --project=$PROJECT_ID
+
+gcloud iam service-accounts create github-deployer --project=$PROJECT_ID --display-name="GitHub Actions deployer"
+gcloud iam service-accounts create diabetes-risk-runtime --project=$PROJECT_ID --display-name="Diabetes Risk Cloud Run runtime"
+
+$DEPLOYER = "github-deployer@$PROJECT_ID.iam.gserviceaccount.com"
+$RUNTIME = "diabetes-risk-runtime@$PROJECT_ID.iam.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOYER" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOYER" --role="roles/artifactregistry.writer"
+gcloud iam service-accounts add-iam-policy-binding $RUNTIME --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/storage.objectViewer"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/composer.viewer"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/monitoring.viewer"
+
+gcloud iam workload-identity-pools create github --project=$PROJECT_ID --location=global --display-name="GitHub Actions"
+gcloud iam workload-identity-pools providers create-oidc github --project=$PROJECT_ID --location=global --workload-identity-pool=github --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" --attribute-condition="assertion.repository == '$GITHUB_REPOSITORY' && assertion.ref == 'refs/heads/main'"
+
+$WIF_PROVIDER = gcloud iam workload-identity-pools providers describe github --project=$PROJECT_ID --location=global --workload-identity-pool=github --format="value(name)"
+gcloud iam service-accounts add-iam-policy-binding $DEPLOYER --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$GITHUB_REPOSITORY"
+
+Write-Output "WIF provider: $WIF_PROVIDER"
+Write-Output "Deployer service account: $DEPLOYER"
+Write-Output "Runtime service account: $RUNTIME"
+```
+
+Create these **GitHub repository variables** under **Settings > Secrets and
+variables > Actions > Variables**. They are identifiers, not secrets:
+
+| Variable | Value |
+|---|---|
+| `GCP_PROJECT_ID` | `diabetes-risk-group49` |
+| `GCP_REGION` | `us-central1` |
+| `GCP_ARTIFACT_REPOSITORY` | `diabetes-risk` |
+| `GCP_DEPLOYER_SERVICE_ACCOUNT` | `github-deployer@diabetes-risk-group49.iam.gserviceaccount.com` |
+| `GCP_RUNTIME_SERVICE_ACCOUNT` | `diabetes-risk-runtime@diabetes-risk-group49.iam.gserviceaccount.com` |
+| `GCP_WIF_PROVIDER` | Output of `$WIF_PROVIDER` above |
+| `GCP_COMPOSER_ENVIRONMENT` | `diabetes-risk-env` |
+| `DIABETES_GCS_BUCKET` | `diabetes-risk-group49-pipeline` |
+
+After pushing the workflow to `main`, GitHub Actions will publish the Cloud Run
+URLs in the workflow log. The dashboard URL is the public demonstration URL and
+the API URL has Swagger at `/docs`.
+
+For local Docker development, start both services with Compose. It builds one
+shared image and runs separate API and dashboard containers. Run these commands
+from the repository directory after creating `.env` from `.env.example`:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+The Compose ports are `8082` for the API and `8083` for the dashboard because
+port `8080` may already be used by another local container. The API container
+listens internally on `8080`; Compose publishes it as host port `8082`. The
+dashboard uses the same internal port and is published as host port `8083`.
+
+### Friendly local host names
+
+The friendly names below are local aliases only. They do not create public DNS
+records and do not require a registered domain. Add both lines to the operating
+system hosts file before opening the friendly URLs.
+
+**Windows:** open Notepad or another text editor **as Administrator**, open
+`C:\Windows\System32\drivers\etc\hosts` (select **All Files** if needed), and
+append:
+
+```text
+127.0.0.1 diabetes-risk-group49
+127.0.0.1 diabetes-risk-group49-api
+```
+
+Then flush the Windows DNS cache in an Administrator terminal:
+
+```powershell
+ipconfig /flushdns
+```
+
+**macOS:** open Terminal and edit the hosts file with administrator permission:
+
+```bash
+sudo nano /etc/hosts
+```
+
+Append the same two lines, save with `Ctrl+O`, press `Enter`, and exit with
+`Ctrl+X`. Then flush the macOS DNS cache:
+
+```bash
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+Open these friendly local URLs:
+
+- Dashboard: `http://diabetes-risk-group49:8083/`
+- Swagger: `http://diabetes-risk-group49-api:8082/docs`
+- API health: `http://diabetes-risk-group49-api:8082/health`
+
+If the hosts aliases are not configured, use the equivalent localhost URLs:
+
+- Dashboard: `http://localhost:8083/`
+- Swagger: `http://localhost:8082/docs`
+- API health: `http://localhost:8082/health`
+
+To inspect startup errors:
+
+```powershell
+docker compose logs -f api dashboard
+```
+
+Stop both containers with:
+
+```powershell
+docker compose down
+```
+
 ## Run the dashboard
 
 The dashboard is a small FastAPI app (its own server, separate from `api/main.py`) that displays activity/execution details (assessment activity 1.5) by calling the real API's endpoints client-side -- it has no hard-coded data of its own. Run the API first (see "Run the API" above, default port 9000), then start the dashboard on a different port:

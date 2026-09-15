@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location 'C:\\\\Projects\\\\Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549\\\\Assignment-1'; foreach \\(\\$name in @\\('diabetes-risk-api-local','diabetes-risk-dashboard-local'\\)\\) \\{ docker rm -f \\$name 2>\\$null \\| Out-Null \\}; Write-Output 'CLEANUP: removed target containers created by failed attempt'; Write-Output 'BLOCKED: host port 8080 is already allocated by unrelated resources; no unrelated containers or processes were stopped'; Write-Output 'BUILD: PASS'; Write-Output 'NETWORK: diabetes-risk-local exists'; Write-Output 'CONTAINERS: not running'; Write-Output 'URL checks: not performed because required API port 8080 was unavailable'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
