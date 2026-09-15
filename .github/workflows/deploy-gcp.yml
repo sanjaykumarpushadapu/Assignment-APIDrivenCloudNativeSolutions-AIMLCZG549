@@ -27,6 +27,9 @@ env:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Assignment-1
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -36,6 +39,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: Assignment-1/pyproject.toml
 
       - name: Install test dependencies
         run: python -m pip install -e ".[dev]"
@@ -73,7 +77,7 @@ jobs:
         env:
           IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/diabetes-risk:${{ github.sha }}
         run: |
-          docker build --tag "$IMAGE_URI" .
+          docker build --file Assignment-1/Dockerfile --tag "$IMAGE_URI" Assignment-1
           docker push "$IMAGE_URI"
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 

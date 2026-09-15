@@ -218,8 +218,8 @@ gcloud projects add-iam-policy-binding <your-project-id> \
 
 ## GCP CI/CD deployment
 
-The repository includes a keyless GitHub Actions deployment workflow at
-`.github/workflows/deploy-gcp.yml`. Every push runs the CI job, which installs
+The repository includes a keyless GitHub Actions deployment workflow at the
+repository-root path `../.github/workflows/deploy-gcp.yml`. Every push runs the CI job, which installs
 the development dependencies, runs the tests, and compiles the Python sources.
 Only a successful push to `main` continues to the build job, which builds the
 container in `Dockerfile` and pushes it to Artifact Registry. Deployment then
