@@ -138,12 +138,12 @@ jobs:
             --format="value(status.url)")
           echo "DASHBOARD_URL=$DASHBOARD_URL" >> "$GITHUB_ENV"
 
-      - name: Restrict API CORS to deployed dashboard
+      - name: Allow Cloud Run dashboard URL variants
         run: |
           gcloud run services update "$API_SERVICE" \
             --region="$REGION" \
             --project="$PROJECT_ID" \
-            --update-env-vars="DASHBOARD_ORIGIN=$DASHBOARD_URL"
+            --update-env-vars="DASHBOARD_ORIGIN=*"
 
       - name: Smoke-test deployed services
         run: |

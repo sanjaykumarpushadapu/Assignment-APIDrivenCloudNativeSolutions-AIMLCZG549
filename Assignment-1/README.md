@@ -219,18 +219,48 @@ gcloud projects add-iam-policy-binding <your-project-id> \
 ## GCP CI/CD deployment
 
 The repository includes a keyless GitHub Actions deployment workflow at the
-repository-root path `../.github/workflows/deploy-gcp.yml`. Every push runs the CI job, which installs
-the development dependencies, runs the tests, and compiles the Python sources.
-Only a successful push to `main` continues to the build job, which builds the
-container in `Dockerfile` and pushes it to Artifact Registry. Deployment then
-waits for that successful image build before deploying two Cloud Run services:
+repository-root path [`.github/workflows/deploy-gcp.yml`](../.github/workflows/deploy-gcp.yml).
+It must be at the repository root, not under `Assignment-1/.github/`, because
+GitHub only discovers workflows from the root `.github/workflows/` directory.
+
+Every push runs the CI job, which installs the development dependencies, runs
+the tests, and compiles the Python sources. Only a successful push to `main`
+continues to the build job. The build creates the Docker image and pushes it to
+Artifact Registry. Deployment waits for that successful image build before
+deploying two Cloud Run services:
 
 - `diabetes-risk-api` on port 8080
 - `diabetes-risk-dashboard` on port 8080, configured to call the deployed API
 
 Cloud Composer remains responsible for the scheduled Airflow DAG. Cloud Run hosts
 the API and dashboard. The workflow uses GitHub OIDC and Workload Identity
-Federation; no service-account JSON key is stored in GitHub.
+Federation; no service-account JSON key is stored in GitHub. API CORS remains `*`
+for the public read-only demonstration because Cloud Run can expose a service
+through more than one valid hostname; this prevents alternate dashboard URLs from
+being blocked by the browser.
+
+The workflow jobs are intentionally gated:
+
+```text
+every branch push -> ci
+successful main push -> ci -> build -> deploy
+failed ci -> build and deploy skipped
+failed build -> deploy skipped
+```
+
+**Current GCP setup verified for this repository:**
+
+- Project: `diabetes-risk-group49`
+- Region: `us-central1`
+- Cloud Composer environment: `diabetes-risk-env` (`RUNNING`)
+- Artifact Registry repository: `diabetes-risk`
+- Registry URI: `us-central1-docker.pkg.dev/diabetes-risk-group49/diabetes-risk`
+- GitHub Workload Identity Provider:
+  `projects/573458509120/locations/global/workloadIdentityPools/github/providers/github`
+- GitHub deployer has `roles/artifactregistry.writer` and `roles/run.admin`.
+
+The Artifact Registry vulnerability-scanning notice is optional and does not block
+image pushes or Cloud Run deployment.
 
 ### One-time GCP CI/CD bootstrap
 
@@ -245,7 +275,7 @@ $REGION = "us-central1"
 $GITHUB_REPOSITORY = "sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549"
 $PROJECT_NUMBER = gcloud projects describe $PROJECT_ID --format="value(projectNumber)"
 
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com --project=$PROJECT_ID
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com --project=$PROJECT_ID
 gcloud artifacts repositories create diabetes-risk --repository-format=docker --location=$REGION --project=$PROJECT_ID
 
 gcloud iam service-accounts create github-deployer --project=$PROJECT_ID --display-name="GitHub Actions deployer"
@@ -256,6 +286,7 @@ $RUNTIME = "diabetes-risk-runtime@$PROJECT_ID.iam.gserviceaccount.com"
 
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOYER" --role="roles/run.admin"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOYER" --role="roles/artifactregistry.writer"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOYER" --role="roles/serviceusage.serviceUsageConsumer"
 gcloud iam service-accounts add-iam-policy-binding $RUNTIME --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
 
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/storage.objectViewer"
@@ -273,8 +304,13 @@ Write-Output "Deployer service account: $DEPLOYER"
 Write-Output "Runtime service account: $RUNTIME"
 ```
 
-Create these **GitHub repository variables** under **Settings > Secrets and
-variables > Actions > Variables**. They are identifiers, not secrets:
+Create these **GitHub repository variables** under:
+
+```text
+Settings -> Secrets and variables -> Actions -> Variables
+```
+
+They are identifiers, not secrets:
 
 | Variable | Value |
 |---|---|
@@ -287,9 +323,33 @@ variables > Actions > Variables**. They are identifiers, not secrets:
 | `GCP_COMPOSER_ENVIRONMENT` | `diabetes-risk-env` |
 | `DIABETES_GCS_BUCKET` | `diabetes-risk-group49-pipeline` |
 
-After pushing the workflow to `main`, GitHub Actions will publish the Cloud Run
-URLs in the workflow log. The dashboard URL is the public demonstration URL and
-the API URL has Swagger at `/docs`.
+To verify the provider before adding it to GitHub, run:
+
+```powershell
+gcloud iam workload-identity-pools providers describe github `
+  --project=$PROJECT_ID `
+  --location=global `
+  --workload-identity-pool=github `
+  --format="yaml(name,attributeCondition,attributeMapping,state)"
+```
+
+The `attributeCondition` must contain the exact repository name and
+`refs/heads/main`. Copy the complete value from `$WIF_PROVIDER` into the
+`GCP_WIF_PROVIDER` **repository variable**. Do not add it only under GitHub
+Environments or use `credentials_json`; this workflow uses OIDC.
+
+After pushing the workflow to `main`, open **Actions -> Deploy to GCP**. The
+expected jobs are `ci`, `build`, and `deploy`. GitHub Actions will publish the
+Cloud Run URLs in the deploy log. The dashboard URL is the public demonstration
+URL and the API URL has Swagger at `/docs`.
+
+If the build fails with `workflow must specify exactly one of
+workload_identity_provider or credentials_json`, `GCP_WIF_PROVIDER` is missing,
+empty, or stored in the wrong GitHub location. Add it under **Settings ->
+Secrets and variables -> Actions -> Variables**, then rerun the failed workflow.
+
+When copying PowerShell commands, copy only the command text. Do not copy the
+`PS C:\...>` prompt, the `>>` continuation prompt, or command output.
 
 For local Docker development, start both services with Compose. It builds one
 shared image and runs separate API and dashboard containers. Run these commands
