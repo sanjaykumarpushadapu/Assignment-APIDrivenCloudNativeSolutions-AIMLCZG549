@@ -383,6 +383,35 @@ Write-Output "API health: $API_URL/health"
 Write-Output "API Swagger: $API_URL/docs"
 ```
 
+### GCP console pages to show in the demo video
+
+Cloud Run URLs are public, but the console pages behind them are tied to the
+signed-in GCP account and session, so a raw console URL will not open the same
+way for someone else. Navigate to these from the console UI while recording
+instead of pasting a link.
+
+**Essential:**
+
+1. Cloud Storage -> Buckets -> `diabetes-risk-group49-pipeline` -> browse
+   `data/raw`, `data/processed`, `data/outputs`.
+2. Cloud Composer -> `diabetes-risk-env` -> Open Airflow UI -> DAGs ->
+   `diabetes_risk_pipeline` -> Run History (shows the 2-minute schedule and
+   recent successful runs).
+3. Cloud Run -> `diabetes-risk-api` -> service details (URL, revisions), then
+   open the live `/docs` Swagger page.
+4. Cloud Run -> `diabetes-risk-dashboard` -> service details, then open the
+   live dashboard URL.
+
+**Optional (ties the CI/CD pipeline together):**
+
+5. GitHub -> **Actions** -> **Deploy to GCP** -> latest successful run,
+   showing the `ci` -> `build` -> `deploy` job sequence.
+6. IAM & Admin -> Service Accounts -> `diabetes-api-reader`, showing its
+   `composer.viewer`, `monitoring.viewer`, and `storage.objectViewer` roles.
+
+Cloud Monitoring/Logging is not worth showing, since `get_environment_health()`
+is still an unimplemented skeleton with nothing real behind it yet.
+
 For local Docker development, start both services with Compose. It builds one
 shared image and runs separate API and dashboard containers. Run these commands
 from the repository directory after creating `.env` from `.env.example`:
