@@ -351,6 +351,38 @@ Secrets and variables -> Actions -> Variables**, then rerun the failed workflow.
 When copying PowerShell commands, copy only the command text. Do not copy the
 `PS C:\...>` prompt, the `>>` continuation prompt, or command output.
 
+### Current Cloud Run URLs
+
+The current successful deployment published these URLs:
+
+- Dashboard: https://diabetes-risk-dashboard-573458509120.us-central1.run.app/
+- API health: https://diabetes-risk-api-573458509120.us-central1.run.app/health
+- API Swagger: https://diabetes-risk-api-573458509120.us-central1.run.app/docs
+
+The API root `/` is not an application route and may return `404`; use `/health`
+or `/docs` instead. These URLs normally remain stable across new revisions, but
+refresh them after a service is deleted and recreated. Retrieve the current values
+with:
+
+```powershell
+$PROJECT_ID = "diabetes-risk-group49"
+$REGION = "us-central1"
+
+$API_URL = gcloud run services describe diabetes-risk-api `
+  --project=$PROJECT_ID `
+  --region=$REGION `
+  --format="value(status.url)"
+
+$DASHBOARD_URL = gcloud run services describe diabetes-risk-dashboard `
+  --project=$PROJECT_ID `
+  --region=$REGION `
+  --format="value(status.url)"
+
+Write-Output "Dashboard: $DASHBOARD_URL/"
+Write-Output "API health: $API_URL/health"
+Write-Output "API Swagger: $API_URL/docs"
+```
+
 For local Docker development, start both services with Compose. It builds one
 shared image and runs separate API and dashboard containers. Run these commands
 from the repository directory after creating `.env` from `.env.example`:
