@@ -3,7 +3,7 @@
 This module only reads configuration -- it makes no GCP SDK or HTTP calls
 itself. Real values come from environment variables (see `.env.example`);
 no project identifiers or credentials are hard-coded here, consistent with
-`infra/gcp/README.md`'s "no credentials or GCP project identifiers are
+`README.md`'s "no credentials or GCP project identifiers are
 committed to this repository" policy.
 
 Used by `gcp_service.py`. Local-file-backed endpoints (`local_service.py`)
@@ -42,8 +42,8 @@ def load_gcp_config() -> GCPConfig:
         GCP_PROJECT_ID            e.g. the team's GCP project id
         GCP_LOCATION              e.g. "us-central1"
         GCP_COMPOSER_ENVIRONMENT  e.g. "diabetes-risk-env"
-        GOOGLE_APPLICATION_CREDENTIALS  path to a service-account key JSON
-                                        (standard Google auth library env var)
+        Authentication uses Application Default Credentials from
+        `gcloud auth application-default login`.
     """
     return GCPConfig(
         project_id=os.environ.get("GCP_PROJECT_ID", ""),

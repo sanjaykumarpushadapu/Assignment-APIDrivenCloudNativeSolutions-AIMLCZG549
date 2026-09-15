@@ -44,7 +44,8 @@ def _read_gcs_text(bucket_name: str, object_name: str) -> str:
     """
     from google.cloud import storage
 
-    client = storage.Client()
+    project_id = os.environ.get("GCP_PROJECT_ID")
+    client = storage.Client(project=project_id) if project_id else storage.Client()
     blob = client.bucket(bucket_name).blob(object_name)
     return blob.download_as_text()
 

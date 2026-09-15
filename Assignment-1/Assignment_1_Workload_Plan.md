@@ -154,9 +154,9 @@ _Status: **Confirmed — Google Cloud Platform (GCP).** Recorded per the team's 
 - **Person responsible for platform administration:** _TBD — team to confirm._
 - **Platform decision date and fallback platform:** _TBD — team to confirm; Azure was the next-ranked candidate in the prior comparison._
 
-Note: `docs/platform_comparison.md` (the earlier Azure/GCP/Prefect/AWS/Databricks
-comparison referenced above) is no longer present in the project folder as of
-this update.
+The earlier Azure/GCP/Prefect/AWS/Databricks platform comparison is no longer
+part of the project documentation; GCP is the selected platform for the
+current implementation.
 
 **Note on the BITS-provided AWS Virtual Lab:** BITS offers an optional AWS
 "Virtual Lab Session" for this course (API Gateway, CloudWatch, EC2, Glue,

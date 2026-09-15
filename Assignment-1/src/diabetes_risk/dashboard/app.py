@@ -7,10 +7,8 @@ page. It does NOT define its own copies of the application-detail
 endpoints -- those live in exactly one place, `src/diabetes_risk/api/main.py`
 (the GCP-backed API required by Sub-Objective 2). This page's JavaScript
 calls that real API over HTTP (see DIABETES_API_BASE_URL below) and
-renders whatever it returns, including an honest "not implemented yet"
-state for any endpoint whose service-layer function is still a skeleton
-(see gcp_service.py / local_service.py) -- no numbers here are hard-coded
-or made up.
+renders whatever it returns, with explicit loading, configuration, error,
+and unavailable states -- no numbers here are hard-coded or made up.
 
 Per the workload plan's own reading of activity 1.5, the required content
 is *activity/execution* details (status, runtime, records processed,
@@ -19,8 +17,7 @@ are a nice-to-have, not the graded requirement. One optional chart is
 included below (Random Forest vs. Logistic Regression, sourced live from
 /api/v1/model, which is backed by local_service.get_model_comparison()
 reading real GCS objects) as a working reference for the remaining
-gcp_service.py/local_service.py functions -- it renders only once real
-data comes back, and stays hidden with an honest placeholder otherwise.
+gcp_service.py/local_service.py functions.
 """
 
 import os
@@ -115,7 +112,7 @@ def render_dashboard() -> HTMLResponse:
                 <div class="col-12">
                     <div class="api-section">
                         <h5 class="text-primary">API-Derived Application Details</h5>
-                        <p class="text-muted small mb-2">Each value below is a live call to the real API at <code>{API_BASE_URL}</code> -- not hard-coded. A grey "not implemented yet" means the underlying gcp_service.py/local_service.py function is still a skeleton.</p>
+                        <p class="text-muted small mb-2">Each value below is a live call to the real API at <code>{API_BASE_URL}</code> -- not hard-coded. Status text distinguishes loading, configuration, unavailable, and unimplemented states.</p>
                         <div class="row mt-2">
                             <div class="col-md-3"><strong>Workflow (<code>/api/v1/workflow</code>):</strong> <span class="pending" id="api-workflow">Loading...</span></div>
                             <div class="col-md-3"><strong>Latest run (<code>/api/v1/runs/latest</code>):</strong> <span class="pending" id="api-runs-latest">Loading...</span></div>
@@ -147,7 +144,7 @@ def render_dashboard() -> HTMLResponse:
                 <div class="col-md-5">
                     <div class="metric-card">
                         <h5>Model Comparison <span class="text-muted small">(/api/v1/model)</span></h5>
-                        <p class="pending small mb-2" id="model-chart-placeholder">Not implemented yet</p>
+                        <p class="pending small mb-2" id="model-chart-placeholder">Loading model data...</p>
                         <canvas id="model-chart" height="220" hidden></canvas>
                     </div>
                 </div>
@@ -162,28 +159,36 @@ def render_dashboard() -> HTMLResponse:
                     const res = await fetch(API_BASE_URL + path);
                     const body = await res.json().catch(() => null);
                     if (res.status === 501) {{
-                        return {{ ok: false, pending: true, body }};
+                        return {{ ok: false, pending: true, body, status: res.status }};
                     }}
                     if (!res.ok) {{
-                        return {{ ok: false, pending: false, body }};
+                        return {{ ok: false, pending: false, body, status: res.status }};
                     }}
-                    return {{ ok: true, pending: false, body }};
+                    return {{ ok: true, pending: false, body, status: res.status }};
                 }} catch (err) {{
                     return {{ ok: false, pending: false, unreachable: true }};
                 }}
             }}
 
+            function failureText(result, fallback) {{
+                if (result.unreachable) {{
+                    return "API unavailable";
+                }}
+                if (result.pending) {{
+                    const detail = result.body?.detail || "";
+                    if (detail.includes("GCP") || detail.includes("DIABETES_GCS_BUCKET")) {{
+                        return "Configuration required";
+                    }}
+                    return "Not implemented yet";
+                }}
+                return fallback;
+            }}
+
             function setSpan(id, result, formatValue) {{
                 const el = document.getElementById(id);
-                if (result.unreachable) {{
-                    el.textContent = "API unreachable";
-                    el.className = "text-danger";
-                }} else if (result.pending) {{
-                    el.textContent = "Not implemented yet";
-                    el.className = "pending";
-                }} else if (!result.ok) {{
-                    el.textContent = "Error";
-                    el.className = "text-danger";
+                if (!result.ok) {{
+                    el.textContent = failureText(result, "Unable to load data");
+                    el.className = result.pending ? "pending" : "text-danger";
                 }} else {{
                     el.textContent = formatValue(result.body);
                     el.className = "text-success";
@@ -237,7 +242,7 @@ def render_dashboard() -> HTMLResponse:
                         </tr>
                     `).join("");
                 }} else {{
-                    historyBody.innerHTML = '<tr><td colspan="4" class="pending">Not implemented yet</td></tr>';
+                    historyBody.innerHTML = `<tr><td colspan="4" class="pending">${{failureText(workflow, "No execution history available")}}</td></tr>`;
                 }}
             }}
 
@@ -249,7 +254,7 @@ def render_dashboard() -> HTMLResponse:
 
                 if (!result.ok) {{
                     placeholder.hidden = false;
-                    placeholder.textContent = result.unreachable ? "API unreachable" : "Not implemented yet";
+                    placeholder.textContent = failureText(result, "Unable to load model data");
                     canvas.hidden = true;
                     return;
                 }}

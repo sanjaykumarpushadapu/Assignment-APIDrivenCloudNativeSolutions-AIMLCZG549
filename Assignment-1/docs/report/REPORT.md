@@ -14,6 +14,104 @@ comparison; and (4) dashboard, APIs, and demonstration.
 
 ---
 
+## Architecture Overview
+
+The solution separates platform-neutral data processing from cloud orchestration and
+presentation. The same Python pipeline can run locally for development or inside
+Apache Airflow on Cloud Composer for scheduled execution. Pipeline outputs are
+written to local folders during development and to the corresponding Cloud Storage
+locations in the deployed environment.
+
+```mermaid
+flowchart TB
+  source[Raw BRFSS CSV]
+
+  subgraph local[Local development]
+    cli[Pipeline CLI]
+    ingest[Ingestion and SHA-256 manifest]
+    pipeline[Python pipeline modules]
+    localOutputs[Local processed and report folders]
+    cli --> ingest --> pipeline --> localOutputs
+  end
+
+  subgraph gcp[GCP scheduled deployment]
+    composer[Cloud Composer]
+    scheduler[Airflow scheduler<br/>*/2 * * * *]
+    dag[diabetes_risk_pipeline DAG<br/>max_active_runs=1]
+    task1[Task 1<br/>quality, preprocessing, EDA]
+    task2[Task 2<br/>Random Forest]
+    task3[Task 3<br/>model evaluation]
+    composer --> scheduler --> dag --> task1 --> task2 --> task3
+  end
+
+  subgraph storage[Cloud Storage hand-off]
+    rawBucket[(data/raw)]
+    processedBucket[(data/processed)]
+    outputBucket[(data/outputs)]
+  end
+
+  source --> cli
+  source --> rawBucket
+  rawBucket --> task1
+  task1 --> processedBucket
+  task1 --> outputBucket
+  processedBucket --> task2
+  processedBucket --> task3
+  task2 --> outputBucket
+  outputBucket --> task3
+  task3 --> outputBucket
+
+  api[FastAPI application<br/>OpenAPI endpoints]
+  dashboard[Dashboard<br/>activity and result views]
+  monitoring[Cloud Logging and Monitoring]
+
+  outputBucket --> api
+  composer --> api
+  composer --> monitoring
+  monitoring --> api
+  api --> dashboard
+```
+
+### Execution steps
+
+1. **Select the source:** use the immutable BRFSS CSV from `data/raw/` locally or
+  the matching `data/raw/` object in Cloud Storage when running on Composer.
+2. **Run ingestion locally:** the CLI validates the schema and row count, then
+  appends a timestamped SHA-256 record to the ingestion manifest.
+3. **Schedule the cloud path:** Cloud Composer hosts the Airflow DAG, which runs
+  every two minutes with `catchup=False` and `max_active_runs=1`.
+4. **Execute Task 1:** download the raw object to the task workspace, run data
+  quality, preprocessing, and EDA, then upload processed datasets, reports, and
+  execution logs.
+5. **Execute Tasks 2 and 3:** Task 2 reads the model-ready dataset to train the
+  Random Forest; Task 3 reads that dataset and model to produce the comparison
+  metrics. Both upload their artifacts to Cloud Storage.
+6. **Serve results:** the FastAPI layer reads pipeline artifacts and GCP runtime
+  details, while the dashboard calls the FastAPI endpoints. The dashboard does not
+  access Cloud Storage directly or hard-code pipeline results.
+
+### Component boundaries
+
+| Component | Responsibility | Deployment boundary |
+|---|---|---|
+| `src/diabetes_risk/pipeline/` | Ingestion, validation, preprocessing, EDA, modeling, and logging | Platform neutral; runs locally or in Airflow |
+| `dags/diabetes_risk_pipeline.py` | Task ordering, retries, cadence, and overlap policy | Airflow / Cloud Composer |
+| Cloud Storage | Raw, processed, report, model, and execution-log objects | GCP persistence layer |
+| `src/diabetes_risk/api/` | FastAPI routes and built-in API clients | Application API layer |
+| `src/diabetes_risk/dashboard/` | Activity and result presentation through API calls | Presentation layer |
+
+The API and dashboard are intentionally downstream of the pipeline outputs. They do
+not change the raw dataset or run preprocessing themselves. Credentials and project
+settings are supplied through environment configuration or Application Default
+Credentials; they are not embedded in the DAG or committed to the repository.
+
+**Implementation status:** the pipeline, DAG, Cloud Storage hand-off, and Composer
+schedule are implemented and verified in Section 2. The API and dashboard path shown
+above is the target application boundary; the remaining endpoint implementations,
+API tests, dashboard evidence, and demonstration are tracked in Section 4.
+
+---
+
 ## 1. Business Understanding, Dataset, and Ingestion
 
 ### 1.1 Introduction
@@ -406,7 +504,12 @@ The reliability configuration includes:
 - `max_active_runs=1` to prevent overlapping pipeline executions.
 - One retry with a one-minute retry delay for transient task failures.
 
-The planned production deployment target is **Google Cloud Composer**, which provides managed Apache Airflow. GCP-specific deployment notes are isolated under `infra/gcp/`, while the core Python processing and DAG remain portable.
+The planned production deployment target is **Google Cloud Composer**, which provides
+managed Apache Airflow. The Python processing modules remain platform-neutral, while
+`dags/diabetes_risk_pipeline.py` uses the Google Cloud Storage client to download raw
+inputs and upload processed datasets, reports, models, and execution logs between
+Composer tasks. Deployment and architecture details are documented in this report
+and the root README.
 
 #### Cloud Composer deployment verification
 
@@ -477,7 +580,7 @@ Additional validation completed successfully:
 
 ### 2.12 Evidence summary
 
-The evidence index for this section is maintained under `docs/evidence/person2/`. The local validation record documents the actual data-quality, preprocessing, output, test, and scheduling results.
+This report is the canonical record for the local validation and Cloud Composer evidence. The project README contains the consolidated evidence checklist.
 
 The verified local evidence includes:
 
