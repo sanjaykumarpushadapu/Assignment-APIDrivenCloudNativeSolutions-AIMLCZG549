@@ -32,10 +32,10 @@ jobs:
         working-directory: Assignment-1
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -58,7 +58,7 @@ jobs:
       image_uri: ${{ steps.image.outputs.image_uri }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -89,7 +89,7 @@ jobs:
       IMAGE_URI: ${{ needs.build.outputs.image_uri }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -114,7 +114,10 @@ jobs:
 
           PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" \
             --format="value(projectNumber)")
-          API_URL="https://${API_SERVICE}-${PROJECT_NUMBER}.${REGION}.run.app"
+          cloud_run_url() {
+            printf 'https://%s-%s.%s.run.app' "$1" "$PROJECT_NUMBER" "$REGION"
+          }
+          API_URL="$(cloud_run_url "$API_SERVICE")"
           curl --fail --retry 5 --retry-delay 3 "$API_URL/health"
           echo "API_URL=$API_URL" >> "$GITHUB_ENV"
 
@@ -132,10 +135,12 @@ jobs:
             --service-account="$RUNTIME_SERVICE_ACCOUNT" \
             --set-env-vars="DIABETES_API_BASE_URL=$API_URL"
 
-          DASHBOARD_URL=$(gcloud run services describe "$DASHBOARD_SERVICE" \
-            --region="$REGION" \
-            --project="$PROJECT_ID" \
-            --format="value(status.url)")
+          PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" \
+            --format="value(projectNumber)")
+          cloud_run_url() {
+            printf 'https://%s-%s.%s.run.app' "$1" "$PROJECT_NUMBER" "$REGION"
+          }
+          DASHBOARD_URL="$(cloud_run_url "$DASHBOARD_SERVICE")"
           echo "DASHBOARD_URL=$DASHBOARD_URL" >> "$GITHUB_ENV"
 
       - name: Allow Cloud Run dashboard URL variants
