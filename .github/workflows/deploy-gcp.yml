@@ -112,10 +112,10 @@ jobs:
             --service-account="$RUNTIME_SERVICE_ACCOUNT" \
             --set-env-vars="GCP_PROJECT_ID=$PROJECT_ID,GCP_LOCATION=$REGION,GCP_COMPOSER_ENVIRONMENT=$COMPOSER_ENVIRONMENT,DIABETES_GCS_BUCKET=$GCS_BUCKET,DASHBOARD_ORIGIN=*"
 
-          API_URL=$(gcloud run services describe "$API_SERVICE" \
-            --region="$REGION" \
-            --project="$PROJECT_ID" \
-            --format="value(status.url)")
+          PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" \
+            --format="value(projectNumber)")
+          API_URL="https://${API_SERVICE}-${PROJECT_NUMBER}.${REGION}.run.app"
+          curl --fail --retry 5 --retry-delay 3 "$API_URL/health"
           echo "API_URL=$API_URL" >> "$GITHUB_ENV"
 
       - name: Deploy dashboard to Cloud Run
