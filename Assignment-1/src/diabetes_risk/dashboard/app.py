@@ -99,7 +99,7 @@ def render_dashboard() -> HTMLResponse:
             <div class="row">
                 <div class="col-md-3">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Latest Pipeline Run Status</div>
+                        <div class="text-muted small">Latest Completed Composer Workflow Status</div>
                         <h4 class="mt-2 pending" id="status-val">-</h4>
                     </div>
                 </div>
@@ -127,40 +127,27 @@ def render_dashboard() -> HTMLResponse:
             <div class="row">
                 <div class="col-md-4">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Data Quality, Preprocessing &amp; EDA Duration</div>
+                        <div class="text-muted small">Latest Completed DAG Duration</div>
                         <h4 class="mt-2 pending" id="runtime-val">-</h4>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Errors</div>
+                        <div class="text-muted small">Processing Errors</div>
                         <h4 class="mt-2 pending" id="errors-val">-</h4>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Warnings</div>
+                        <div class="text-muted small">Processing Warnings</div>
                         <h4 class="mt-2 pending" id="warnings-val">-</h4>
                     </div>
                 </div>
-            </div>
-
-            <!-- API-derived application details (Sub-Objective 2) -->
-            <div class="row my-2">
-                <div class="col-12">
-                    <div class="api-section">
-                        <h5 class="text-primary">API-Derived Application Details</h5>
-                        <p class="text-muted small mb-2">Each value below is a live call to the real API at <code>{API_BASE_URL}</code> -- not hard-coded. Status text distinguishes loading, configuration, unavailable, and unimplemented states.</p>
-                        <div class="row mt-2">
-                            <div class="col-md-3"><strong>Composer DAG history (<code>/api/v1/workflow</code>):</strong> <span class="pending" id="api-workflow">Loading...</span></div>
-                            <div class="col-md-3"><strong>Latest run (<code>/api/v1/runs/latest</code>):</strong> <span class="pending" id="api-runs-latest">Loading...</span></div>
-                            <div class="col-md-3"><strong>Dataset (<code>/api/v1/dataset</code>):</strong> <span class="pending" id="api-dataset">Loading...</span></div>
-                            <div class="col-md-3"><strong>Schedule (<code>/api/v1/schedule</code>):</strong> <span class="pending" id="api-schedule">Loading...</span></div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-md-3"><strong>Model (<code>/api/v1/model</code>):</strong> <span class="pending" id="api-model">Loading...</span></div>
-                            <div class="col-md-9 text-muted small">Retrieval time: <span id="api-retrieved-at">-</span></div>
-                        </div>
+                <div class="col-md-4">
+                    <div class="metric-card text-center">
+                        <div class="text-muted small">Composer Environment</div>
+                        <h4 class="mt-2 pending" id="composer-env-val">-</h4>
+                        <div class="text-muted small" id="composer-env-help">Loading environment...</div>
                     </div>
                 </div>
             </div>
@@ -251,8 +238,8 @@ def render_dashboard() -> HTMLResponse:
 
             async function loadDashboard() {{
                 const workflowPromise = fetchJson("/api/v1/workflow").then(workflow => {{
-                    setSpan("api-workflow", workflow, (body) => `${{body.length}} run(s)`);
                     renderHistory(document.querySelector("#history-table tbody"), workflow);
+                    renderWorkflowSummary(workflow);
                 }});
                 const latestPromise = fetchJson("/api/v1/runs/latest").then(runsLatest => {{
                     renderLatestRun(runsLatest);
@@ -278,12 +265,11 @@ def render_dashboard() -> HTMLResponse:
                     badge.className = "badge bg-danger status-badge";
                 }}
 
-                setSpan("api-dataset", dataset, (b) => b.quality_status || "ok");
                 if (!runsLatest.ok || runsLatest.body.records_processed == null) {{
                     setSpan("records-val", dataset, (b) => (b.input_rows ?? "-").toLocaleString());
                 }}
                 setSpan("duplicates-val", dataset, (b) => (b.duplicate_records_removed ?? "-").toLocaleString());
-                setSpan("quality-val", dataset, (b) => b.quality_status || "-");
+                renderQualityStatus(dataset);
                 const qualityHelp = document.getElementById("quality-help");
                 if (dataset.ok) {{
                     const qualityStatus = String(dataset.body.quality_status || "").toUpperCase();
@@ -297,23 +283,102 @@ def render_dashboard() -> HTMLResponse:
                     qualityHelp.textContent = failureText(dataset, "Quality details unavailable");
                 }}
 
-                setSpan("api-schedule", schedule, (b) => b.state || "ok");
-
-                setSpan("api-model", model, (b) => "ok");
+                renderComposerEnvironment(schedule);
                 renderModelChart(model);
-
-                document.getElementById("api-retrieved-at").textContent = new Date().toISOString();
             }}
 
             function renderLatestRun(result) {{
-                setSpan("api-runs-latest", result, (body) => body.status || "status unavailable");
-                setSpan("status-val", result, (body) => body.status || "unknown");
-                setSpan("runtime-val", result, (body) => body.duration_seconds == null ? "not reported" : `${{Number(body.duration_seconds).toFixed(2)}} s`);
-                setSpan("errors-val", result, (body) => Array.isArray(body.errors) ? body.errors.length : 0);
-                setSpan("warnings-val", result, (body) => Array.isArray(body.warnings) ? body.warnings.length : 0);
+                setCountSpan("errors-val", result, (body) => Array.isArray(body.errors) ? body.errors.length : 0, "text-danger");
+                setCountSpan("warnings-val", result, (body) => Array.isArray(body.warnings) ? body.warnings.length : 0, "text-warning");
                 if (result.ok && result.body.records_processed != null) {{
                     setSpan("records-val", result, (body) => Number(body.records_processed).toLocaleString());
                 }}
+            }}
+
+            function setSemanticSpan(id, result, formatValue, classForValue) {{
+                const el = document.getElementById(id);
+                if (!result.ok) {{
+                    el.textContent = failureText(result, "Unable to load data");
+                    el.className = result.pending ? "pending" : "text-danger";
+                    return;
+                }}
+                const value = formatValue(result.body);
+                el.textContent = value;
+                el.className = classForValue(value);
+            }}
+
+            function setCountSpan(id, result, countForBody, nonzeroClass) {{
+                const el = document.getElementById(id);
+                if (!result.ok) {{
+                    el.textContent = failureText(result, "Unable to load data");
+                    el.className = result.pending ? "pending" : "text-danger";
+                    return;
+                }}
+                const count = Number(countForBody(result.body)) || 0;
+                el.textContent = count.toLocaleString();
+                el.className = count === 0 ? "text-success" : nonzeroClass;
+            }}
+
+            function renderComposerEnvironment(result) {{
+                const nameEl = document.getElementById("composer-env-val");
+                const helpEl = document.getElementById("composer-env-help");
+                if (!result.ok) {{
+                    nameEl.textContent = failureText(result, "Environment unavailable");
+                    nameEl.className = result.pending ? "pending" : "text-danger";
+                    helpEl.textContent = "Schedule and version unavailable";
+                    return;
+                }}
+                const environment = result.body;
+                const state = String(environment.state || "unknown");
+                nameEl.textContent = environment.name || "Name unavailable";
+                nameEl.className = state.toUpperCase() === "RUNNING" ? "text-success" : "text-warning";
+                const version = environment.airflow_version || "Airflow version unavailable";
+                helpEl.textContent = `${{state}} · ${{version}} · schedule */2 * * * *`;
+            }}
+
+            function renderWorkflowSummary(result) {{
+                if (!result.ok) {{
+                    setSpan("status-val", result, () => "unknown");
+                    setSpan("runtime-val", result, () => "not reported");
+                    return;
+                }}
+                const runs = result.body;
+                if (!Array.isArray(runs) || runs.length === 0) {{
+                    document.getElementById("status-val").textContent = "No DAG runs";
+                    document.getElementById("status-val").className = "text-muted";
+                    document.getElementById("runtime-val").textContent = "-";
+                    document.getElementById("runtime-val").className = "text-muted";
+                    return;
+                }}
+                const latestCompleted = runs.find(run => ["success", "failed"].includes(String(run.state || "").toLowerCase()));
+                if (!latestCompleted) {{
+                    document.getElementById("status-val").textContent = "No completed DAG run";
+                    document.getElementById("status-val").className = "text-muted";
+                    document.getElementById("runtime-val").textContent = "-";
+                    document.getElementById("runtime-val").className = "text-muted";
+                    return;
+                }}
+                const state = String(latestCompleted.state || "unknown");
+                setSemanticSpan("status-val", {{ ok: true, body: latestCompleted }}, body => state,
+                    value => value.toLowerCase() === "success" ? "text-success" :
+                        value.toLowerCase() === "failed" ? "text-danger" : "text-warning");
+                const duration = Number(latestCompleted.duration_seconds);
+                const runtimeEl = document.getElementById("runtime-val");
+                if (latestCompleted.duration_seconds != null && Number.isFinite(duration)) {{
+                    runtimeEl.textContent = `${{duration.toFixed(2)}} s`;
+                    runtimeEl.className = "text-body";
+                }} else {{
+                    runtimeEl.textContent = "Not reported";
+                    runtimeEl.className = "text-muted";
+                }}
+            }}
+
+            function renderQualityStatus(result) {{
+                setSemanticSpan("quality-val", result, body => body.quality_status || "unknown", value => {{
+                    const status = String(value).toUpperCase();
+                    return status === "PASS" ? "text-success" :
+                        status === "PASS_WITH_WARNINGS" ? "text-warning" : "text-danger";
+                }});
             }}
 
             function renderHistory(body, result) {{

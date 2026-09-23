@@ -27,17 +27,22 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
     assert response.status_code == 200
     for expected in (
-        "Latest Pipeline Run Status",
-        "Data Quality, Preprocessing &amp; EDA Duration",
+        "Latest Completed Composer Workflow Status",
+        "Latest Completed DAG Duration",
         "Composer DAG Run History",
-        "Errors",
-        "Warnings",
-        "/api/v1/workflow",
-        "/api/v1/runs/latest",
-        "/api/v1/dataset",
-        "/api/v1/schedule",
+        "Composer Environment",
+        "DAG Duration",
+        "Started (UTC)",
+        "Finished (UTC)",
+        "Processed Records",
+        "Duplicate Records Removed",
+        "Quality Status",
+        "Processing Errors",
+        "Processing Warnings",
     ):
         assert expected in response.text
+    assert "API-Derived Application Details" not in response.text
+    assert '["success", "failed"].includes(String(run.state || "").toLowerCase())' in response.text
 
 
 def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:

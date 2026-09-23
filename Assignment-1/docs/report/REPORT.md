@@ -869,7 +869,19 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
 application values from the FastAPI service; it does not embed run or dataset
-results. It displays the latest data-quality/preprocessing/EDA task status and duration from the GCS run manifest, the "Processed Records" count (the pipeline's **input** row count, 253,680 — not the 229,781-row cleaned output; the dashboard label reflects the raw records the run processed), duplicate removals, quality status, error and warning counts, the 10 most recent Composer DAG runs with full run IDs and expandable task-instance details, and optional model-comparison metrics. Composer DAG duration includes all DAG tasks; the manifest duration covers only the data-quality/preprocessing/EDA task. DAG and task timestamps are displayed in UTC to match Composer. GCS pipeline manifests remain available separately through `/api/v1/pipeline/history`.
+results. The latest completed Composer status and its whole-DAG duration are
+shown in summary cards for quick visibility; in-progress runs remain in the
+10-row Composer history table, which shows state, timestamps, duration, and
+expandable task-instance details. The
+separate processing cards show **Processed Records**, duplicate removals,
+quality status, and processing error/warning counts, which do not appear in
+the Composer history. These come from the GCS execution manifest
+and dataset reports. The record count is the pipeline's **input** row count
+(253,680), not the 229,781-row cleaned output. A Composer Environment card
+shows the environment name, state, Airflow version, and configured two-minute
+DAG schedule. Optional model-comparison metrics appear in the chart. DAG and
+task timestamps are displayed in UTC to match Composer. GCS pipeline manifests
+remain available separately through `/api/v1/pipeline/history`.
 
 Run the API and dashboard in separate terminals after configuring GCP access:
 
