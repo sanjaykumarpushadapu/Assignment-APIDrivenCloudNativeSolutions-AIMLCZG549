@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from .data_quality import BINARY_COLUMNS
+from .preprocessing import encode_features
 
 EDA_BIVARIATE_COLUMNS = ["bmi", "age", "highbp", "highchol", "physactivity", "genhlth"]
 EDA_DISTRIBUTION_COLUMNS = ["bmi", "age", "genhlth", "highbp", "highchol", "physactivity", "cholcheck", "smoker"]
@@ -127,6 +128,14 @@ def generate_eda(frame: pd.DataFrame, output_dir: Path, target_column: str = "Di
         )
     bin_frame.to_csv(output_dir / "binned_features.csv", index=False)
 
+    # Activity 1.4 encoding: the binned age/BMI groups are the dataset's only
+    # genuinely categorical (non-ordinal) fields, so this is where one-hot
+    # encoding applies (see preprocessing.encode_features()). Wired into the
+    # scheduled pipeline here so it runs on every automated EDA run, not just
+    # as a one-off check.
+    encoded_bins, bin_encoding_report = encode_features(bin_frame)
+    encoded_bins.to_csv(output_dir / "binned_features_encoded.csv", index=False)
+
     metadata = {
         "rows": int(len(frame)),
         "columns": int(len(frame.columns)),
@@ -139,6 +148,8 @@ def generate_eda(frame: pd.DataFrame, output_dir: Path, target_column: str = "Di
         "correlation_matrix": str(output_dir / "correlation_matrix.csv"),
         "bivariate_outputs": generated_bivariate,
         "binned_features": str(output_dir / "binned_features.csv"),
+        "binned_features_encoded": str(output_dir / "binned_features_encoded.csv"),
+        "binned_features_encoding_report": bin_encoding_report,
     }
     (output_dir / "eda_metadata.json").write_text(json.dumps(_json_safe(metadata), indent=2), encoding="utf-8")
     return metadata

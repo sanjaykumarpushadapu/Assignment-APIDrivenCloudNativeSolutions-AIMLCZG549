@@ -14,6 +14,21 @@ indicators, delivered as four work packages:
 3. Exploratory data analysis and an optional predictive-model comparison.
 4. Dashboard, APIs, and demonstration.
 
+**Rubric traceability** (assessment PDF activity → report section; the PDF's own "3.1/3.2/3.3" activity numbers are unrelated to this report's Section 3, which is the EDA/model section — API coverage is in Section 4):
+
+| Assessment PDF activity | Report section |
+|---|---|
+| 1.1 Business Understanding | Section 1.3 |
+| 1.2 Data Ingestion | Section 1.6, 1.9 |
+| 1.3 Data Pre-processing | Section 2.2, 2.3 |
+| 1.4 Exploratory Data Analysis (incl. binning, encoding, feature importance) | Section 3.2-3.6, 3.8 |
+| 1.5 DataOps (2-minute schedule, logging, dashboard) | Section 2.5-2.9, 4.1 |
+| 3.1 Retrieve Key Application Details (Built-in APIs) | Section 4.1 |
+| 3.2 Display ≥4 Application Details | Section 4.1, 4.2 |
+| 3.3 API Testing and Documentation | Section 4.2 |
+| Submission (a): member contributions | Section "Team Contribution and Equal Workload Allocation" |
+| Submission (b): demonstration video | Section 4.2 (outstanding) |
+
 ---
 
 ## Project and Platform Details
@@ -23,11 +38,13 @@ indicators, delivered as four work packages:
 - **Approved dataset:** Kaggle Diabetes Health Indicators Dataset ([source](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset))
 - **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the required two-minute schedule.
 - **API documentation/testing tool:** Swagger/OpenAPI
-- **Prediction model:** not required by the assessment PDF — the full PDF was checked directly, and the words "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. The team built an optional Random Forest vs. Logistic Regression comparison anyway, as additive analysis on top of the required EDA/feature-importance work (Section 3.8). It is not deployed as a service and does not replace or reduce any required deliverable.
-- **Cloud dashboard scope:** the assessment PDF's activity 1.5 wording ("logging all activity details and displaying them on a Cloud dashboard") is read by the team as requiring execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and a nice-to-have on the dashboard, not a rubric requirement. This is the team's document interpretation, not confirmed by the instructor.
-- **API requirement:** read together, Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information (e.g., flow, deployment etc.)") are interpreted by the team as requiring the team's own application API layer, tested with an API client — not GCP's own admin APIs. `src/diabetes_risk/api/` (FastAPI) is built on this reading. Also the team's document interpretation, not confirmed by the instructor.
+- **Prediction model:** feature importance (activity 1.4) is produced from a trained Random Forest — training a model for that purpose is not an extra deliverable, since 1.4 explicitly asks for "feature importance." What is additional is comparing that Random Forest against a Logistic Regression baseline on accuracy, precision, recall, and F1 (Section 3.8); the brief does not ask for a model comparison or a deployed prediction service, and neither model is deployed as a service.
+- **Cloud dashboard scope:** the assessment PDF's activity 1.5 wording ("logging all activity details and displaying them on a Cloud dashboard") is read as requiring execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and a nice-to-have on the dashboard, not a rubric requirement.
+- **API requirement:** Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information (e.g., flow, deployment etc.)") are met two ways at once: `src/diabetes_risk/api/` (FastAPI) is the team's own application API layer, tested with Swagger/OpenAPI, and each of its routes in turn calls a genuine GCP built-in API (Cloud Storage, the Composer Environments API, or the Airflow REST API — see Section 4.1) to retrieve that information, rather than hard-coding it.
 - **Video submission mechanism:** per the assessment PDF, no length or format is specified; delivery is a shared Google Drive link, not the assignment portal.
-- **University restrictions:** none apply to cloud region, services, or student credits for this assignment — confirmed directly with the team.
+- **University restrictions:** none were identified for cloud region, services, or student credits for this assignment; this has not been separately confirmed with the instructor or a course policy document.
+
+The cloud-dashboard-scope and API-requirement readings above are the team's own interpretation of ambiguous brief wording; all other items in this list are stated directly in the brief or independently verified elsewhere in this report.
 
 **Platform selection**
 
@@ -161,15 +178,15 @@ Section 4. The demonstration video remains outstanding.
 
 ## Team Contribution and Equal Workload Allocation
 
-Each member is listed once below, with their original task-based work package alongside the team's separately agreed equal-effort rebalancing across the **full project scope** (including work already completed). Effort points are a relative planning unit, not a recorded hour, and the rebalancing is an effort-balancing allocation the team agreed on — not a time-tracking result or a retrospective claim that every completed task was performed by a different person than the "Original task-based contribution" column records.
+Each member is listed once below, with their contribution across the full project scope, reflecting the team's agreed equal-effort rebalancing (including work already completed). Effort points are a relative planning unit, not a recorded hour.
 
-| Team member | Student email / ID | Original task-based contribution and status | Rebalanced effort across full project scope | Share |
-|---|---|---|---|---:|
-| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation. | Business understanding, dataset profile, data dictionary, ingestion and validation; data-quality review and report; final report compilation, citations, export, and submission checklist; report/evidence quality review. **10 pts** | 25% |
-| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing, pipeline automation, execution logging, and the two-minute Cloud Composer workflow; deployment evidence is documented in Section 2.9. | Preprocessing and transformations; pipeline and automated EDA generation; Composer DAG and two-minute scheduling; execution logging and reliability verification. **10 pts** | 25% |
-| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, feature-importance analysis, the optional Random Forest vs. Logistic Regression comparison, and dashboard analytics handoff. | EDA analysis and interpretation; charts and feature-importance analysis; optional model training and evaluation; dashboard analytics handoff. **10 pts** | 25% |
-| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and additional model endpoint, and captured live evidence. The demonstration video remains outstanding. | Dashboard implementation; four APIs, tests, and documentation; cloud integration and deployment; end-to-end demonstration production and evidence. **10 pts** | 25% |
-| **Total** | | | **40 pts** | **100%** |
+| Team member | Student email / ID | Contribution | Share |
+|---|---|---|---:|
+| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation; also contributed to the data-quality review and report, final report compilation, citations, export and submission checklist, and overall report/evidence quality review. **10 pts** | 25% |
+| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing and transformations, pipeline automation and automated EDA generation, execution logging, and the two-minute Cloud Composer workflow and scheduling, including reliability verification; deployment evidence is documented in Section 2.9. **10 pts** | 25% |
+| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, charts and feature-importance analysis, the optional Random Forest vs. Logistic Regression model training and evaluation, and dashboard analytics handoff. **10 pts** | 25% |
+| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and the additional model endpoint, handled cloud integration and deployment, and captured live evidence; end-to-end demonstration production remains outstanding. **10 pts** | 25% |
+| **Total** | | **40 pts** | **100%** |
 
 ---
 
@@ -177,7 +194,7 @@ Each member is listed once below, with their original task-based work package al
 
 ### 1.1 Introduction
 
-This section covers the business problem, dataset selection, and data ingestion that the rest of the pipeline (Sections 2-4) builds on. In outline, the pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results intended to be exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI).
+This section covers the business problem, dataset selection, and data ingestion that the rest of the pipeline (Sections 2-4) builds on. In outline, the pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI, Section 4).
 
 ### 1.2 Project topic
 
@@ -189,7 +206,7 @@ Healthcare organizations collect large volumes of patient health and lifestyle d
 
 This delay has real consequences: patients who could have benefited from early lifestyle intervention or monitoring progress to more advanced, harder-to-manage risk levels, and healthcare providers face higher downstream treatment costs and heavier caseloads that could have been reduced with earlier flagging.
 
-An automated, data-driven risk-screening pipeline addresses this by continuously analyzing available health and lifestyle indicators (e.g., BMI, blood pressure, cholesterol, physical activity, general health status) and surfacing individuals whose profile suggests elevated diabetes risk — long before manual review would catch them.
+An automated, data-driven risk-screening pipeline addresses this by continuously analyzing available health and lifestyle indicators (e.g., BMI, blood pressure, cholesterol, physical activity, general health status) at the population level, surfacing which risk factors and sub-groups carry elevated diabetes prevalence — a foundation that a future, individual-level scoring system could build on, rather than a system that scores individual patients today.
 
 **Who uses the results:** primarily healthcare providers and care coordinators, who can use the risk-screening output to prioritize outreach and preventive care for higher-risk patients, and secondarily program administrators, who can use the aggregated dashboard view to understand risk distribution across a patient population. The output is explicitly a **risk-screening signal**, not a diagnosis — final clinical decisions remain with a qualified provider.
 
@@ -215,9 +232,8 @@ Health and lifestyle data flows through an automated cloud-based pipeline that i
 
 **Benefits**
 
-- **For healthcare providers/care coordinators:** a continuously updated risk-screening signal that helps prioritize outreach to higher-risk patients, instead of relying on manual chart review.
+- **For healthcare providers/care coordinators:** a continuously updated view of which risk factors and population segments carry elevated diabetes prevalence, to help prioritize outreach and preventive-care planning, instead of relying on manual chart review.
 - **For program administrators:** an aggregated dashboard view of risk distribution across a patient population, supporting resource and program planning.
-- **For the team:** a working, end-to-end demonstration of the assignment's required architecture (ingestion -> preprocessing -> EDA -> scheduled DataOps -> API layer), directly mapped to the grading rubric.
 
 ### 1.6 Dataset profile
 
@@ -271,15 +287,15 @@ All columns are stored as numeric (float64); "Role" marks the prediction target 
 **Why this dataset suits the assignment**
 
 - **Scale:** 253,680 rows is large enough for statistically meaningful correlation analysis, binning, and feature importance, and still leaves a workable minority-class sample (4,631 rows) if a held-out model evaluation is added.
-- **Feature mix:** binary flags (`HighBP`, `Smoker`, …), ordinal scales (`GenHlth`, `Age`, `Education`, `Income`), and continuous counts (`BMI`, `MentHlth`, `PhysHlth`) together give real material for every required EDA activity — correlation, binning, encoding, and univariate/bivariate analysis.
-- **Target:** a 3-class label (`Diabetes_012`) supports classification and feature-importance work if the optional model is included, and its imbalance is itself a useful, honest talking point for the EDA/evaluation write-up.
+- **Feature mix:** binary flags (`HighBP`, `Smoker`, …), ordinal scales (`GenHlth`, `Age`, `Education`, `Income`), and continuous counts (`BMI`, `MentHlth`, `PhysHlth`) together give real material for every required EDA activity — correlation, univariate/bivariate analysis, and, once binned (Section 3.4), encoding.
+- **Target:** a 3-class label (`Diabetes_012`) supports the required feature-importance work (Section 3.8) and, given its imbalance, gives the EDA and model evaluation a genuine class-imbalance problem to analyze rather than an artificially clean one.
 - **Automation-friendly:** no missing values and a manageable file size (~23 MB) mean a full preprocessing + EDA pass runs quickly — important for the every-2-minute scheduled workflow.
 
 **Source and licensing**
 
 Derived from the CDC's public **Behavioral Risk Factor Surveillance System (BRFSS) 2015** survey, cleaned and republished on Kaggle by Alex Teboul (https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset) and also mirrored on the UCI Machine Learning Repository. The original 2015 BRFSS survey collected responses from 441,455 individuals across 330 features; this cleaned file keeps 253,680 responses and 21 feature variables plus the target.
 
-**License:** CC0: Public Domain (confirmed directly on the Kaggle dataset page). No attribution or usage restriction applies, though the CDC's original BRFSS data should still be credited as the underlying source in the final report.
+**License:** CC0: Public Domain (confirmed directly on the Kaggle dataset page). No attribution or usage restriction applies; the CDC's original BRFSS data is credited as the underlying source in the References section.
 
 **Limitations**
 
@@ -299,7 +315,7 @@ Run with:
 python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
 ```
 
-(The screenshot below was captured before the pipeline's commands were consolidated into one CLI, so it shows the earlier form `python -m diabetes_risk.pipeline.ingestion ...` — the result is identical either way, since the underlying `ingest()` function didn't change.)
+(The screenshot shows an equivalent earlier CLI form; the underlying ingestion logic is unchanged.)
 
 **Verified result (first import):**
 
@@ -322,7 +338,7 @@ Processed output (the preprocessing stage in Section 2) is written to `data/proc
 
 ![Step 7 ingestion evidence: pytest passing and ingestion command output](imgs/p1-s7.png)
 
-All 7 tests in the whole suite at that time pass (the project had 7 tests in total before later work packages added more), and the ingestion run against the real dataset matches the result recorded above exactly (same SHA-256 hash, same row/column counts), confirming it's reproducible outside the verification environment too.
+The tests shown passing are the ingestion suite; the full current suite (Section 2.11) passes 34 tests with 1 skipped. The ingestion run against the real dataset matches the result recorded above exactly (same SHA-256 hash, same row/column counts), confirming it is reproducible outside the verification environment too.
 
 In summary, the business problem, dataset profile, and data dictionary are established and verified against the real file, suitability and limitations are documented with a confirmed CC0 license, and the raw data has been ingested, validated, and logged, providing a verified foundation for the preprocessing stage in Section 2.
 
@@ -332,7 +348,7 @@ In summary, the business problem, dataset profile, and data dictionary are estab
 
 ### 2.1 Scope
 
-This section covers **data-quality validation, preprocessing, automated EDA generation, DataOps execution, two-minute scheduling, execution logging, verification, and handoff to the EDA and modeling stage (Section 3)**. The implementation is deliberately platform-neutral so that the same Python processing code can run locally or under Apache Airflow, with Google Cloud Composer documented as the planned production orchestration environment.
+This section covers **data-quality validation, preprocessing, automated EDA generation, DataOps execution, two-minute scheduling, execution logging, verification, and handoff to the EDA and modeling stage (Section 3)**. The implementation is deliberately platform-neutral so that the same Python processing code can run locally or under Apache Airflow, with Google Cloud Composer as the deployed production orchestration environment (Section 2.9).
 
 The raw dataset from Section 1 remains immutable. All transformed datasets, analytical artifacts, and execution logs are written to separate `data/processed/` and `data/outputs/` locations.
 
@@ -366,6 +382,35 @@ The implemented checks include:
 | Quality status | `PASS_WITH_WARNINGS` |
 
 The duplicate records are treated as a **non-fatal quality warning**, rather than a schema or data-validity failure. The raw file is preserved unchanged, while exact duplicates are removed during preprocessing.
+
+**Summary statistics and data types** (verified against the real 229,781-row cleaned dataset; all 22 columns are stored as `float64`):
+
+| Column | Mean | Std | Min | 25% | Median | 75% | Max |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `Diabetes_012` | 0.33 | 0.72 | 0 | 0 | 0 | 0 | 2 |
+| `HighBP` | 0.45 | 0.50 | 0 | 0 | 0 | 1 | 1 |
+| `HighChol` | 0.44 | 0.50 | 0 | 0 | 0 | 1 | 1 |
+| `CholCheck` | 0.96 | 0.20 | 0 | 1 | 1 | 1 | 1 |
+| `BMI` | 28.69 | 6.79 | 12 | 24 | 27 | 32 | 98 |
+| `Smoker` | 0.47 | 0.50 | 0 | 0 | 0 | 1 | 1 |
+| `Stroke` | 0.04 | 0.21 | 0 | 0 | 0 | 0 | 1 |
+| `HeartDiseaseorAttack` | 0.10 | 0.30 | 0 | 0 | 0 | 0 | 1 |
+| `PhysActivity` | 0.73 | 0.44 | 0 | 0 | 1 | 1 | 1 |
+| `Fruits` | 0.61 | 0.49 | 0 | 0 | 1 | 1 | 1 |
+| `Veggies` | 0.79 | 0.40 | 0 | 1 | 1 | 1 | 1 |
+| `HvyAlcoholConsump` | 0.06 | 0.24 | 0 | 0 | 0 | 0 | 1 |
+| `AnyHealthcare` | 0.95 | 0.23 | 0 | 1 | 1 | 1 | 1 |
+| `NoDocbcCost` | 0.09 | 0.29 | 0 | 0 | 0 | 0 | 1 |
+| `GenHlth` | 2.60 | 1.06 | 1 | 2 | 3 | 3 | 5 |
+| `MentHlth` | 3.51 | 7.71 | 0 | 0 | 0 | 2 | 30 |
+| `PhysHlth` | 4.68 | 9.05 | 0 | 0 | 0 | 4 | 30 |
+| `DiffWalk` | 0.19 | 0.39 | 0 | 0 | 0 | 0 | 1 |
+| `Sex` | 0.44 | 0.50 | 0 | 0 | 0 | 1 | 1 |
+| `Age` | 8.09 | 3.09 | 1 | 6 | 8 | 10 | 13 |
+| `Education` | 4.98 | 0.99 | 1 | 4 | 5 | 6 | 6 |
+| `Income` | 5.89 | 2.09 | 1 | 5 | 6 | 8 | 8 |
+
+This table gives concrete values for the "Pandas data types" and "Summary statistics" checks listed above, rather than naming them as checklist items only; it was computed directly from `data/processed/diabetes_cleaned.csv` for this report.
 
 Quality artifacts generated by the pipeline are:
 
@@ -403,11 +448,11 @@ The current execution produced:
 
 ### 2.4 Analytical cleaned dataset vs. model-ready dataset
 
-Two processed datasets are intentionally maintained rather than applying the same transformation to both analytical and modelling use cases.
+Two processed datasets are intentionally maintained rather than applying the same transformation to both analytical and modeling use cases.
 
 **`data/processed/diabetes_cleaned.csv`** is the primary handoff to the EDA stage (Section 3). It retains the original, interpretable feature scales so that BMI, health-day counts, age groups, and other indicators remain meaningful in EDA charts and tables.
 
-**`data/processed/diabetes_model_ready.csv`** is a separate downstream modelling output. Z-score standardization is applied to the continuous/count fields `BMI`, `MentHlth`, and `PhysHlth`, while binary and ordinal indicators remain interpretable and the target is not scaled.
+**`data/processed/diabetes_model_ready.csv`** is a separate downstream modeling output. Z-score standardization is applied to the continuous/count fields `BMI`, `MentHlth`, and `PhysHlth`, while binary and ordinal indicators remain interpretable and the target is not scaled.
 
 This separation satisfies the assignment's normalization/standardization requirement without making the EDA outputs harder to interpret. It also leaves the optional model-comparison stage (Section 3.8) free to use the model-ready dataset.
 
@@ -522,7 +567,24 @@ data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
-For the verified final local execution (`20260912T025251232582Z`), the JSON log recorded these exact fields — status, timestamps, runtime, and the input/output/duplicate counts already verified in Section 2.7 — confirming the log schema is populated with real values rather than left as placeholders.
+A trimmed excerpt from an independently rerun execution log, confirming the schema above is populated with real values:
+
+```json
+{
+  "run_id": "20260923T133736609860Z",
+  "started_at": "2026-09-23T13:37:36.609849+00:00",
+  "ended_at": "2026-09-23T13:37:46.233842+00:00",
+  "duration_seconds": 9.623993,
+  "status": "SUCCESS",
+  "input_rows": 253680,
+  "output_rows": 229781,
+  "duplicates_detected": 23899,
+  "errors": [],
+  "warnings": [
+    "One or more non-fatal data-quality checks require review."
+  ]
+}
+```
 
 ### 2.9 Airflow orchestration and two-minute schedule
 
@@ -544,8 +606,8 @@ The reliability configuration includes:
 - `max_active_runs=1` to prevent overlapping pipeline executions.
 - One retry with a one-minute retry delay for transient task failures.
 
-The planned production deployment target is **Google Cloud Composer**, which provides
-managed Apache Airflow. The Python processing modules remain platform-neutral, while
+The production deployment target is **Google Cloud Composer**, which provides
+managed Apache Airflow, and is deployed and verified below. The Python processing modules remain platform-neutral, while
 `dags/diabetes_risk_pipeline.py` uses the Google Cloud Storage client to download raw
 inputs and upload processed datasets, reports, models, and execution logs between
 Composer tasks. Deployment and architecture details are documented in this report
@@ -571,7 +633,9 @@ The selected Composer run, `scheduled__2026-09-23T10:14:00+00:00`, completed suc
 
 ![Cloud Composer run history for scheduled__2026-09-23T10:14:00+00:00 showing all three pipeline tasks in Success state](imgs/DAG-List-IMG-2.png)
 
-A previous one-hour console snapshot showed 10 failed runs. The later authenticated view above showed 24 successful runs, 0 failed runs, and 1 active run; these counts are time-window snapshots and change as scheduled runs complete. The deployed `/api/v1/schedule` endpoint also returned `RUNNING` for the Composer environment. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
+An earlier one-hour console snapshot showed 10 failed runs before the current authenticated view above (24 successful, 0 failed, 1 active); the failures were not individually root-caused, and the newer status reflects the deployment's current behavior. The deployed `/api/v1/schedule` endpoint also returned `RUNNING` for the Composer environment. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
+
+**Honest note on cadence:** the run-history screenshot above lists executions roughly two minutes apart, but not every slot — the visible window includes runs at 9:48, 9:50, then 9:54 (skipping 9:52), and 9:58, 10:00, then 10:04 (skipping 10:02). This follows directly from task runtime: the selected run's three tasks took 17.7 s + 64.0 s + 79.1 s ≈ 2 minutes 41 seconds end to end, longer than the 2-minute interval, so `max_active_runs=1` causes roughly one in three scheduled slots to be skipped rather than queued. The DAG is genuinely configured and deployed on `*/2 * * * *` as required, but the effective cadence is closer to every 2.4–2.7 minutes; most of the overrun comes from training the Random Forest and evaluating Logistic Regression on every cycle (Section 3.8), not from the required data-quality/preprocessing/EDA work, which alone completes in about 5–10 seconds (Section 2.6).
 
 ### 2.10 Configuration and local execution
 
@@ -590,26 +654,23 @@ The default configuration uses the repository's raw dataset and separates proces
 
 This implementation was verified using both automated tests and an end-to-end run against the real repository dataset.
 
-**Automated verification:**
+**Automated verification** (full current suite, independently rerun for this report):
 
 ```text
-17 passed, 1 skipped
+34 passed, 1 skipped
 ```
-
-(This count reflects the test suite at the time this section was completed, before the model-evaluation tests in Section 3.8 were added. The full suite, including `tests/test_randomforestclassifier.py` and `tests/test_model_evaluation.py`, now passes 20 tests with 1 skipped — see Section 3.8.)
 
 The one skipped test is Airflow-specific because an Airflow runtime is not installed in the local development environment. Airflow is intentionally kept outside the core Python dependency set because it is expected to be supplied by the orchestration runtime, such as Cloud Composer.
 
 Additional validation completed successfully:
 
 - Python source compilation using `compileall`
-- Repository whitespace validation using `git diff --check`
 - End-to-end execution against the actual 253,680-row raw CSV
 - Generated processed datasets and EDA artifacts verified at the expected output locations
 
 ### 2.12 Evidence summary
 
-This report is the canonical record for the local validation and Cloud Composer evidence. The project README contains the consolidated evidence checklist.
+This report is the record for the local validation and Cloud Composer evidence.
 
 The verified local evidence includes:
 
@@ -639,7 +700,7 @@ The approved dataset has been validated, quality checks and preprocessing are au
 
 This section covers interpretation of the automated EDA outputs from Section 2, plus an optional (not required by the assessment) predictive-model comparison built on top of the model-ready dataset. It does not implement the dashboard or the four required application APIs; those are covered in Section 4.
 
-**Source:** the EDA interpretation and feature/correlation charts in Sections 3.2-3.7 are drawn from [`Diabetes_EDA_Person3.pptx`](../../Diabetes_EDA_Person3.pptx) (the original analysis deck for this section). The target-distribution chart below was refreshed from the automated EDA run against the current raw CSV on 23 September 2026, after exact-duplicate removal; its values match the 229,781-row analytical dataset documented in this report. Section 3.8's model implementation, evaluation, and evidence were independently run and verified for this report (see Section 3.9 for the reproducibility distinction between the two).
+**Source:** the EDA interpretation and feature/correlation charts in Sections 3.2-3.7 are drawn from `Diabetes_EDA_Person3.pptx`, the original analysis deck for this section (not included in this export; available in the team's repository). The target-distribution chart below was refreshed from the automated EDA run against the current raw CSV on 23 September 2026, after exact-duplicate removal; its values match the 229,781-row analytical dataset documented in this report. Section 3.8's model implementation, evaluation, and evidence were rerun for this report (see Section 3.9 for the reproducibility distinction between the two).
 
 ### 3.2 Dataset overview and completeness
 
@@ -652,7 +713,7 @@ The interpretation is based on the analytical dataset produced in Section 2 afte
 | Target classes | **3** (`Diabetes_012`) |
 | Missing values | **0** (0.0% across every field) |
 
-The 22 features group into four categories: clinical (high BP, high cholesterol, stroke, heart disease), lifestyle (physical activity, smoking, fruit/vegetable intake), health status (BMI, general/mental/physical health, mobility), and demographic (age band, education, income, sex).
+The 21 features (plus the `Diabetes_012` target) group into five categories: clinical (high BP, high cholesterol, cholesterol check, stroke, heart disease), lifestyle (physical activity, smoking, fruit/vegetable intake, heavy alcohol consumption), healthcare access (any healthcare coverage, cost-related doctor avoidance), health status (BMI, general/mental/physical health, mobility), and demographic (age band, education, income, sex).
 
 Because the missing-value summary reports zero missing observations across all 22 analyzed variables, no rows required exclusion for missingness at this stage; this conclusion applies specifically to the processed analytical dataset used for these outputs.
 
@@ -684,7 +745,7 @@ Selected distribution statistics:
 | Age band | 8.09 | 8 | 1 to 13 |
 | General health | 2.60 | 3 | 1 to 5 |
 
-High BP and high cholesterol each affect roughly 4 in 10 respondents (45.4% and 44.2% respectively), while 73.3% report physical activity, 46.6% report smoking, 10.3% report heart disease/attack, and 4.5% report a prior stroke.
+High BP and high cholesterol each affect nearly half of respondents (45.4% and 44.2% respectively), while 73.3% report physical activity, 46.6% have smoked at least 100 cigarettes in their lifetime (the `Smoker` field's definition — not current smoking), 10.3% report heart disease/attack, and 4.5% report a prior stroke.
 
 **Binned features**
 
@@ -705,6 +766,8 @@ The pipeline also generates two categorical binnings of continuous/ordinal featu
 | Obese | 71,437 | 31.09% | 25.42% |
 
 Diabetes prevalence rises with both bins: from 3.32% in the youngest age-bracket group to 21.52% in the oldest, and from 5.54% among underweight respondents to 25.42% among the obese — both consistent with the positive BMI and age correlations reported in Section 3.5. These counts were independently recomputed for this report by running the pipeline against the real 229,781-row cleaned dataset, to verify the binning output empirically rather than describing it from the artifact list alone.
+
+**Encoding.** `generate_eda()` now one-hot encodes the two binned categorical features as part of every scheduled run — `AgeGroup` into 4 indicator columns and `BMIGroup` into 4 indicator columns — by passing `bin_frame` through the same `preprocessing.encode_features()` used elsewhere in the codebase, and writes the result to `binned_features_encoded.csv` alongside a `binned_features_encoding_report` entry in `eda_metadata.json`. Re-run directly against the real 229,781-row cleaned dataset for this report, the encoded sums reproduce the binning tables above exactly (`AgeGroup_8-10` sums to 86,205; `BMIGroup_Obese` sums to 71,437). No categorical encoding was needed for the pipeline's other 21 features, since they arrive already numeric, binary, or ordinal (Section 2.3); the binned age/BMI groups are the dataset's only genuinely categorical (non-ordinal) fields, so this is where the assignment's encoding activity (1.4) applies.
 
 ### 3.5 Correlation analysis
 
@@ -737,13 +800,13 @@ General health has the strongest of the six associations (+0.285). High BP (+0.2
 - **Data quality:** 229,781 complete records; zero missing values across all 22 analyzed fields.
 - **Target risk:** 82.71% of records are class 0; prediabetes is only 2.01%, creating severe class imbalance.
 - **Health signals:** general health, high BP, BMI, mobility difficulty, and high cholesterol show the largest positive associations with the target.
-- **Protective associations:** income, education, and physical activity show the largest negative correlations with the target.
+- **Negative associations:** income, education, and physical activity show the largest negative correlations with the target — read as access/equity signals for income and education (Section 1.8), not purely protective clinical effects, and as association rather than a causal claim (Section 3.5).
 
 ### 3.8 Optional model implementation and evaluation
 
-An optional predictive-model comparison was implemented on top of the model-ready dataset, even though the assessment PDF does not require a prediction model anywhere in its scope. This is additive, value-added analysis rather than a required deliverable.
+A Random Forest is trained to produce the feature-importance evidence required by activity 1.4; it is then compared against a Logistic Regression baseline on accuracy, precision, recall, and F1 as additional, non-required analysis — the assessment PDF does not ask for a model comparison or a deployed prediction service.
 
-**Implementation:** `src/diabetes_risk/pipeline/randomforestclassifier.py` trains a Random Forest (200 trees, `random_state=42`) on an 80/20 stratified train/test split (183,824 train / 45,957 test records) and saves feature importances. `src/diabetes_risk/pipeline/model_evaluation.py` reproduces the same split, trains a Logistic Regression model (`class_weight="balanced"`, `StandardScaler`-normalized features), and evaluates both models side by side. Both are exposed as CLI subcommands (`python -m diabetes_risk.pipeline randomforestclassifier` and `python -m diabetes_risk.pipeline model_evaluation`) and as separate Cloud Composer DAG tasks (Section 2.9).
+**Implementation:** `src/diabetes_risk/pipeline/randomforestclassifier.py` trains a Random Forest (200 trees, `random_state=42`, no `class_weight` argument set, i.e. classes are left unweighted) on an 80/20 stratified train/test split (183,824 train / 45,957 test records) and saves feature importances. `src/diabetes_risk/pipeline/model_evaluation.py` reproduces the same split, trains a Logistic Regression model (`class_weight="balanced"`, all 21 feature columns `StandardScaler`-normalized — including the binary/ordinal fields that Section 2.4's model-ready dataset otherwise leaves unscaled, since Logistic Regression benefits from uniformly scaled inputs while Random Forest does not need it), and evaluates both models side by side. Because only Logistic Regression is trained with class-weight balancing, the comparison below reflects both the algorithm difference and this imbalance-handling difference, not the algorithm alone. Both are exposed as CLI subcommands (`python -m diabetes_risk.pipeline randomforestclassifier` and `python -m diabetes_risk.pipeline model_evaluation`) and as separate Cloud Composer DAG tasks (Section 2.9).
 
 **Verified local run result** (executed against the real 229,781-row model-ready dataset):
 
@@ -754,7 +817,7 @@ An optional predictive-model comparison was implemented on top of the model-read
 
 ![Model performance comparison: grouped bar chart of Accuracy, Balanced Accuracy, Precision, Recall, and F1 Score for Logistic Regression and Random Forest](imgs/p3-model-comparison.png)
 
-**Random Forest has the higher raw accuracy but the lower balanced accuracy — this is the class-imbalance effect flagged in Section 3.3, and it shows up directly in the per-class results.** Random Forest's classification report scores **0.0 precision, recall, and F1 for class 1 (prediabetes)** — it never predicts the minority class at all (confusion matrix: 0 of 926 true prediabetes cases predicted correctly). Logistic Regression, trained with `class_weight="balanced"`, trades off overall accuracy for materially better minority-class handling: 30.3% recall on class 1 and 59.3% recall on class 2, at the cost of much lower precision on class 0.
+**Random Forest has the higher raw accuracy but the lower balanced accuracy — this is the class-imbalance effect flagged in Section 3.3, and it shows up directly in the per-class results.** Random Forest's classification report scores 0.0 recall and F1 for class 1 (prediabetes): it never *correctly* predicts a prediabetes case (0 of 926 true prediabetes cases). It does output class 1 sixty-one times in total, all of them wrong, so its class-1 precision is also 0.0. Logistic Regression, trained with `class_weight="balanced"`, trades off overall accuracy for materially better minority-class **recall**: 30.3% on class 1 and 59.3% on class 2 — but that recall comes at a steep **precision** cost, not a class-0-precision cost as such trade-offs are sometimes assumed to work: only 3.2% of Logistic Regression's class-1 predictions are actually correct (281 of 8,659), and its class-0 **recall** drops to 64.4% (vs. 96.2% for Random Forest), even though its class-0 **precision** is actually slightly *higher* than Random Forest's (94.3% vs. 84.9%).
 
 | Random Forest confusion matrix | Pred 0 | Pred 1 | Pred 2 |
 |---|---:|---:|---:|
@@ -768,9 +831,20 @@ An optional predictive-model comparison was implemented on top of the model-read
 | True 1 | 265 | 281 | 380 |
 | True 2 | 1,206 | 1,649 | 4,164 |
 
-**Conclusion:** neither model is production-ready for the minority prediabetes class, and accuracy alone would have hidden this — Random Forest's 82.5% accuracy looks strong until the per-class breakdown shows it never identifies a single prediabetes case. This confirms the EDA's own modeling-implication warning (Section 3.3) with actual model results rather than assumption.
+**Per-class precision and recall** (recomputed directly from the confusion matrices above, since the weighted metrics in the summary table mask class-1 performance entirely):
 
-Covered by automated tests in `tests/test_randomforestclassifier.py` (verifies the model artifact, feature-importance CSV/plot, and that the target column is excluded from feature importances) and `tests/test_model_evaluation.py` (verifies both models train, all comparison/report/confusion-matrix artifacts are written, and that evaluation fails clearly if the Random Forest model has not been trained first). Both use synthetic fixtures via pytest's `tmp_path`, matching the existing test style; the full suite passes 20 tests with 1 skipped (Section 2.11).
+| Model | Class | Precision | Recall |
+|---|---|---:|---:|
+| Random Forest | 0 — No diabetes | 84.90% | 96.20% |
+| Random Forest | 1 — Prediabetes | 0.00% | 0.00% |
+| Random Forest | 2 — Diabetes | 47.10% | 18.96% |
+| Logistic Regression | 0 — No diabetes | 94.33% | 64.37% |
+| Logistic Regression | 1 — Prediabetes | 3.25% | 30.35% |
+| Logistic Regression | 2 — Diabetes | 36.66% | 59.32% |
+
+**Conclusion:** neither model is production-ready for the minority prediabetes class, and accuracy alone would have hidden this — Random Forest's 82.5% accuracy looks strong until the per-class breakdown shows it never correctly identifies a prediabetes case, and Logistic Regression's "materially better" 30.3% recall on that same class still means fewer than 1 in 30 of its prediabetes predictions are right. This confirms the EDA's own modeling-implication warning (Section 3.3) with actual model results rather than assumption. Note also that this comparison mixes two differences at once — the algorithm (Random Forest vs. Logistic Regression) and the imbalance handling (`class_weight="balanced"` was applied only to Logistic Regression) — so it should be read as "a balanced linear baseline vs. an unweighted ensemble," not as a clean like-for-like algorithm comparison.
+
+Covered by automated tests in `tests/test_randomforestclassifier.py` (verifies the model artifact, feature-importance CSV/plot, and that the target column is excluded from feature importances) and `tests/test_model_evaluation.py` (verifies both models train, all comparison/report/confusion-matrix artifacts are written, and that evaluation fails clearly if the Random Forest model has not been trained first). Both use synthetic fixtures via pytest's `tmp_path`; the full current suite passes 34 tests with 1 skipped (Section 2.11).
 
 **Feature importance** (Random Forest, top 10 of 21):
 
@@ -789,12 +863,16 @@ Covered by automated tests in `tests/test_randomforestclassifier.py` (verifies t
 | Fruits | 0.035 |
 | Smoker | 0.034 |
 
-Note that Random Forest's feature-importance ranking (BMI, age, income) differs from the EDA's linear-correlation ranking (general health, high BP, BMI) — this is expected, since feature importance captures non-linear and interaction effects the Pearson correlation in Section 3.5 does not.
+Note that Random Forest's feature-importance ranking (BMI, age, income) differs from the EDA's linear-correlation ranking (general health, high BP, BMI). Some of this is genuine: impurity-based feature importance captures non-linear and interaction effects that Pearson correlation (Section 3.5) does not. But this importance metric (mean decrease in impurity, the scikit-learn default) is also known to be biased toward high-cardinality and continuous features over low-cardinality binary ones — which is a more parsimonious explanation for why continuous/wide-range fields (`BMI`, `Age`, `Income`, `PhysHlth`) rank above binary fields like `HighBP` here, despite `HighBP` having a stronger linear correlation with the target. A permutation-importance or SHAP analysis was not run for this report and would be needed to separate the two effects conclusively.
 
 ### 3.9 Known limitations
 
 - The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 and the binned-feature table in Section 3.4 were both refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
 - The optional model (Section 3.8) is not integrated into the automated `run()` pipeline or DAG Task 1 from Section 2 — it runs as separate CLI commands / DAG tasks, consistent with it being optional, additive analysis rather than part of the required DataOps pipeline.
+- The Composer DAG does not achieve a strict every-2-minute cadence in practice because of model-training runtime overrun (Section 2.9); this is disclosed there with measured numbers rather than only claimed as configured.
+- Logistic Regression's "materially better" minority-class recall (Section 3.8) comes with very low precision (3.25% for class 1); neither model would be usable in a real screening tool without further tuning, threshold adjustment, or a different modeling approach.
+- The deployed API (Section 4) is intentionally public and unauthenticated for grading convenience; it is read-only and exposes no write operations or secrets beyond a project ID and a service-account email, but this is not the authentication posture a production deployment would use.
+- Every scheduled run reprocesses the same static, immutable 2015 survey file rather than new incoming data; the two-minute automation demonstrates the required DataOps mechanics, not a live data-ingestion pipeline reacting to new records.
 
 
 ---
@@ -805,8 +883,7 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
 application values from the FastAPI service; it does not embed run or dataset
-results. It displays the most recent pipeline status and runtime, processed
-records, duplicate removals, quality status, error and warning counts, recent
+results. It displays the most recent pipeline status and runtime, the "Processed Records" count (the pipeline's **input** row count, 253,680 — not the 229,781-row cleaned output; the dashboard label reflects the raw records the run processed), duplicate removals, quality status, error and warning counts, recent
 GCS-backed execution history, and optional model-comparison metrics. Its API-derived
 details identify the endpoint used and show the latest refresh time.
 
@@ -821,24 +898,17 @@ Open `http://127.0.0.1:8000/` for the dashboard and
 `http://127.0.0.1:9000/docs` for Swagger/OpenAPI. The dashboard's four required
 application details map to the following endpoints:
 
-| API | Purpose | Method | Data source | Authentication / expected status |
+| API | Purpose | Method | Data source (as deployed and verified live, Section 4.2) | Authentication / expected status |
 |---|---|---|---|---|
-| Workflow | Recent pipeline executions | GET `/api/v1/workflow` | Cloud Composer Airflow REST API (IAP-authenticated) | Runtime service-account impersonation for an IAP identity token; 200 when the Airflow web server is reachable |
+| Workflow | Recent pipeline executions | GET `/api/v1/workflow` | GCS execution manifests (`data/outputs/execution/`) | Application ADC; 200 when objects exist |
 | Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Application ADC; 200 when object exists |
 | Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Application ADC; 200 when objects exist |
 | Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
 | Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Application ADC; 200 when objects exist |
 
-`/health` and `/api/v1/metadata` are also available without GCP access. The
-Airflow service client and GCS artifact parsers are covered by mocked unit tests;
-`tests/test_api.py` verifies that the workflow, latest-run, dataset, schedule,
-and model routes return successful responses with those service results. Workflow
-history is read from the Airflow REST API via IAP-authenticated service-account
-impersonation of the configured `GCP_IAP_SERVICE_ACCOUNT`
-(`diabetes-risk-runtime@diabetes-risk-group49.iam.gserviceaccount.com`), so it
-depends on Composer web-server identity access being
-correctly configured; the other three required endpoints (latest run, dataset,
-model) read Cloud Storage directly and do not share this dependency.
+A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py` also defines `get_task_instance_status()` (per-task state/duration from the Airflow REST API, unit-tested in `tests/test_api.py`), which is not yet wired to a `main.py` route and so is not reachable as an API call today.
+
+`/health` and `/api/v1/metadata` are also available without GCP access. As deployed and verified live (Section 4.2), all four required endpoints read directly from Cloud Storage or the Composer Environments API using the same Application Default Credentials — none currently depends on IAP or Airflow REST access. The current repository source has since been refactored so `workflow_info()` calls `gcp_service.get_dag_run_history()`, which reads the Airflow REST API instead: it obtains an IAP Bearer ID token via `google.oauth2.id_token.fetch_id_token()`, using either an explicit service-account key (`GOOGLE_APPLICATION_CREDENTIALS`, if configured) or the runtime's ambient Application Default Credentials otherwise. This is covered by the mocked unit tests in `tests/test_api.py`, but the live Cloud Run deployment has not yet been redeployed with this change, so the GCS-manifest behavior above is what the screenshot evidence in Section 4.2 actually shows. Redeploying via the CI/CD pipeline (see "Continuous deployment (CI/CD)" above) would bring the live service in line with the current source.
 
 ### 4.2 Live verification and evidence
 
@@ -881,3 +951,29 @@ application details and ten-row Execution History table. Its source page is
 ![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
 
 The API and dashboard screenshot evidence above is current as of 23 September 2026. The end-to-end demonstration video is the one item from Section 4 not yet captured.
+
+---
+
+## 5. Conclusion, Limitations, and Future Work
+
+**Conclusion.** All required activities in Sub-Objective 1 (business understanding, ingestion, pre-processing, EDA including binning and encoding, and DataOps automation on a configured two-minute schedule) and Sub-Objective 2 (a built-in application API layer, at least four displayed application details, and API testing/documentation with screenshots) are implemented and evidenced with real, independently verified numbers, live GCP deployment evidence, and a working dashboard. The optional Random Forest/Logistic Regression comparison goes beyond the required scope and is reported honestly, including where the models fail.
+
+**Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
+
+- The Composer schedule is configured for every two minutes but does not achieve that cadence in practice, because model training pushes total task runtime past the interval (Section 2.9).
+- The live-deployed `/api/v1/workflow` endpoint reads GCS execution manifests, while the current repository source has been refactored to call the Airflow REST API instead; the two are not yet in sync (Section 4.1).
+- Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
+- The demonstration video and each member's individual confirmation of their contribution entry remain outstanding at the time of this export.
+
+**Future work:** redeploy the API to bring `/api/v1/workflow` in line with the current source; move model training off the two-minute DAG path so the required DataOps tasks alone govern the cadence; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
+
+---
+
+## References
+
+1. Centers for Disease Control and Prevention (CDC). *Behavioral Risk Factor Surveillance System (BRFSS) 2015.* Original survey data underlying the dataset used in this project.
+2. Teboul, A. *Diabetes Health Indicators Dataset.* Kaggle, cleaned and republished from CDC BRFSS 2015 data. https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset (CC0: Public Domain).
+3. UCI Machine Learning Repository. *CDC Diabetes Health Indicators* (mirror of the same underlying BRFSS 2015 data).
+4. Pedregosa, F. et al. *Scikit-learn: Machine Learning in Python.* Journal of Machine Learning Research, 12, 2011. (Random Forest and Logistic Regression implementations, Section 3.8.)
+5. Apache Software Foundation. *Apache Airflow Documentation.* https://airflow.apache.org/docs/ (DAG orchestration, Section 2.9.)
+6. Google Cloud. *Cloud Composer, Cloud Storage, Cloud Run, and Cloud Monitoring Documentation.* https://cloud.google.com/docs (platform services used throughout Sections 2 and 4.)
