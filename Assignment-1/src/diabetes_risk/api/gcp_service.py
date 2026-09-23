@@ -123,7 +123,7 @@ def get_composer_environment_details(config: GCPConfig | None = None) -> dict[st
 
 def get_dag_run_history(
     dag_id: str = "diabetes_risk_pipeline",
-    limit: int = 5,
+    limit: int = 10,
     config: GCPConfig | None = None,
 ) -> list[dict[str, object]]:
     """Report recent DAG runs -- the pipeline's execution "flow"."""

@@ -119,6 +119,7 @@ def render_dashboard() -> HTMLResponse:
                     <div class="metric-card text-center">
                         <div class="text-muted small">Quality Status</div>
                         <h4 class="mt-2 pending" id="quality-val">-</h4>
+                        <div class="text-muted small" id="quality-help">Loading quality details...</div>
                     </div>
                 </div>
             </div>
@@ -290,6 +291,18 @@ def render_dashboard() -> HTMLResponse:
                 }}
                 setSpan("duplicates-val", dataset, (b) => (b.duplicate_records_removed ?? "-").toLocaleString());
                 setSpan("quality-val", dataset, (b) => b.quality_status || "-");
+                const qualityHelp = document.getElementById("quality-help");
+                if (dataset.ok) {{
+                    const qualityStatus = String(dataset.body.quality_status || "").toUpperCase();
+                    const duplicateCount = Number(dataset.body.duplicate_records_removed || 0);
+                    qualityHelp.textContent = qualityStatus === "PASS_WITH_WARNINGS"
+                        ? `Validation passed with ${{duplicateCount.toLocaleString()}} duplicate record(s) removed during preprocessing.`
+                        : qualityStatus === "PASS"
+                            ? "All configured data-quality checks passed."
+                            : "One or more data-quality checks need review.";
+                }} else {{
+                    qualityHelp.textContent = failureText(dataset, "Quality details unavailable");
+                }}
 
                 setSpan("api-schedule", schedule, (b) => b.state || "ok");
 
