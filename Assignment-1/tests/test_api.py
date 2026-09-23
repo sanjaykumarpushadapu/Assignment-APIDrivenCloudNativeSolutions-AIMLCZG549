@@ -20,31 +20,59 @@ def test_metadata_endpoint() -> None:
     assert "disclaimer" in body
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
+def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
+    from diabetes_risk.dashboard.app import app as dashboard_app
+
+    response = TestClient(dashboard_app).get("/")
+
+    assert response.status_code == 200
+    for expected in (
+        "Latest Workflow Status",
+        "Latest Run Duration",
+        "Errors",
+        "Warnings",
         "/api/v1/workflow",
         "/api/v1/runs/latest",
         "/api/v1/dataset",
-    ],
-)
-def test_skeleton_endpoints_return_clean_501(path: str) -> None:
-    """The remaining GCP/local service-layer functions are still
-    skeletons (NotImplementedError) -- see gcp_service.py/local_service.py
-    for which ones. Until they're implemented, every endpoint that
-    delegates to one should fail with a clean, documented 501 -- not a
-    raw 500 -- so this is real, useful HTTP-status-code evidence
-    (assessment activity 3.3) even before those functions are filled in.
-    ("/api/v1/schedule" and "/api/v1/model" are covered separately below,
-    now that gcp_service.get_composer_environment_details() and
-    local_service.get_model_comparison() are implemented for real.)
-    """
-    response = TestClient(app).get(path)
+        "/api/v1/schedule",
+    ):
+        assert expected in response.text
 
-    assert response.status_code == 501
-    body = response.json()
-    assert body["error"] == "not_implemented"
-    assert "TODO" in body["detail"]
+
+def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import gcp_service
+
+    runs = [{"dag_run_id": "scheduled__run", "state": "success"}]
+    monkeypatch.setattr(gcp_service, "get_dag_run_history", lambda: runs)
+
+    response = TestClient(app).get("/api/v1/workflow")
+
+    assert response.status_code == 200
+    assert response.json() == runs
+
+
+def test_latest_run_endpoint_returns_execution_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import local_service
+
+    run = {"run_id": "run-1", "status": "SUCCESS", "warnings": [], "errors": []}
+    monkeypatch.setattr(local_service, "get_latest_run", lambda: run)
+
+    response = TestClient(app).get("/api/v1/runs/latest")
+
+    assert response.status_code == 200
+    assert response.json() == run
+
+
+def test_dataset_endpoint_returns_quality_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import local_service
+
+    summary = {"input_rows": 100, "output_rows": 90, "quality_status": "PASS"}
+    monkeypatch.setattr(local_service, "get_dataset_quality", lambda: summary)
+
+    response = TestClient(app).get("/api/v1/dataset")
+
+    assert response.status_code == 200
+    assert response.json() == summary
 
 
 def test_schedule_endpoint_returns_501_when_not_configured(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -148,3 +176,84 @@ def test_get_model_comparison_parses_real_csv_shape(monkeypatch: pytest.MonkeyPa
     assert result["top_feature"] == "bmi"
     assert result["random_forest"]["accuracy"] == pytest.approx(0.8246621842156798)
     assert result["logistic_regression"]["f1_score"] == pytest.approx(0.7033326853523207)
+
+
+def test_get_dataset_quality_merges_gcs_reports(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import local_service
+
+    objects = {
+        "data/outputs/quality/data_quality.json": {
+            "rows": 253680,
+            "columns": 22,
+            "schema": {"missing_columns": []},
+        },
+        "data/processed/preprocessing_report.json": {
+            "input_rows": 253680,
+            "output_rows": 229781,
+            "duplicates_removed": 23899,
+            "missing_values_after": {"Diabetes_012": 0, "BMI": 0},
+            "target_column": "Diabetes_012",
+        },
+    }
+    monkeypatch.setenv("DIABETES_GCS_BUCKET", "test-bucket")
+    monkeypatch.setattr(local_service, "_read_gcs_json", lambda bucket, name: objects[name])
+
+    result = local_service.get_dataset_quality()
+
+    assert result == {
+        "input_rows": 253680,
+        "output_rows": 229781,
+        "input_columns": 22,
+        "duplicate_records_removed": 23899,
+        "missing_values_after": 0,
+        "quality_status": "PASS",
+        "target_column": "Diabetes_012",
+    }
+
+
+def test_get_latest_run_reads_execution_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import local_service
+
+    manifest = {"run_id": "20260911T074519440443Z", "status": "SUCCESS"}
+    monkeypatch.setenv("DIABETES_GCS_BUCKET", "test-bucket")
+    monkeypatch.setattr(local_service, "_read_gcs_json", lambda bucket, name: manifest)
+
+    assert local_service.get_latest_run() == manifest
+
+
+def test_get_dag_run_history_maps_airflow_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import gcp_service
+    from diabetes_risk.api.gcp_config import GCPConfig
+
+    calls = []
+
+    def fake_get(config, path, params=None):
+        calls.append((path, params))
+        return {"dag_runs": [{"dag_run_id": "scheduled__run", "state": "success", "start_date": "start"}]}
+
+    monkeypatch.setattr(gcp_service, "_airflow_api_get", fake_get)
+    config = GCPConfig("project", "region", "composer", None)
+
+    result = gcp_service.get_dag_run_history(dag_id="risk/pipeline", limit=3, config=config)
+
+    assert calls == [("dags/risk%2Fpipeline/dagRuns", {"limit": 3, "order_by": "-start_date"})]
+    assert result == [{"dag_run_id": "scheduled__run", "state": "success", "start_date": "start", "end_date": None}]
+
+
+def test_get_task_instance_status_maps_airflow_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import gcp_service
+    from diabetes_risk.api.gcp_config import GCPConfig
+
+    calls = []
+
+    def fake_get(config, path, params=None):
+        calls.append(path)
+        return {"task_instances": [{"task_id": "preprocess", "state": "success", "duration": 1.25}]}
+
+    monkeypatch.setattr(gcp_service, "_airflow_api_get", fake_get)
+    config = GCPConfig("project", "region", "composer", None)
+
+    result = gcp_service.get_task_instance_status("risk/pipeline", "scheduled__run", config)
+
+    assert calls == ["dags/risk%2Fpipeline/dagRuns/scheduled__run/taskInstances"]
+    assert result == [{"task_id": "preprocess", "state": "success", "duration": 1.25, "start_date": None, "end_date": None}]

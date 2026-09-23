@@ -7,19 +7,17 @@ the same bucket objects the DAG itself writes
 (`dags/diabetes_risk_pipeline.py` uses `DIABETES_GCS_BUCKET` /
 `GCS_OUTPUT_PREFIX = "data/outputs"`), rather than the local filesystem.
 
-`get_model_comparison()` is implemented for real, as a reference for the
-remaining two functions (`get_dataset_quality()`, `get_latest_run()`),
-which are still skeletons: signature, docstring naming the exact GCS
-object(s) to read, required IAM role, and a `NotImplementedError` body.
-Implement those the same way, with `google-cloud-storage` (install via
-`pip install -e ".[gcp]"`; it's a build dependency of
-`dags/diabetes_risk_pipeline.py`, but not of this API by default).
+`get_dataset_quality()`, `get_latest_run()`, and `get_model_comparison()`
+read JSON/CSV artifacts from GCS using `google-cloud-storage` (install via
+`pip install -e ".[gcp]"`; the library is not part of the default API
+dependencies).
 """
 
 from __future__ import annotations
 
 import csv
 import io
+import json
 import os
 
 
@@ -50,6 +48,10 @@ def _read_gcs_text(bucket_name: str, object_name: str) -> str:
     return blob.download_as_text()
 
 
+def _read_gcs_json(bucket_name: str, object_name: str) -> dict[str, object]:
+    return json.loads(_read_gcs_text(bucket_name, object_name))
+
+
 def get_dataset_quality() -> dict[str, object]:
     """Report dataset and data-quality details ("processing/dataset/flow" detail).
 
@@ -59,20 +61,39 @@ def get_dataset_quality() -> dict[str, object]:
     Objects: `gs://{bucket}/data/outputs/quality/data_quality.json` and
              `gs://{bucket}/data/processed/preprocessing_report.json`
 
-    Suggested return shape:
-        {
-            "input_rows": 253680,
-            "input_columns": 22,
-            "duplicate_records_removed": 23899,
-            "quality_status": "PASS_WITH_WARNINGS",
-        }
+    Returns a compact summary suitable for the dashboard, combining the
+    quality report and preprocessing report written by the pipeline.
     """
     bucket = _bucket_name()
-    raise NotImplementedError(
-        f"TODO: use google-cloud-storage to read "
-        f"gs://{bucket}/data/outputs/quality/data_quality.json and "
-        f"gs://{bucket}/data/processed/preprocessing_report.json, then merge the relevant fields"
+    if not bucket:
+        raise NotImplementedError(
+            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
+            "configure it before calling this endpoint."
+        )
+
+    quality = _read_gcs_json(bucket, "data/outputs/quality/data_quality.json")
+    preprocessing = _read_gcs_json(bucket, "data/processed/preprocessing_report.json")
+    missing_after = preprocessing.get("missing_values_after", {})
+    missing_count = sum(
+        int(value or 0) for value in missing_after.values()
+    ) if isinstance(missing_after, dict) else 0
+    schema = quality.get("schema", {})
+    schema_ok = isinstance(schema, dict) and not schema.get("missing_columns")
+    quality_status = quality.get("quality_status") or (
+        "PASS" if schema_ok and missing_count == 0 else "REVIEW"
     )
+
+    return {
+        "input_rows": preprocessing.get("input_rows", quality.get("rows", 0)),
+        "output_rows": preprocessing.get("output_rows", quality.get("rows", 0)),
+        "input_columns": quality.get("columns", 0),
+        "duplicate_records_removed": preprocessing.get(
+            "duplicates_removed", preprocessing.get("duplicates_detected", 0)
+        ),
+        "missing_values_after": missing_count,
+        "quality_status": quality_status,
+        "target_column": preprocessing.get("target_column"),
+    }
 
 
 def get_model_comparison() -> dict[str, object]:
@@ -139,7 +160,9 @@ def get_latest_run() -> dict[str, object]:
         }
     """
     bucket = _bucket_name()
-    raise NotImplementedError(
-        f"TODO: use google-cloud-storage to read "
-        f"gs://{bucket}/data/outputs/execution/latest_run.json and return its contents"
-    )
+    if not bucket:
+        raise NotImplementedError(
+            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
+            "configure it before calling this endpoint."
+        )
+    return _read_gcs_json(bucket, "data/outputs/execution/latest_run.json")

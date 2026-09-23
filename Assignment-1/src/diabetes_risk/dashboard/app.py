@@ -107,6 +107,27 @@ def render_dashboard() -> HTMLResponse:
                 </div>
             </div>
 
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="metric-card text-center">
+                        <div class="text-muted small">Latest Run Duration</div>
+                        <h4 class="mt-2 pending" id="runtime-val">-</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card text-center">
+                        <div class="text-muted small">Errors</div>
+                        <h4 class="mt-2 pending" id="errors-val">-</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card text-center">
+                        <div class="text-muted small">Warnings</div>
+                        <h4 class="mt-2 pending" id="warnings-val">-</h4>
+                    </div>
+                </div>
+            </div>
+
             <!-- API-derived application details (Sub-Objective 2) -->
             <div class="row my-2">
                 <div class="col-12">
@@ -156,7 +177,7 @@ def render_dashboard() -> HTMLResponse:
 
             async function fetchJson(path) {{
                 try {{
-                    const res = await fetch(API_BASE_URL + path);
+                    const res = await fetch(API_BASE_URL + path, {{ signal: AbortSignal.timeout(10000) }});
                     const body = await res.json().catch(() => null);
                     if (res.status === 501) {{
                         return {{ ok: false, pending: true, body, status: res.status }};
@@ -196,12 +217,17 @@ def render_dashboard() -> HTMLResponse:
             }}
 
             async function loadDashboard() {{
-                document.getElementById("api-retrieved-at").textContent = new Date().toISOString();
-
-                const meta = await fetchJson("/api/v1/metadata");
+                const [meta, health, workflow, runsLatest, dataset, schedule, model] = await Promise.all([
+                    fetchJson("/api/v1/metadata"),
+                    fetchJson("/health"),
+                    fetchJson("/api/v1/workflow"),
+                    fetchJson("/api/v1/runs/latest"),
+                    fetchJson("/api/v1/dataset"),
+                    fetchJson("/api/v1/schedule"),
+                    fetchJson("/api/v1/model"),
+                ]);
                 document.getElementById("project-name").textContent = meta.ok ? meta.body.project : "Diabetes Risk Prediction Using Health and Lifestyle Indicators";
 
-                const health = await fetchJson("/health");
                 const badge = document.getElementById("status-badge");
                 if (health.ok) {{
                     badge.textContent = "API Online";
@@ -211,23 +237,26 @@ def render_dashboard() -> HTMLResponse:
                     badge.className = "badge bg-danger status-badge";
                 }}
 
-                const workflow = await fetchJson("/api/v1/workflow");
                 setSpan("api-workflow", workflow, (b) => `${{b.length}} run(s)`);
 
-                const runsLatest = await fetchJson("/api/v1/runs/latest");
-                setSpan("api-runs-latest", runsLatest, (b) => `${{b.length}} task(s)`);
-                setSpan("status-val", runsLatest, (b) => (b.length ? b[0].state : "unknown"));
+                setSpan("api-runs-latest", runsLatest, (b) => b.status || "status unavailable");
+                setSpan("status-val", runsLatest, (b) => b.status || "unknown");
+                setSpan("runtime-val", runsLatest, (b) => b.duration_seconds == null ? "not reported" : `${{Number(b.duration_seconds).toFixed(2)}} s`);
+                setSpan("errors-val", runsLatest, (b) => Array.isArray(b.errors) ? b.errors.length : 0);
+                setSpan("warnings-val", runsLatest, (b) => Array.isArray(b.warnings) ? b.warnings.length : 0);
+                if (runsLatest.ok && runsLatest.body.records_processed != null) {{
+                    setSpan("records-val", runsLatest, (b) => Number(b.records_processed).toLocaleString());
+                }}
 
-                const dataset = await fetchJson("/api/v1/dataset");
                 setSpan("api-dataset", dataset, (b) => b.quality_status || "ok");
-                setSpan("records-val", dataset, (b) => (b.input_rows ?? "-").toLocaleString());
+                if (!runsLatest.ok || runsLatest.body.records_processed == null) {{
+                    setSpan("records-val", dataset, (b) => (b.input_rows ?? "-").toLocaleString());
+                }}
                 setSpan("duplicates-val", dataset, (b) => (b.duplicate_records_removed ?? "-").toLocaleString());
                 setSpan("quality-val", dataset, (b) => b.quality_status || "-");
 
-                const schedule = await fetchJson("/api/v1/schedule");
                 setSpan("api-schedule", schedule, (b) => b.state || "ok");
 
-                const model = await fetchJson("/api/v1/model");
                 setSpan("api-model", model, (b) => "ok");
                 renderModelChart(model);
 
@@ -244,6 +273,7 @@ def render_dashboard() -> HTMLResponse:
                 }} else {{
                     historyBody.innerHTML = `<tr><td colspan="4" class="pending">${{failureText(workflow, "No execution history available")}}</td></tr>`;
                 }}
+                document.getElementById("api-retrieved-at").textContent = new Date().toISOString();
             }}
 
             let modelChart = null;

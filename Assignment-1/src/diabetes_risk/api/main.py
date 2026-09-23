@@ -7,25 +7,23 @@ This satisfies Assessment Sub-Objective 2 (API Access):
     HTTP status codes (activities 3.1-3.3).
   - Activity 3.1 ("Use Built-in APIs to access important application
     information, e.g. flow, deployment etc.") -- the data behind these
-    endpoints should come from GCP's own built-in APIs (Cloud Composer,
-    the Airflow REST API, Cloud Monitoring), via `gcp_service.py`, for the
-    workflow/schedule/deployment details. Dataset-quality and model
-    results are the pipeline's own generated artifacts, so those two
-    endpoints read local files via `local_service.py` instead.
+    endpoints comes from GCP's built-in APIs (Cloud Composer, Airflow, and
+    Cloud Storage). Dataset-quality, execution-log, and model results are
+    the pipeline's own generated artifacts, retrieved from GCS via
+    `local_service.py`.
 
 Endpoints cover the four required "application detail" categories from
 Assignment_1_Workload_Plan.md Section 8, Step 4:
   1. Workflow or pipeline information       -> /api/v1/workflow       (GCP)
-  2. Latest execution status                -> /api/v1/runs/latest    (GCP)
+    2. Latest execution status                -> /api/v1/runs/latest    (GCS)
   3. Processing, dataset, or flow info       -> /api/v1/dataset        (local)
   4. Schedule/deployment/model/history info  -> /api/v1/schedule       (GCP)
 Plus an optional fifth (model results)       -> /api/v1/model          (local)
 
 Each endpoint is a thin wrapper: it calls one service-layer function and
-returns the result. The service-layer functions are the actual skeletons
-(signature + docstring + `NotImplementedError`) -- see `gcp_service.py`
-and `local_service.py`. Nothing below needs to change once those are
-implemented.
+returns the result. Service functions are implemented in `gcp_service.py`
+and `local_service.py`; they remain straightforward to test with mocked
+GCP and GCS responses.
 """
 
 import os
@@ -127,28 +125,13 @@ def workflow_info() -> list[dict[str, object]]:
 
 
 # ============================================================
-# Application detail #2: Latest execution status (GCP-backed)
+# Application detail #2: Latest execution status (GCS-backed)
 # ============================================================
 
 @app.get("/api/v1/runs/latest", tags=["pipeline"])
-def latest_run() -> list[dict[str, object]]:
-    """Most recent DAG run's task-level status.
-
-    Resolves the latest `dag_run_id` from `get_dag_run_history()` first
-    (Airflow orders dagRuns by execution date descending by default), then
-    fetches that run's task instances. Both calls go through
-    `gcp_service.py` (Airflow REST API) -- TODO (Person 4): implement
-    `get_dag_run_history()` and `get_task_instance_status()` there; this
-    function should not need to change once they are.
-    """
-    runs = gcp_service.get_dag_run_history(dag_id="diabetes_risk_pipeline", limit=1)
-    if not runs:
-        return []
-    latest_dag_run_id = runs[0]["dag_run_id"]
-    return gcp_service.get_task_instance_status(
-        dag_id="diabetes_risk_pipeline",
-        dag_run_id=latest_dag_run_id,
-    )
+def latest_run() -> dict[str, object]:
+    """Most recent pipeline execution log, including warnings and errors."""
+    return local_service.get_latest_run()
 
 
 # ============================================================

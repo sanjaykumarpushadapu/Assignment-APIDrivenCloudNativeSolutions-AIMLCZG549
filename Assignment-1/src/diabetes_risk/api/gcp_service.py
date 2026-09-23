@@ -8,24 +8,19 @@ functions in this module and re-expose the results as the application's
 own tested API (satisfying Objective 2, "Access the application's details
 using APIs").
 
-`get_composer_environment_details()` is implemented for real, as a
-reference for the remaining three functions (`get_dag_run_history()`,
-`get_task_instance_status()`, `get_environment_health()`), which are
-still skeletons: signature, docstring (exact GCP API/method, required
-IAM role, and a suggested return shape), and a `NotImplementedError`
-body. Implement those with either:
-  - `google-cloud-orchestration-airflow` (Composer Environments API), or
-  - direct authenticated HTTP requests (`google-auth` + `requests`) to the
-    Composer-hosted Airflow REST API and the Cloud Monitoring REST API.
-These are NOT in `pyproject.toml`'s default dependencies -- see the
-`gcp` optional dependency group added there, and install with
-`pip install -e ".[gcp]"` once you start implementing.
+`get_composer_environment_details()`, `get_dag_run_history()`, and
+`get_task_instance_status()` are implemented with the Composer Environments
+API and the Composer-hosted Airflow REST API. `get_environment_health()`
+remains an optional, unwired Cloud Monitoring extension. GCP libraries are
+in the optional dependency group; install with `pip install -e ".[gcp]"`.
 
 All functions accept an optional `config` so they're easy to unit test
 with a fake `GCPConfig` instead of hitting real GCP.
 """
 
 from __future__ import annotations
+
+from urllib.parse import quote
 
 from .gcp_config import GCPConfig, load_gcp_config
 
@@ -46,6 +41,38 @@ def _load_credentials(config: GCPConfig):
     from google.oauth2 import service_account
 
     return service_account.Credentials.from_service_account_file(config.credentials_path)
+
+
+def _get_composer_environment(config: GCPConfig):
+    from google.cloud.orchestration.airflow.service_v1 import EnvironmentsClient
+
+    credentials = _load_credentials(config)
+    client = EnvironmentsClient(credentials=credentials) if credentials else EnvironmentsClient()
+    name = client.environment_path(config.project_id, config.location, config.composer_environment)
+    return client.get_environment(name=name)
+
+
+def _airflow_api_get(config: GCPConfig, path: str, params: dict[str, object] | None = None) -> dict[str, object]:
+    from google.auth.transport.requests import Request
+    from google.oauth2 import id_token
+    import requests
+
+    environment = _get_composer_environment(config)
+    airflow_uri = environment.config.airflow_uri.rstrip("/")
+    if not airflow_uri:
+        raise RuntimeError("The configured Cloud Composer environment has no Airflow web-server URL.")
+    token = id_token.fetch_id_token(Request(), airflow_uri)
+    response = requests.get(
+        f"{airflow_uri}/api/v1/{path.lstrip('/')}",
+        headers={"Authorization": f"Bearer {token}"},
+        params=params,
+        timeout=30,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise ValueError("Airflow API returned an unexpected response shape.")
+    return payload
 
 
 def get_composer_environment_details(config: GCPConfig | None = None) -> dict[str, object]:
@@ -73,12 +100,7 @@ def get_composer_environment_details(config: GCPConfig | None = None) -> dict[st
             "calling this endpoint."
         )
 
-    from google.cloud.orchestration.airflow.service_v1 import EnvironmentsClient
-
-    credentials = _load_credentials(config)
-    client = EnvironmentsClient(credentials=credentials) if credentials else EnvironmentsClient()
-    name = client.environment_path(config.project_id, config.location, config.composer_environment)
-    environment = client.get_environment(name=name)
+    environment = _get_composer_environment(config)
 
     dag_gcs_prefix = environment.config.dag_gcs_prefix or ""
     gcs_bucket = dag_gcs_prefix[len("gs://"):].split("/", 1)[0] if dag_gcs_prefix else ""
@@ -116,9 +138,26 @@ def get_dag_run_history(
         ]
     """
     config = config or load_gcp_config()
-    raise NotImplementedError(
-        "TODO: call the Airflow REST API dagRuns endpoint and map the response"
+    if not config.is_configured():
+        raise NotImplementedError(
+            "GCP is not configured: set GCP_PROJECT_ID, GCP_LOCATION and "
+            "GCP_COMPOSER_ENVIRONMENT in .env (see .env.example) before "
+            "calling this endpoint."
+        )
+    payload = _airflow_api_get(
+        config,
+        f"dags/{quote(dag_id, safe='')}/dagRuns",
+        params={"limit": max(1, limit), "order_by": "-start_date"},
     )
+    return [
+        {
+            "dag_run_id": run.get("dag_run_id"),
+            "state": run.get("state"),
+            "start_date": run.get("start_date"),
+            "end_date": run.get("end_date"),
+        }
+        for run in payload.get("dag_runs", [])
+    ]
 
 
 def get_task_instance_status(
@@ -139,9 +178,26 @@ def get_task_instance_status(
         ]
     """
     config = config or load_gcp_config()
-    raise NotImplementedError(
-        "TODO: call the Airflow REST API taskInstances endpoint and map the response"
+    if not config.is_configured():
+        raise NotImplementedError(
+            "GCP is not configured: set GCP_PROJECT_ID, GCP_LOCATION and "
+            "GCP_COMPOSER_ENVIRONMENT in .env (see .env.example) before "
+            "calling this endpoint."
+        )
+    payload = _airflow_api_get(
+        config,
+        f"dags/{quote(dag_id, safe='')}/dagRuns/{quote(dag_run_id, safe='')}/taskInstances",
     )
+    return [
+        {
+            "task_id": task.get("task_id"),
+            "state": task.get("state"),
+            "duration": task.get("duration"),
+            "start_date": task.get("start_date"),
+            "end_date": task.get("end_date"),
+        }
+        for task in payload.get("task_instances", [])
+    ]
 
 
 def get_environment_health(config: GCPConfig | None = None) -> dict[str, object]:

@@ -24,7 +24,7 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Video submission:** Per the assessment PDF, no length or format is specified, but the delivery mechanism is: "Upload the Video into a google drive that will be shared" — Google Drive with a shared link, not the assignment portal.
 - **University restrictions:** None. Confirmed by the team — no BITS/university restrictions on cloud regions, services, or student credits apply to this assignment.
 - **Submission deadline:** Friday, 18 September 2026
-- **Current workload status:** Person 1, Person 2, and Person 3 are complete; Person 4 remains pending.
+- **Current workload status:** Persons 1-3 are complete. Person 4's dashboard/API implementation and automated tests are complete; live GCP evidence and the demonstration video remain.
 
 ---
 
@@ -33,13 +33,13 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Person 1:** Complete. Business understanding, dataset verification, and raw-data ingestion have been documented and validated.
 - **Person 2:** Complete. Data quality, preprocessing, automation, execution logging, and the two-minute scheduled Airflow/Cloud Composer deployment have been implemented and verified against a live Cloud Composer environment (see `docs/report/REPORT.md` Section 2).
 - **Person 3:** Complete. EDA interpretation and an optional Random Forest vs. Logistic Regression model comparison have been implemented, evaluated, tested, and documented (see `docs/report/REPORT.md` Section 3).
-- **Person 4:** Pending. Dashboard, APIs, and the final demonstration remain to be completed.
+- **Person 4:** In progress. Dashboard and API implementation/tests are complete; live GCP API screenshots and the final demonstration remain.
 
 ## Team progress summary
 
 - **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation; Person 2 data quality, preprocessing, automation, logging, and verified two-minute Cloud Composer scheduling; Person 3 EDA interpretation, feature importance, and the optional model comparison.
-- **Still required before final submission:** Person 4 dashboard + API + demo evidence, plus final review and submission upload.
-- **Current project status:** The pipeline, EDA, and optional model are implemented and verified end-to-end, including a live Cloud Composer deployment; only the dashboard, APIs, and final submission materials remain.
+- **Still required before final submission:** Person 4's authenticated live API screenshots and demonstration video, plus final review and submission upload.
+- **Current project status:** The pipeline, EDA, optional model, dashboard, and API code are implemented; Person 4's API code is covered by automated tests. Live API evidence and video capture require the team's GCP credentials and submission access.
 
 ---
 

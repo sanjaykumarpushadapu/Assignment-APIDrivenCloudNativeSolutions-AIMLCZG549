@@ -2,14 +2,14 @@
 
 Project repository for Group 49's **Diabetes Risk Prediction Using Health and Lifestyle Indicators** assignment.
 
-The project contains a platform-neutral Python data pipeline, a Cloud Composer deployment DAG with Google Cloud Storage hand-offs, and placeholders for the later dashboard/API work. The pipeline modules remain independent of cloud SDKs; the deployment DAG uses GCS because Composer tasks exchange datasets and artifacts through Cloud Storage.
+The project contains a platform-neutral Python data pipeline, a Cloud Composer deployment DAG with Google Cloud Storage hand-offs, a FastAPI application, and an activity dashboard. The pipeline modules remain independent of cloud SDKs; the deployment DAG uses GCS because Composer tasks exchange datasets and artifacts through Cloud Storage.
 
 ## Current status
 
 - **Person 1:** Complete. Business context, dataset verification, and ingestion validation are in place.
 - **Person 2:** Complete, including verified Cloud Composer deployment evidence (two consecutive scheduled runs, two minutes apart, all tasks successful).
 - **Person 3:** Complete. EDA interpretation (dataset overview, target distribution, feature distribution, correlation, bivariate analysis) is documented in `docs/report/REPORT.md` Section 3. An optional Random Forest vs. Logistic Regression model comparison is also implemented and evaluated, including feature importance and class-level metrics.
-- **Person 4:** Pending. Dashboard, API testing, and final demonstration remain.
+- **Person 4:** Application implementation complete. Dashboard and five API routes are implemented and covered by tests; live GCP response screenshots and the final demonstration video remain.
 
 ## Project structure
 
@@ -144,24 +144,19 @@ The API's application-detail endpoints (`/api/v1/workflow`, `/api/v1/runs/latest
 
 | Endpoint | Service function | Status |
 |---|---|---|
-| `/api/v1/schedule` | `gcp_service.get_composer_environment_details()` | **Implemented** (Cloud Composer Environments API) |
-| `/api/v1/model` | `local_service.get_model_comparison()` | **Implemented** (Cloud Storage API) |
-| `/api/v1/workflow`, `/api/v1/runs/latest` | `gcp_service.get_dag_run_history()`, `get_task_instance_status()` | Skeleton -- `NotImplementedError` (Airflow REST API, needs IAP auth) |
-| `/api/v1/dataset` | `local_service.get_dataset_quality()` | Skeleton -- `NotImplementedError` (Cloud Storage API) |
-
-The two implemented functions are the reference pattern for the remaining service
-work -- same configuration and credential handling, with a clean `NotImplementedError`
-and HTTP 501 response until each function is complete. `get_latest_run()` and
-`get_environment_health()` are intentionally retained as documented service
-placeholders for future execution-log and Composer-health views:
-
-| Placeholder | Planned responsibility | API route today |
+| Endpoint | Service function | Source and status |
 |---|---|---|
-| `local_service.get_latest_run()` | Read `data/outputs/execution/latest_run.json` from Cloud Storage | Not wired yet |
-| `gcp_service.get_environment_health()` | Read Composer health metrics from Cloud Monitoring | Not wired yet |
+| `/api/v1/workflow` | `gcp_service.get_dag_run_history()` | Airflow REST API; implemented, live check requires Composer/IAP access |
+| `/api/v1/runs/latest` | `local_service.get_latest_run()` | Cloud Storage execution manifest; implemented |
+| `/api/v1/dataset` | `local_service.get_dataset_quality()` | Cloud Storage quality and preprocessing reports; implemented |
+| `/api/v1/schedule` | `gcp_service.get_composer_environment_details()` | Cloud Composer Environments API; implemented |
+| `/api/v1/model` | `local_service.get_model_comparison()` | Cloud Storage model reports; implemented |
 
-These placeholders define the expected service contract but are not counted as
-implemented features until they are connected to an endpoint and covered by tests.
+The required four application-detail categories are workflow, latest execution,
+dataset/processing, and schedule/deployment. The model endpoint is an additional
+value-added detail. `gcp_service.get_task_instance_status()` is also implemented
+for task-level inspection; `get_environment_health()` remains an optional,
+unwired Cloud Monitoring extension and is not required by the four API categories.
 
 **One-time GCP setup (already done for this project's own `diabetes-risk-group49` project -- repeat for a different project/account):**
 
@@ -175,11 +170,16 @@ implemented features until they are connected to an endpoint and covered by test
    ```bash
    gcloud composer environments describe diabetes-risk-env --location=us-central1 --project=<your-project-id>
    ```
-3. Grant your Google account the three required read-only roles:
+3. Grant your Google account the required read-only roles. Airflow web-server
+access additionally requires `roles/composer.user`:
    ```bash
    gcloud projects add-iam-policy-binding <your-project-id> \
      --member="user:your-google-account@example.com" \
      --role="roles/composer.viewer"
+
+   gcloud projects add-iam-policy-binding <your-project-id> \
+     --member="user:your-google-account@example.com" \
+     --role="roles/composer.user"
 
    gcloud projects add-iam-policy-binding <your-project-id> \
      --member="user:your-google-account@example.com" \
@@ -204,17 +204,19 @@ implemented features until they are connected to an endpoint and covered by test
     `GCP_LOCATION` and `GCP_COMPOSER_ENVIRONMENT` are already filled in `.env.example` for this team's environment. `DIABETES_GCS_BUCKET` is `diabetes-risk-group49-pipeline` -- this is a bucket created directly inside the `diabetes-risk-group49` project (its DAG-code default in `dags/diabetes_risk_pipeline.py`, and the Composer environment's own `DIABETES_GCS_BUCKET` Airflow environment variable, are both set to this value). An earlier bucket, `apicloudsolutions49-diabetes-pipeline`, was used briefly but turned out to belong to a *different* GCP project (`apicloudsolutions49`), where the team's account could not be granted IAM access -- do not use that bucket name. The application uses the ADC credentials created by `gcloud auth application-default login`; no credential-file path is required in `.env`.
 7. Run the API (see "Run the API" above) and check `/api/v1/schedule` and `/api/v1/model` return real data, not a 501.
 
-**Giving another teammate access:** grant their Google/BITS account the same three roles, then have them run `gcloud auth application-default login` locally:
+**Giving another teammate access:** grant their Google/BITS account the same four roles, then have them run `gcloud auth application-default login` locally:
 ```bash
 gcloud projects add-iam-policy-binding <your-project-id> \
   --member="user:teammate@example.com" --role="roles/composer.viewer"
+gcloud projects add-iam-policy-binding <your-project-id> \
+  --member="user:teammate@example.com" --role="roles/composer.user"
 gcloud projects add-iam-policy-binding <your-project-id> \
   --member="user:teammate@example.com" --role="roles/monitoring.viewer"
 gcloud projects add-iam-policy-binding <your-project-id> \
   --member="user:teammate@example.com" --role="roles/storage.objectViewer"
 ```
 
-**Airflow REST authentication:** the DAG run history and task status calls require an IAP-authenticated token for Cloud Composer 2. This is separate from the ADC-based Google authentication used for the Composer, Monitoring, and Storage APIs. Each remaining function's docstring in `gcp_service.py`/`local_service.py` names the exact API call, required IAM role, and suggested return shape.
+**Airflow REST authentication:** the DAG run history and task status calls request an IAP identity token for the Composer Airflow web-server URL. Local development uses Application Default Credentials; the deployed service must run as a service account with Composer viewer/user access and the corresponding GCS object-viewer access. No token or credential file belongs in `.env` or source control.
 
 ## GCP CI/CD deployment
 
@@ -291,6 +293,7 @@ gcloud iam service-accounts add-iam-policy-binding $RUNTIME --member="serviceAcc
 
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/storage.objectViewer"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/composer.viewer"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/composer.user"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/monitoring.viewer"
 
 gcloud iam workload-identity-pools create github --project=$PROJECT_ID --location=global --display-name="GitHub Actions"
@@ -406,8 +409,9 @@ instead of pasting a link.
 
 5. GitHub -> **Actions** -> **Deploy to GCP** -> latest successful run,
    showing the `ci` -> `build` -> `deploy` job sequence.
-6. IAM & Admin -> Service Accounts -> `diabetes-api-reader`, showing its
-   `composer.viewer`, `monitoring.viewer`, and `storage.objectViewer` roles.
+6. IAM & Admin -> Service Accounts -> the Cloud Run runtime service account,
+  showing its `composer.viewer`, `composer.user`, `monitoring.viewer`, and
+  `storage.objectViewer` roles.
 
 Cloud Monitoring/Logging is not worth showing, since `get_environment_health()`
 is still an unimplemented skeleton with nothing real behind it yet.
@@ -501,7 +505,7 @@ uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/` in a browser. If port 8000 is unavailable, start the dashboard with `--port 8001` and open `http://127.0.0.1:8001/`. If you run the API on a different host/port, set `DIABETES_API_BASE_URL` in `.env` to match. The Schedule panel and the Model Comparison chart are backed by real GCP calls (see "GCP setup for the API layer" above) and show real data once `.env` is configured; the remaining panels correctly show "Not implemented yet" (a 501 from the API) until `gcp_service.get_dag_run_history()`/`get_task_instance_status()` and `local_service.get_dataset_quality()` are implemented.
+Open `http://127.0.0.1:8000/` in a browser. If port 8000 is unavailable, start the dashboard with `--port 8001` and open `http://127.0.0.1:8001/`. If you run the API on a different host/port, set `DIABETES_API_BASE_URL` in `.env` to match. The dashboard displays live execution status, duration, record count, errors, warnings, duplicates, data quality, run history, and model metrics when the configured API can reach GCP. Use the API's `/docs` page for request/response verification.
 
 ## Dataset
 

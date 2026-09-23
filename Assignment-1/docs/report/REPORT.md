@@ -752,4 +752,47 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ## 4. Dashboard, APIs, and Demonstration
 
-_Pending._
+### 4.1 Activity dashboard
+
+The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
+application values from the FastAPI service; it does not embed run or dataset
+results. It displays the most recent pipeline status and runtime, processed
+records, duplicate removals, quality status, error and warning counts, recent
+Airflow execution history, and optional model-comparison metrics. Its API-derived
+details identify the endpoint used and show the latest refresh time.
+
+Run the API and dashboard in separate terminals after configuring GCP access:
+
+```powershell
+uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
+uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/` for the dashboard and
+`http://127.0.0.1:9000/docs` for Swagger/OpenAPI. The dashboard's four required
+application details map to the following endpoints:
+
+| API | Purpose | Method | Data source | Authentication / expected status |
+|---|---|---|---|---|
+| Workflow | Recent scheduled DAG runs | GET `/api/v1/workflow` | Composer Airflow REST API | Application ADC/IAP identity; 200 when authorized |
+| Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Application ADC; 200 when object exists |
+| Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Application ADC; 200 when objects exist |
+| Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
+| Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Application ADC; 200 when objects exist |
+
+`/health` and `/api/v1/metadata` are also available without GCP access. The
+Airflow service client and GCS artifact parsers are covered by mocked unit tests;
+`tests/test_api.py` verifies that the workflow, latest-run, dataset, schedule,
+and model routes return successful responses with those service results.
+
+### 4.2 Live verification and evidence
+
+Live GCP responses, the four Swagger request/response screenshots, the dashboard
+screenshot, and the final demonstration video are **not yet captured**. They must
+be recorded after the team configures Application Default Credentials and grants
+the API identity `roles/composer.viewer`, `roles/composer.user`, and
+`roles/storage.objectViewer` on the project (plus `roles/monitoring.viewer` only
+if the optional health-metrics extension is added). Capture the actual HTTP status
+codes and response bodies in Swagger; do not treat mocked test results as
+cloud-response evidence. Upload the finished video to the team's shared Google
+Drive and add the verified sharing link here before submission.
