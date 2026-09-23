@@ -67,7 +67,7 @@ def render_dashboard() -> HTMLResponse:
             #history-table {{ width: 100%; table-layout: fixed; font-size: 0.82rem; }}
             #history-table th {{ color: #687386; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }}
             #history-table td, #history-table th {{ padding: 0.7rem 0.45rem; vertical-align: middle; }}
-            .history-id {{ display: block; overflow: hidden; color: #344054; font-family: Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }}
+            .history-id {{ display: block; color: #344054; font-family: Consolas, monospace; overflow-wrap: anywhere; white-space: normal; }}
             .history-time {{ color: #344054; white-space: nowrap; }}
             .history-duration {{ color: #475467; font-variant-numeric: tabular-nums; white-space: nowrap; }}
             .history-status {{ display: inline-block; border-radius: 999px; padding: 0.25rem 0.55rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }}
@@ -127,7 +127,7 @@ def render_dashboard() -> HTMLResponse:
             <div class="row">
                 <div class="col-md-4">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Pipeline Processing Duration</div>
+                        <div class="text-muted small">Data Quality, Preprocessing &amp; EDA Duration</div>
                         <h4 class="mt-2 pending" id="runtime-val">-</h4>
                     </div>
                 </div>
@@ -253,7 +253,6 @@ def render_dashboard() -> HTMLResponse:
                 const workflowPromise = fetchJson("/api/v1/workflow").then(workflow => {{
                     setSpan("api-workflow", workflow, (body) => `${{body.length}} run(s)`);
                     renderHistory(document.querySelector("#history-table tbody"), workflow);
-                    return workflow;
                 }});
                 const latestPromise = fetchJson("/api/v1/runs/latest").then(runsLatest => {{
                     renderLatestRun(runsLatest);
@@ -266,8 +265,8 @@ def render_dashboard() -> HTMLResponse:
                     fetchJson("/api/v1/dataset"),
                     fetchJson("/api/v1/schedule"),
                     fetchJson("/api/v1/model"),
-                    workflowPromise,
                 ]);
+                await workflowPromise;
                 document.getElementById("project-name").textContent = meta.ok ? meta.body.project : "Diabetes Risk Prediction Using Health and Lifestyle Indicators";
 
                 const badge = document.getElementById("status-badge");
@@ -342,13 +341,12 @@ def render_dashboard() -> HTMLResponse:
                 }}
                 body.innerHTML = runs.map((run, index) => {{
                     const runId = String(run.dag_run_id ?? "-");
-                    const dateId = runId.startsWith("scheduled__") ? runId.slice("scheduled__".length) : runId;
                     const state = String(run.state ?? "unknown").toLowerCase();
                     const statusClass = state === "success" ? "success" : state === "failed" ? "failed" : "other";
                     const duration = Number(run.duration_seconds);
                     return `
                         <tr>
-                            <td><span class="history-id" title="${{escapeHtml(runId)}}">${{escapeHtml(dateId.length > 25 ? `${{dateId.slice(0, 22)}}...` : dateId)}}</span>${{index === 0 ? '<span class="history-latest">LATEST</span>' : ""}}</td>
+                            <td><span class="history-id" title="${{escapeHtml(runId)}}">${{escapeHtml(runId)}}</span>${{index === 0 ? '<span class="history-latest">LATEST</span>' : ""}}</td>
                             <td><span class="history-status ${{statusClass}}">${{escapeHtml(state.charAt(0).toUpperCase() + state.slice(1))}}</span></td>
                             <td class="history-time" title="${{escapeHtml(run.start_date)}}">${{escapeHtml(formatTimestamp(run.start_date))}}</td>
                             <td class="history-time" title="${{escapeHtml(run.end_date)}}">${{escapeHtml(formatTimestamp(run.end_date))}}</td>

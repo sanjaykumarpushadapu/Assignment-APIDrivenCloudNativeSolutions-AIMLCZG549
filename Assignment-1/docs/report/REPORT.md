@@ -869,7 +869,7 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
 application values from the FastAPI service; it does not embed run or dataset
-results. It displays the most recent pipeline status and runtime, the "Processed Records" count (the pipeline's **input** row count, 253,680 — not the 229,781-row cleaned output; the dashboard label reflects the raw records the run processed), duplicate removals, quality status, error and warning counts, the 10 most recent Composer DAG runs with expandable task-instance details, and optional model-comparison metrics. DAG and task timestamps are displayed in UTC to match Composer. GCS pipeline manifests remain available separately through `/api/v1/pipeline/history`.
+results. It displays the latest data-quality/preprocessing/EDA task status and duration from the GCS run manifest, the "Processed Records" count (the pipeline's **input** row count, 253,680 — not the 229,781-row cleaned output; the dashboard label reflects the raw records the run processed), duplicate removals, quality status, error and warning counts, the 10 most recent Composer DAG runs with full run IDs and expandable task-instance details, and optional model-comparison metrics. Composer DAG duration includes all DAG tasks; the manifest duration covers only the data-quality/preprocessing/EDA task. DAG and task timestamps are displayed in UTC to match Composer. GCS pipeline manifests remain available separately through `/api/v1/pipeline/history`.
 
 Run the API and dashboard in separate terminals after configuring GCP access:
 
@@ -882,7 +882,7 @@ Open `http://127.0.0.1:8000/` for the dashboard and
 `http://127.0.0.1:9000/docs` for Swagger/OpenAPI. The dashboard's four required
 application details map to the following endpoints:
 
-| API | Purpose | Method | Data source (as deployed and verified live, Section 4.2) | Authentication / expected status |
+| API | Purpose | Method | Data source | Authentication / expected status |
 |---|---|---|---|---|
 | Workflow | Recent scheduled DAG runs | GET `/api/v1/workflow` | Cloud Composer Airflow REST API | Runtime service account needs `roles/composer.user` and Airflow read access |
 | Workflow task details | Task states and timings for a DAG run | GET `/api/v1/workflow/{dag_run_id}/tasks` | Cloud Composer Airflow REST API | Same Composer/Airflow permissions |
@@ -892,7 +892,7 @@ application details map to the following endpoints:
 | Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
 | Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Application ADC; 200 when objects exist |
 
-A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py` also defines `get_task_instance_status()` (per-task state/duration from the Airflow REST API, unit-tested in `tests/test_api.py`), which is not wired to a `main.py` route and is not reachable as an API call.
+A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py`'s `get_task_instance_status()` returns per-task state and duration through `GET /api/v1/workflow/{dag_run_id}/tasks`, which the dashboard loads when a Composer run's **Tasks** button is opened.
 
 `/health` and `/api/v1/metadata` are also available without GCP access. The dashboard workflow history now reads up to 10 DAG runs from the Composer Airflow REST API; each run can be expanded to show task-instance state and timing. This route uses an OAuth-authenticated ADC session. The Cloud Run runtime service account must be allowed to access the Composer environment, its Airflow user must have read access to DAGs and task instances, and Composer web server access control must permit the request. The GCS-backed processing history remains available through `/api/v1/pipeline/history`. After this source change is deployed, verify the endpoint and refresh its screenshots; the current checked-in live screenshots predate the Composer-backed history. The schedule/deployment route continues to use the Composer Environments API, and environment health uses Cloud Monitoring.
 

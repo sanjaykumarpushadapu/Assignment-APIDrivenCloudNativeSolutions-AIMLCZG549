@@ -28,7 +28,7 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
     assert response.status_code == 200
     for expected in (
         "Latest Pipeline Run Status",
-        "Pipeline Processing Duration",
+        "Data Quality, Preprocessing &amp; EDA Duration",
         "Composer DAG Run History",
         "Errors",
         "Warnings",
