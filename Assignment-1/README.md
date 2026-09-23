@@ -5,7 +5,7 @@ Group 49 project for **Diabetes Risk Prediction Using Health and Lifestyle Indic
 ## Project Status
 
 - Pipeline, EDA, and optional model comparison are implemented.
-- The Cloud Composer DAG is deployed on a two-minute schedule; current evidence is recorded in the report.
+- The repository DAG is configured for a two-minute schedule and currently runs data quality/preprocessing/EDA followed by Random Forest and model evaluation. A documented end-to-end run takes about 2 minutes 41 seconds; the configured schedule, observed run history, and task runtime are reported separately.
 - The API and dashboard are deployed to Cloud Run. API and dashboard evidence is recorded in the report.
 - The final demonstration video, member confirmation of the contribution summary, report export, team review, and portal submission remain outstanding. The deadline was originally 18 September 2026; the team has confirmed 28 September 2026 as the last working day for submission.
 
@@ -20,6 +20,109 @@ tests/                       Automated tests
 data/                        Raw and processed datasets
 docs/report/REPORT.md        Assignment report and evidence
 ```
+
+## Build the Assignment in Assessment Order
+
+Use these steps to produce the deliverables listed in the assessment. Capture the
+evidence as each step is completed and include it with the final written report.
+
+### 1. Define the business problem and select the data
+
+1. State the business problem, intended users, and how the output will be used.
+   Describe this project as population-level risk screening, not diagnosis.
+2. Select a public dataset that fits the problem and record its source and license.
+3. Identify the target, feature columns, number of rows and columns, data types,
+   value meanings, and dataset limitations. For this project, the dataset is the
+   BRFSS Diabetes Health Indicators CSV and the target is `Diabetes_012`.
+
+### 2. Ingest and profile the dataset
+
+1. Keep the source file unchanged in `data/raw/`.
+2. Run ingestion and validation:
+
+   ```powershell
+   python -m diabetes_risk.pipeline ingest
+   python scripts/validate_dataset.py
+   ```
+
+3. Record the source, schema, row/column counts, target values, and ingestion
+   manifest (including the file hash) in the report.
+
+### 3. Validate and preprocess
+
+1. Display summary statistics and data types, and check missing values.
+2. Handle missing values where present; remove exact duplicate rows and record
+   the number removed.
+3. Encode categorical values where needed and normalize/standardize numeric data
+   as appropriate for the analysis.
+4. Run the pipeline and record its quality and preprocessing outputs:
+
+   ```powershell
+   python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012
+   ```
+
+5. Explain any transformations that were not needed for this dataset (for
+   example, imputation when no missing values are present).
+
+### 4. Perform and interpret EDA
+
+Include the assessment's EDA activities in the report and show the generated
+tables or charts:
+
+1. Calculate and interpret correlations between relevant numeric and categorical
+   features and the target.
+2. Create univariate distributions and bivariate comparisons.
+3. Bin relevant features, explain the bin boundaries, and encode the resulting
+   categories where appropriate.
+4. Assess and visualize feature importance. The Random Forest feature-importance
+   analysis supports this requirement; the model comparison is optional.
+5. State what the results mean and their limitations. Do not present this survey
+   analysis as individual medical diagnosis.
+
+### 5. Automate the pipeline and show activity on a cloud dashboard
+
+1. Put the required preprocessing and EDA steps in the Airflow DAG in
+   `dags/diabetes_risk_pipeline.py` and configure the requested two-minute
+   schedule (`*/2 * * * *`).
+2. Log each run's ID, timestamps, duration, status, records, errors, and warnings.
+3. Deploy the workflow to Cloud Composer and verify actual consecutive runs in
+   the Composer run history; a cron expression alone does not prove the cadence.
+4. Show run status, timestamps/history, records processed, quality outcome, and
+   errors or warnings on the cloud dashboard.
+5. Record the configured two-minute schedule, the Composer run history, and the
+   measured end-to-end runtime as separate execution details. In this project,
+   the selected three-task run took about 2:41; optional model tasks account for
+   most of that runtime.
+
+### 6. Expose and test application details through APIs
+
+1. Use GCP built-in APIs for real application information, such as Cloud Storage
+   for pipeline artifacts and Composer for deployment/schedule details.
+2. Display at least four useful application details in the dashboard. This
+   project exposes them through:
+
+   | Detail | Endpoint |
+   |---|---|
+   | Recent workflow history | `GET /api/v1/workflow` |
+   | Latest run status and metrics | `GET /api/v1/runs/latest` |
+   | Dataset and quality results | `GET /api/v1/dataset` |
+   | Composer deployment and version | `GET /api/v1/schedule` |
+
+3. Open Swagger at `/docs`, execute each request against the deployed API, and
+   record the request, response, and HTTP status code. Include readable
+   screenshots in the report. An endpoint listing by itself is not test evidence.
+
+### 7. Prepare the written submission and demonstration
+
+1. Prepare the report as a Word document with project details, explanations,
+   screenshots, results, references, and each member's contribution.
+2. Have all members review and confirm the contribution entries.
+3. Record one video demonstrating the complete project. Upload it to a shared
+   Google Drive folder, test that its viewer link works, and include the link in
+   the written submission. The team plans to complete this step later.
+4. Export the final report as `49.pdf` or `49.docx`, review it against the
+   assessment, and submit the document and video link through the assignment
+   portal.
 
 ## Requirements
 
@@ -177,7 +280,7 @@ Pick whichever is easier for the team -- both produce one acceptable video file.
 5. **Person 4 -- dashboard and APIs (90-120s)**
    - Show the live dashboard loading real metrics.
    - Switch to Swagger (`/docs`) on the live API URL and actually click **Try it out -> Execute** on all 4 required endpoints live (not a pre-made screenshot). Read one HTTP `200` response out loud.
-6. **Closing (15-20s)** -- one sentence: all required work is implemented, deployed on GCP, and verified live; thank the viewer.
+6. **Closing (15-20s)** -- summarize what is implemented and verified, including the configured schedule and measured run time; thank the viewer.
 
 ### After recording
 
@@ -196,8 +299,7 @@ Confirmed complete (see the report for evidence):
 - [x] Summary statistics, data types, and missing-value checks completed.
 - [x] Preprocessing (deduplication, standardization) automated.
 - [x] Correlation, univariate, bivariate, and binning analysis completed.
-- [x] EDA generation automated and refreshed on schedule.
-- [x] Workflow deployed to Cloud Composer, running every two minutes.
+- [x] EDA generation automated in the revised scheduled pipeline source.
 - [x] Execution logs generated.
 - [x] Cloud dashboard deployed and showing live activity details.
 - [x] Four required application details retrieved through APIs and tested via Swagger/OpenAPI.
@@ -207,7 +309,7 @@ Still open before submission:
 
 - [ ] Record and upload the end-to-end demonstration video (see above).
 - [ ] Verify the Google Drive sharing link works in a private/incognito window.
-- [ ] Each member confirms their entry in the report's contribution summary (Section 4.3).
+- [ ] Each member confirms their entry in the report's Team Contribution section.
 - [ ] Export the report as `49.pdf` (or `49.docx`) from `docs/report/REPORT.md`.
 - [ ] All members complete a final read-through of the report against this checklist.
 - [ ] Upload to the assignment portal before 28 September 2026.

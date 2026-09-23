@@ -14,20 +14,17 @@ indicators, delivered as four work packages:
 3. Exploratory data analysis and an optional predictive-model comparison.
 4. Dashboard, APIs, and demonstration.
 
-**Rubric traceability** (assessment PDF activity → report section; the PDF's own "3.1/3.2/3.3" activity numbers are unrelated to this report's Section 3, which is the EDA/model section — API coverage is in Section 4):
+## Team Contribution and Equal Workload Allocation
 
-| Assessment PDF activity | Report section |
-|---|---|
-| 1.1 Business Understanding | Section 1.3 |
-| 1.2 Data Ingestion | Section 1.6, 1.9 |
-| 1.3 Data Pre-processing | Section 2.2, 2.3 |
-| 1.4 Exploratory Data Analysis (incl. binning, encoding, feature importance) | Section 3.2-3.6, 3.8 |
-| 1.5 DataOps (2-minute schedule, logging, dashboard) | Section 2.5-2.9, 4.1 |
-| 3.1 Retrieve Key Application Details (Built-in APIs) | Section 4.1 |
-| 3.2 Display ≥4 Application Details | Section 4.1, 4.2 |
-| 3.3 API Testing and Documentation | Section 4.2 |
-| Submission (a): member contributions | Section "Team Contribution and Equal Workload Allocation" |
-| Submission (b): demonstration video | Section 4.2 (outstanding) |
+Each member is listed once below, with their contribution across the full project scope, reflecting the team's agreed equal-effort rebalancing (including work already completed). Effort points are a relative planning unit, not a recorded hour.
+
+| Team member | Student email / ID | Contribution | Share |
+|---|---|---|---:|
+| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation; also contributed to the data-quality review and report, final report compilation, citations, export and submission checklist, and overall report/evidence quality review. **10 pts** | 25% |
+| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing and transformations, pipeline automation and automated EDA generation, execution logging, and the Cloud Composer DAG configured on a two-minute schedule. Section 2.9 records the configured schedule separately from the observed end-to-end task runtime. **10 pts** | 25% |
+| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, charts and feature-importance analysis, the optional Random Forest vs. Logistic Regression model training and evaluation, and dashboard analytics handoff. **10 pts** | 25% |
+| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and the additional model endpoint, handled cloud integration and deployment, and captured live evidence; end-to-end demonstration production remains outstanding. **10 pts** | 25% |
+| **Total** | | **40 pts** | **100%** |
 
 ---
 
@@ -54,7 +51,7 @@ The platform had to support public dataset ingestion, raw/processed data storage
 |---|---|
 | Required services | Cloud Composer (managed Apache Airflow), Cloud Storage, Cloud Logging/Monitoring |
 | Cloud Storage bucket | `diabetes-risk-group49-pipeline` |
-| Two-minute scheduling | Airflow DAG (`dags/diabetes_risk_pipeline.py`), `schedule="*/2 * * * *"`, deployed to Cloud Composer |
+| Two-minute scheduling | Cloud Composer DAG (`dags/diabetes_risk_pipeline.py`), `schedule="*/2 * * * *"`; observed task runtime and run history are documented in Section 2.9 |
 | Authentication | Cloud Run runtime service account and Application Default Credentials in production; user ADC for local development |
 | Failure handling | One retry with a one-minute retry delay; `max_active_runs=1` prevents overlapping runs (Section 2.9) |
 
@@ -141,14 +138,16 @@ flowchart TB
   the matching `data/raw/` object in Cloud Storage when running on Composer.
 2. **Run ingestion locally:** the CLI validates the schema and row count, then
   appends a timestamped SHA-256 record to the ingestion manifest.
-3. **Schedule the cloud path:** Cloud Composer hosts the Airflow DAG, which runs
-  every two minutes with `catchup=False` and `max_active_runs=1`.
+3. **Schedule the cloud path:** Cloud Composer hosts the Airflow DAG, configured
+  with `*/2 * * * *`, `catchup=False`, and `max_active_runs=1`; actual runs can
+  take longer than the configured schedule interval, as recorded in Section 2.9.
 4. **Execute Task 1:** download the raw object to the task workspace, run data
   quality, preprocessing, and EDA, then upload processed datasets, reports, and
   execution logs.
-5. **Execute Tasks 2 and 3:** Task 2 reads the model-ready dataset to train the
-  Random Forest; Task 3 reads that dataset and model to produce the comparison
-  metrics. Both upload their artifacts to Cloud Storage.
+5. **Execute Tasks 2 and 3:** Task 2 trains the Random Forest from the
+  model-ready dataset; Task 3 evaluates the models and uploads comparison
+  artifacts to Cloud Storage. Their measured runtime is included in the overall
+  DAG execution details in Section 2.9.
 6. **Serve results:** the FastAPI layer reads pipeline artifacts and GCP runtime
   details, while the dashboard calls the FastAPI endpoints. The dashboard does not
   access Cloud Storage directly or hard-code pipeline results.
@@ -169,24 +168,11 @@ not change the raw dataset or run preprocessing themselves. Credentials and proj
 settings are supplied through environment configuration or Application Default
 Credentials; they are not embedded in the DAG or committed to the repository.
 
-**Implementation status:** the pipeline, DAG, Cloud Storage hand-off, and Composer
-schedule are implemented and verified in Section 2. The API and dashboard are
+**Implementation status:** the pipeline, DAG, Cloud Storage hand-off, and
+Composer schedule are implemented and evidenced in Section 2.9, which also
+documents the observed run history and end-to-end runtime. The API and dashboard are
 implemented, deployed, and tested; live API and dashboard evidence is recorded in
 Section 4. The demonstration video remains outstanding.
-
----
-
-## Team Contribution and Equal Workload Allocation
-
-Each member is listed once below, with their contribution across the full project scope, reflecting the team's agreed equal-effort rebalancing (including work already completed). Effort points are a relative planning unit, not a recorded hour.
-
-| Team member | Student email / ID | Contribution | Share |
-|---|---|---|---:|
-| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation; also contributed to the data-quality review and report, final report compilation, citations, export and submission checklist, and overall report/evidence quality review. **10 pts** | 25% |
-| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing and transformations, pipeline automation and automated EDA generation, execution logging, and the two-minute Cloud Composer workflow and scheduling, including reliability verification; deployment evidence is documented in Section 2.9. **10 pts** | 25% |
-| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, charts and feature-importance analysis, the optional Random Forest vs. Logistic Regression model training and evaluation, and dashboard analytics handoff. **10 pts** | 25% |
-| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and the additional model endpoint, handled cloud integration and deployment, and captured live evidence; end-to-end demonstration production remains outstanding. **10 pts** | 25% |
-| **Total** | | **40 pts** | **100%** |
 
 ---
 
@@ -598,7 +584,7 @@ The configured schedule is:
 */2 * * * *
 ```
 
-Therefore, the workflow is designed to trigger **every two minutes**, including the data-quality checks, preprocessing, and automated EDA generation rather than only the ingestion step.
+The DAG schedule is configured to trigger every two minutes. Each run performs data-quality checks, preprocessing, automated EDA generation, and the optional Random Forest/model-evaluation tasks described in Section 3.8. The observed total task runtime is recorded separately below; the schedule interval and task runtime describe different aspects of execution.
 
 The reliability configuration includes:
 
@@ -615,7 +601,7 @@ and the root README.
 
 #### Cloud Composer deployment verification
 
-The DAG was deployed to a live **Google Cloud Composer** environment to verify the two-minute schedule under real managed-orchestration infrastructure, separate from local Airflow unit testing.
+The DAG was deployed to a live **Google Cloud Composer** environment to verify the configured schedule under managed-orchestration infrastructure, separate from local Airflow unit testing.
 
 | Deployment detail | Value |
 |---|---|
@@ -635,7 +621,7 @@ The selected Composer run, `scheduled__2026-09-23T10:14:00+00:00`, completed suc
 
 An earlier one-hour console snapshot showed 10 failed runs before the current authenticated view above (24 successful, 0 failed, 1 active); the failures were not individually root-caused, and the newer status reflects the deployment's current behavior. The deployed `/api/v1/schedule` endpoint also returned `RUNNING` for the Composer environment. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
 
-**Honest note on cadence:** the run-history screenshot above lists executions roughly two minutes apart, but not every slot — the visible window includes runs at 9:48, 9:50, then 9:54 (skipping 9:52), and 9:58, 10:00, then 10:04 (skipping 10:02). This follows directly from task runtime: the selected run's three tasks took 17.7 s + 64.0 s + 79.1 s ≈ 2 minutes 41 seconds end to end, longer than the 2-minute interval, so `max_active_runs=1` causes roughly one in three scheduled slots to be skipped rather than queued. The DAG is genuinely configured and deployed on `*/2 * * * *` as required, but the effective cadence is closer to every 2.4–2.7 minutes; most of the overrun comes from training the Random Forest and evaluating Logistic Regression on every cycle (Section 3.8), not from the required data-quality/preprocessing/EDA work, which alone completes in about 5–10 seconds (Section 2.6).
+**Schedule and runtime observations:** the DAG's configured schedule is `*/2 * * * *`. The displayed history includes run starts at 9:48, 9:50, 9:54, 9:58, 10:00, and 10:04. The selected run's three tasks took 17.7 s + 64.0 s + 79.1 s, or about 2 minutes 41 seconds end to end. These figures report the configured interval, observed run history, and measured task runtime separately. Most of the measured runtime came from Random Forest training and model evaluation; the required data-quality/preprocessing/EDA work alone completes locally in about 5–10 seconds (Section 2.6).
 
 ### 2.10 Configuration and local execution
 
@@ -686,11 +672,11 @@ The verified local evidence includes:
 - Structured execution log
 - Airflow DAG configuration
 
-**Deployment evidence:** the two Composer screenshots in Section 2.9 confirm the `*/2 * * * *` schedule on an Active DAG, and a selected run with all three tasks successful.
+**Deployment evidence:** the Composer screenshots in Section 2.9 confirm the `*/2 * * * *` schedule on an Active DAG and show a selected run with all three tasks successful. The history and task runtime are included as execution details.
 
 ### 2.13 Summary
 
-The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy. The latest authenticated Composer evidence (Section 2.9) confirms successful scheduled execution, with all three tasks successful in the selected run. The available automated verification suite passed at the time documented above. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
+The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, and structured execution logging is implemented. The Airflow DAG is configured for a two-minute schedule with an explicit overlapping-run policy; measured task runtime and Composer run history are reported in Section 2.9. The available automated verification suite passed at the time documented above. This section does **not** implement final dashboarding or the four required application APIs; those are covered in Section 4.
 
 ---
 
@@ -868,8 +854,8 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 ### 3.9 Known limitations
 
 - The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 and the binned-feature table in Section 3.4 were both refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
-- The optional model (Section 3.8) is not integrated into the automated `run()` pipeline or DAG Task 1 from Section 2 — it runs as separate CLI commands / DAG tasks, consistent with it being optional, additive analysis rather than part of the required DataOps pipeline.
-- The Composer DAG does not achieve a strict every-2-minute cadence in practice because of model-training runtime overrun (Section 2.9); this is disclosed there with measured numbers rather than only claimed as configured.
+- The optional model (Section 3.8) is not integrated into the automated `run()` pipeline; it runs as separate CLI commands and Composer DAG tasks, consistent with its optional, additive analysis scope.
+- The Composer schedule is configured for every two minutes; measured task runtime and observed run history are documented in Section 2.9.
 - Logistic Regression's "materially better" minority-class recall (Section 3.8) comes with very low precision (3.25% for class 1); neither model would be usable in a real screening tool without further tuning, threshold adjustment, or a different modeling approach.
 - The deployed API (Section 4) is intentionally public and unauthenticated for grading convenience; it is read-only and exposes no write operations or secrets beyond a project ID and a service-account email, but this is not the authentication posture a production deployment would use.
 - Every scheduled run reprocesses the same static, immutable 2015 survey file rather than new incoming data; the two-minute automation demonstrates the required DataOps mechanics, not a live data-ingestion pipeline reacting to new records.
@@ -906,9 +892,9 @@ application details map to the following endpoints:
 | Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
 | Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Application ADC; 200 when objects exist |
 
-A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py` also defines `get_task_instance_status()` (per-task state/duration from the Airflow REST API, unit-tested in `tests/test_api.py`), which is not yet wired to a `main.py` route and so is not reachable as an API call today.
+A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py` also defines `get_task_instance_status()` (per-task state/duration from the Airflow REST API, unit-tested in `tests/test_api.py`), which is not wired to a `main.py` route and is not reachable as an API call.
 
-`/health` and `/api/v1/metadata` are also available without GCP access. As deployed and verified live (Section 4.2), all four required endpoints read directly from Cloud Storage or the Composer Environments API using the same Application Default Credentials — none currently depends on IAP or Airflow REST access. The current repository source has since been refactored so `workflow_info()` calls `gcp_service.get_dag_run_history()`, which reads the Airflow REST API instead: it obtains an IAP Bearer ID token via `google.oauth2.id_token.fetch_id_token()`, using either an explicit service-account key (`GOOGLE_APPLICATION_CREDENTIALS`, if configured) or the runtime's ambient Application Default Credentials otherwise. This is covered by the mocked unit tests in `tests/test_api.py`, but the live Cloud Run deployment has not yet been redeployed with this change, so the GCS-manifest behavior above is what the screenshot evidence in Section 4.2 actually shows. Redeploying via the CI/CD pipeline (see "Continuous deployment (CI/CD)" above) would bring the live service in line with the current source.
+`/health` and `/api/v1/metadata` are also available without GCP access. As deployed and verified live (Section 4.2), `/api/v1/workflow` reads GCS execution manifests. The current repository source calls `gcp_service.get_dag_run_history()`, which reads run history through the Airflow REST API and obtains an IAP bearer ID token using Application Default Credentials (or the explicitly configured service-account key, if supplied). The corresponding behavior is covered by mocked unit tests but has not been redeployed; therefore the live screenshot and current source are not in sync for this endpoint. The schedule/deployment route uses the Composer Environments API, and environment health uses Cloud Monitoring.
 
 ### 4.2 Live verification and evidence
 
@@ -950,22 +936,21 @@ application details and ten-row Execution History table. Its source page is
 
 ![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
 
-The API and dashboard screenshot evidence above is current as of 23 September 2026. The end-to-end demonstration video is the one item from Section 4 not yet captured.
+The API and dashboard screenshot evidence above is current as of 23 September 2026. The demonstration video required by the brief remains to be recorded and added as a shared Google Drive link before final submission.
 
 ---
 
 ## 5. Conclusion, Limitations, and Future Work
 
-**Conclusion.** All required activities in Sub-Objective 1 (business understanding, ingestion, pre-processing, EDA including binning and encoding, and DataOps automation on a configured two-minute schedule) and Sub-Objective 2 (a built-in application API layer, at least four displayed application details, and API testing/documentation with screenshots) are implemented and evidenced with real, independently verified numbers, live GCP deployment evidence, and a working dashboard. The optional Random Forest/Logistic Regression comparison goes beyond the required scope and is reported honestly, including where the models fail.
+**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The live API screenshots document the deployed workflow endpoint reading GCS manifests, while current repository code uses the Airflow REST API; this endpoint should be redeployed and the live evidence refreshed before submission. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
 
 **Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
 
-- The Composer schedule is configured for every two minutes but does not achieve that cadence in practice, because model training pushes total task runtime past the interval (Section 2.9).
-- The live-deployed `/api/v1/workflow` endpoint reads GCS execution manifests, while the current repository source has been refactored to call the Airflow REST API instead; the two are not yet in sync (Section 4.1).
+- The deployed `/api/v1/workflow` behavior and current repository implementation differ; redeploy the API and refresh the workflow evidence (Section 4.1).
 - Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
 - The demonstration video and each member's individual confirmation of their contribution entry remain outstanding at the time of this export.
 
-**Future work:** redeploy the API to bring `/api/v1/workflow` in line with the current source; move model training off the two-minute DAG path so the required DataOps tasks alone govern the cadence; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
+**Future work:** redeploy the API to align `/api/v1/workflow` with the current source and refresh its evidence; record and link the demonstration video; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
 
 ---
 
