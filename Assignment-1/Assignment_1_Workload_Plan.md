@@ -33,13 +33,13 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Person 1:** Complete. Business understanding, dataset verification, and raw-data ingestion have been documented and validated.
 - **Person 2:** Implementation and two-minute Composer verification complete. The latest authenticated Composer evidence on 23 September 2026 shows the DAG Active, with 24 successful runs, 0 failed runs, and 1 active run in the selected one-hour window; the selected run shows all three tasks successful (see `docs/report/REPORT.md` Section 2.9). Counts are time-sensitive.
 - **Person 3:** Complete. EDA interpretation and an optional Random Forest vs. Logistic Regression model comparison have been implemented, evaluated, tested, and documented (see `docs/report/REPORT.md` Section 3).
-- **Person 4:** In progress. Dashboard/API implementation, Cloud Run deployment, tests, and live GCP evidence are complete; the final demonstration video remains.
+- **Person 4:** In progress. Dashboard/API implementation, Cloud Run deployment, tests, and live GCP evidence are complete; recording and uploading the final demonstration video remains.
 
 ## Team progress summary
 
 - **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation; Person 2 data quality, preprocessing, automation, logging, and two-minute Cloud Composer verification; Person 3 EDA interpretation, feature importance, and the optional model comparison. The latest Composer status is healthy at the time checked; continue to monitor the scheduled runs.
-- **Still required before final submission:** Demonstration video and verified Google Drive link, final report export as `49.docx` or `49.pdf`, final review, and submission upload.
-- **Current project status:** The pipeline, EDA, optional model, dashboard, and API are implemented and deployed; API tests and live Cloud Run evidence are complete. The demonstration video and final submission packaging remain.
+- **Still required before final submission:** Record and upload the demonstration video to shared Google Drive, verify its sharing permissions and link, have each member confirm the contribution summary in the report, export the final report as `49.docx` or `49.pdf`, complete the final review, and submit the report through the portal. The listed deadline of 18 September 2026 has passed.
+- **Current project status:** The pipeline, EDA, optional model, dashboard, and API are implemented and deployed; API tests and live Cloud Run evidence are complete. Video, member confirmation of the contribution summary, final report export, review, and portal submission remain outstanding.
 
 ---
 
@@ -140,19 +140,19 @@ The final platform must support:
 _Status: **Confirmed — Google Cloud Platform (GCP).** Recorded per the team's decision._
 
 - **Selected platform:** Google Cloud Platform (GCP)
-- **Account, license, or student-credit source:** _TBD — team to confirm (BITS AWS Virtual Lab is AWS-only and does not apply to this GCP decision; see note below)._
-- **Selected region or workspace:** _TBD — team to confirm._
+- **Account, license, or student-credit source:** GCP project `diabetes-risk-group49`; the specific billing account or credit source is not recorded and needs team confirmation. The BITS AWS Virtual Lab does not apply to this GCP deployment.
+- **Selected region or workspace:** `us-central1` (deployed Cloud Run services and Cloud Composer environment).
 - **Required services:** Cloud Composer (managed Apache Airflow), Cloud Storage, Cloud Logging/Monitoring
-- **Two-minute scheduling method:** Airflow DAG (`dags/diabetes_risk_pipeline.py`) with `schedule="*/2 * * * *"`, deployed to Cloud Composer. **Confirmed supported** — Cloud Composer schedules are plain Airflow cron expressions with no documented minimum-interval restriction (verified against Google's Cloud Composer scheduling docs). The only real constraint is cost, not the schedule itself: Cloud Composer is an always-on managed environment with a baseline cost (~$44/month minimum for Composer 3, more for Composer 2) regardless of how often the DAG runs — this should be covered by the $300/90-day Google Cloud free trial credit for the assignment's ~3-week duration, but the team should confirm Composer is included under whichever account/credits are actually used.
+- **Two-minute scheduling method:** Airflow DAG (`dags/diabetes_risk_pipeline.py`) with `schedule="*/2 * * * *"`, deployed to Cloud Composer. Composer is an always-on paid service; actual billing and credit coverage have not been verified in this repository and must not be assumed.
 - **Exact four APIs:** `GET /api/v1/workflow`, `GET /api/v1/runs/latest`, `GET /api/v1/dataset`, and `GET /api/v1/schedule` (verified against the deployed API; see `docs/report/REPORT.md` Section 4.2).
 - **Dashboard method:** FastAPI-backed dashboard deployed as a Cloud Run service; the live dashboard URL and screenshot are recorded in `docs/report/REPORT.md` Section 4.2.
 - **Authentication method:** The deployed API routes are publicly reachable for the read-only demonstration; GCP data access uses the Cloud Run runtime service account and Application Default Credentials. Local GCP development uses user ADC.
-- **Cost limit:** _TBD — team to confirm._
-- **Data-storage locations:** `data/raw/` (immutable source), `data/processed/` (cleaned + model-ready datasets), `data/outputs/` (quality, EDA, execution logs) — mapped to Cloud Storage once deployed
+- **Cost limit:** Not recorded; confirm the team's approved budget and review actual GCP billing.
+- **Data-storage locations:** Local paths are `data/raw/`, `data/processed/`, and `data/outputs/`. The deployed pipeline uses the `diabetes-risk-group49-pipeline` Cloud Storage bucket with corresponding object prefixes.
 - **Failure-handling method:** One retry with a one-minute retry delay (DAG `default_args`)
 - **Overlapping-run policy:** `max_active_runs=1` (DAG-level, prevents concurrent pipeline runs)
-- **Person responsible for platform administration:** _TBD — team to confirm._
-- **Platform decision date and fallback platform:** _TBD — team to confirm; Azure was the next-ranked candidate in the prior comparison._
+- **Person responsible for platform administration:** Not recorded; team confirmation required.
+- **Platform decision date and fallback platform:** Decision date and fallback were not recorded. GCP is the deployed platform; confirm whether a fallback was agreed.
 
 The earlier Azure/GCP/Prefect/AWS/Databricks platform comparison is no longer
 part of the project documentation; GCP is the selected platform for the
@@ -198,14 +198,27 @@ above).
 
 Each person owns one complete work package. Each package includes application work, report writing, evidence collection, handoff, and verification.
 
-| Person | Work package | Main outputs |
-|---|---|---|
-| Person 1 | Business understanding, dataset, and ingestion | Business section, data dictionary, raw-data ingestion |
-| Person 2 | Data quality, preprocessing, and pipeline automation | Cleaned dataset, preprocessing, schedule, logs |
-| Person 3 | EDA, optional model, and dashboard analysis | Charts, correlations, model results, dashboard metrics |
-| Person 4 | Dashboard implementation, APIs, and demonstration | Dashboard, four APIs, API evidence, video |
+| Person | Team member | Student email / ID | Original assigned work package | Main outputs |
+|---|---|---|---|---|
+| Person 1 | Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Business understanding, dataset, and ingestion | Business section, data dictionary, raw-data ingestion |
+| Person 2 | Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Data quality, preprocessing, and pipeline automation | Cleaned dataset, preprocessing, schedule, logs |
+| Person 3 | Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | EDA, optional model, and dashboard analysis | Charts, correlations, model results, dashboard metrics |
+| Person 4 | Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Dashboard implementation, APIs, and demonstration | Dashboard, four APIs, API evidence, video |
 
-The workload is balanced by assigning each person one major project package. No person is responsible for recreating another person's work.
+The original allocation assigned one major package per person. The detailed Person 1-4 sections below preserve that original scope and completion record. The revised overall allocation proposal that follows is a planning model only; it does not claim that completed work was performed by different people.
+
+## Revised overall workload allocation proposal
+
+To balance the **full project scope**, including the work already completed, the following planning estimate distributes approximately ten effort points to each member. One point is a relative planning unit, not a recorded hour. Core tasks overlap with the original assignments; this proposal must not replace the actual contribution record in the final report.
+
+| Person | Team member | Rebalanced project responsibilities | Effort points |
+|---|---|---|---:|
+| Person 1 | Pushadapu Sanjay Kumar | Business understanding, dataset profile, data dictionary, ingestion and validation (3); data-quality review and report (2); final report compilation, citations, export, and submission checklist (3); report/evidence quality review (2). | 10 |
+| Person 2 | Sathish Krishnan V | Preprocessing and transformations (3); pipeline and automated EDA generation (3); Composer DAG and two-minute scheduling (2); execution logging and reliability verification (2). | 10 |
+| Person 3 | Chezrla Raga Suma | EDA analysis and interpretation (4); charts and feature-importance analysis (2); optional model training and evaluation (3); dashboard analytics handoff (1). | 10 |
+| Person 4 | Bhuvnesh Mishra | Dashboard implementation (3); four APIs, tests, and documentation (3); cloud integration and deployment (2); end-to-end demonstration production and evidence (2). | 10 |
+
+This allocation is an effort-balancing proposal, not a time-tracking result or a retrospective statement of who completed each task. The final report must continue to identify actual contributions; team members should confirm the proposal before treating it as an agreed future allocation.
 
 ## Shared contribution rule
 
@@ -850,28 +863,28 @@ Every member must review the complete project and confirm:
 
 ## Assignment requirements
 
-- [ ] Business problem is clearly explained.
-- [ ] Approved Kaggle source is cited.
-- [ ] Exact dataset filename is recorded.
-- [ ] Target column is recorded.
-- [ ] Row and column counts are recorded.
-- [ ] Raw dataset is imported.
-- [ ] Summary statistics are displayed.
-- [ ] Missing values are checked.
-- [ ] Numeric missing values are handled where required.
-- [ ] Data types are displayed.
-- [ ] Data is normalized or standardized where appropriate.
-- [ ] Correlation coefficients are calculated.
-- [ ] Numeric and categorical relationships are analyzed.
-- [ ] Binning is demonstrated where appropriate.
-- [ ] Encoding is demonstrated.
-- [ ] Feature importance is shown where applicable.
-- [ ] Univariate charts are included.
-- [ ] Bivariate charts are included.
-- [ ] Preprocessing is automated.
-- [ ] EDA is automated.
-- [ ] Workflow runs every two minutes.
-- [ ] Activity logs are generated.
+- [x] Business problem is clearly explained.
+- [x] Approved Kaggle source is cited.
+- [x] Exact dataset filename is recorded.
+- [x] Target column is recorded.
+- [x] Row and column counts are recorded.
+- [x] Raw dataset is imported and ingestion is validated.
+- [x] Summary statistics are displayed.
+- [x] Missing values are checked.
+- [x] Numeric missing values are handled where required; the approved dataset has no missing values.
+- [x] Data types are displayed.
+- [x] Data is normalized or standardized where appropriate.
+- [x] Correlation coefficients are calculated.
+- [x] Numeric and categorical/ordinal relationships are analyzed.
+- [x] Binning is demonstrated where appropriate.
+- [x] Encoding was assessed; no encoding transformation was needed because input features are already numeric, binary, or ordinal.
+- [x] Feature importance is shown.
+- [x] Univariate charts are included.
+- [x] Bivariate charts are included.
+- [x] Preprocessing is automated.
+- [x] EDA is automated.
+- [x] Workflow is configured and deployed to run every two minutes.
+- [x] Activity logs are generated.
 - [x] Activity details are displayed on a cloud dashboard.
 - [x] At least four accepted application details are retrieved through APIs.
 - [x] API requests are tested through Swagger/OpenAPI or the approved equivalent.
@@ -880,7 +893,7 @@ Every member must review the complete project and confirm:
 
 ## Submission
 
-- [ ] Final report is prepared as Word or PDF.
+- [ ] Final report is prepared as Word or PDF (the current canonical report is Markdown).
 - [ ] Final report is named `49.docx` or `49.pdf`.
 - [ ] A designated group member uploads the final report to the portal.
 - [ ] Portal upload is verified before the deadline.
@@ -891,5 +904,5 @@ Every member must review the complete project and confirm:
 - [ ] Demonstration video is complete.
 - [ ] Video is uploaded to Google Drive.
 - [ ] Google Drive permissions are verified.
-- [ ] Submission deadline is Friday, 18 September 2026.
+- [x] Submission deadline recorded as Friday, 18 September 2026 (passed as of 23 September 2026).
 - [ ] All members complete the final review.

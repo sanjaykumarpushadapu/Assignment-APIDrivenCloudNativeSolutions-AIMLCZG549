@@ -797,12 +797,26 @@ responses, not mocked test results.
 | Dataset processing | Dataset and quality metrics | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/dataset` | Public Cloud Run URL; no credentials prompted | 200; 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, 0 missing values after processing, `PASS_WITH_WARNINGS` | ![Swagger dataset request and response; full request URL is visible in Swagger](imgs/p4-api-dataset-response.png) |
 | Schedule/deployment | Composer environment status and version | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/schedule` | Public Cloud Run URL; no credentials prompted | 200; `diabetes-risk-env` is `RUNNING`; Composer 3 / Airflow 2.11.1 | ![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png) |
 
+### 4.3 Team contribution summary
+
+This table records the original work-package contributions and completion status documented for the project. It is separate from the revised, equal-effort planning proposal in the workload plan; team members should confirm that these summaries match the work they actually performed before final submission.
+
+| Team member | Student email / ID | Contribution and status |
+|---|---|---|
+| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation. |
+| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing, pipeline automation, execution logging, and the two-minute Cloud Composer workflow; deployment evidence is documented in Section 2.9. |
+| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, feature-importance analysis, the optional Random Forest vs. Logistic Regression comparison, and dashboard analytics handoff. |
+| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and additional model endpoint, and captured live evidence. The demonstration video remains outstanding. |
+
 The dashboard screenshot records the deployed view, including the API-derived
 application details and ten-row Execution History table. Its source page is
 [https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/):
 
 ![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
 
-The API and dashboard screenshot evidence is now captured. The final demonstration
-video is still outstanding: it must show the end-to-end workflow, be uploaded to
-the team's shared Google Drive, and have its verified sharing link added here.
+The API and dashboard screenshot evidence is captured. Remaining submission work
+as of 23 September 2026: have each member confirm the contribution summary above, record
+and upload the end-to-end demonstration video to the team's shared Google Drive,
+verify its sharing link, export this report as `49.docx` or `49.pdf`, complete the
+team's final review, and submit the report through the assignment portal. The
+deadline recorded in the workload plan was 18 September 2026 and has passed.
