@@ -7,10 +7,12 @@
 
 This report documents the design, implementation, and verification of a cloud-based,
 API-accessible data pipeline for diabetes-risk screening from health and lifestyle
-indicators, delivered as four work packages: (1) business understanding, dataset
-selection, and ingestion; (2) data-quality validation, preprocessing, and scheduled
-pipeline automation; (3) exploratory data analysis and an optional predictive-model
-comparison; and (4) dashboard, APIs, and demonstration.
+indicators, delivered as four work packages:
+
+1. Business understanding, dataset selection, and ingestion.
+2. Data-quality validation, preprocessing, and scheduled pipeline automation.
+3. Exploratory data analysis and an optional predictive-model comparison.
+4. Dashboard, APIs, and demonstration.
 
 ---
 
@@ -18,19 +20,18 @@ comparison; and (4) dashboard, APIs, and demonstration.
 
 **Confirmed project details**
 
-- **Group ID:** 49
 - **Approved dataset:** Kaggle Diabetes Health Indicators Dataset ([source](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset))
-- **API documentation/testing tool:** Swagger/OpenAPI
 - **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the required two-minute schedule.
+- **API documentation/testing tool:** Swagger/OpenAPI
 - **Prediction model:** not required by the assessment PDF — the full PDF was checked directly, and the words "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. The team built an optional Random Forest vs. Logistic Regression comparison anyway, as additive analysis on top of the required EDA/feature-importance work (Section 3.8). It is not deployed as a service and does not replace or reduce any required deliverable.
 - **Cloud dashboard scope:** the assessment PDF's activity 1.5 wording ("logging all activity details and displaying them on a Cloud dashboard") is read by the team as requiring execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and a nice-to-have on the dashboard, not a rubric requirement. This is the team's document interpretation, not confirmed by the instructor.
-- **API requirement:** read together, Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information, e.g. flow, deployment etc.") are interpreted by the team as requiring the team's own application API layer, tested with an API client — not GCP's own admin APIs. `src/diabetes_risk/api/` (FastAPI) is built on this reading. Also the team's document interpretation, not confirmed by the instructor.
+- **API requirement:** read together, Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information (e.g., flow, deployment etc.)") are interpreted by the team as requiring the team's own application API layer, tested with an API client — not GCP's own admin APIs. `src/diabetes_risk/api/` (FastAPI) is built on this reading. Also the team's document interpretation, not confirmed by the instructor.
 - **Video submission mechanism:** per the assessment PDF, no length or format is specified; delivery is a shared Google Drive link, not the assignment portal.
-- **University restrictions:** none — confirmed by the team; no BITS/university restrictions apply to cloud region, services, or student credits for this assignment.
+- **University restrictions:** none apply to cloud region, services, or student credits for this assignment — confirmed directly with the team.
 
 **Platform selection**
 
-The platform needed to support public dataset ingestion, raw/processed data storage, preprocessing, automated EDA generation, workflow automation on a two-minute schedule, execution logging, cloud dashboarding, at least four application APIs testable through Swagger/OpenAPI or an equivalent client, student/university access, and secure authentication without exposing credentials. The team selected **Google Cloud Platform (GCP)**.
+The platform had to support public dataset ingestion, raw/processed data storage, preprocessing, automated EDA generation, workflow automation on a two-minute schedule, execution logging, cloud dashboarding, at least four application APIs testable through Swagger/OpenAPI or an equivalent client, student/university access, and secure authentication without exposing credentials. The team selected **Google Cloud Platform (GCP)** to meet these requirements.
 
 | Detail | Value |
 |---|---|
@@ -40,7 +41,7 @@ The platform needed to support public dataset ingestion, raw/processed data stor
 | Authentication | Cloud Run runtime service account and Application Default Credentials in production; user ADC for local development |
 | Failure handling | One retry with a one-minute retry delay; `max_active_runs=1` prevents overlapping runs (Section 2.9) |
 
-GCP project, region, and Composer environment details are recorded in the deployment verification table in Section 2.9. BITS also offers an optional, non-mandatory AWS "Virtual Lab Session" for this course; it does not apply, since the team selected GCP for this deployment.
+GCP project, region, and Composer environment details are recorded in the deployment verification table in Section 2.9. BITS also offers an optional AWS "Virtual Lab Session" for this course; it does not apply here, since the team selected GCP for this deployment.
 
 **Continuous deployment (CI/CD)**
 
@@ -54,7 +55,7 @@ Authentication uses GitHub OIDC via Workload Identity Federation (`google-github
 
 **Containerization**
 
-A single `Dockerfile` (`python:3.11-slim` base) builds one image containing the FastAPI application; the API and dashboard are the same image started with different commands (the dashboard container overrides the default `uvicorn` entrypoint to serve `diabetes_risk.dashboard.app:app` instead). This is the same image the CI/CD pipeline above builds and pushes to Artifact Registry. It is also validated locally through `docker-compose.yml`, which runs both services together (API on port `8082`, dashboard on `8083`) with a container health check polling `/health` every 10 seconds, and the dashboard container configured to start only after the API container reports healthy.
+A single `Dockerfile` (`python:3.11-slim` base) builds one image containing the FastAPI application; the API and dashboard run from that same image, started with different commands (the dashboard container overrides the default `uvicorn` entrypoint to serve `diabetes_risk.dashboard.app:app` instead). This is the same image the CI/CD pipeline above builds and pushes to Artifact Registry. It is also validated locally through `docker-compose.yml`, which runs both services together (API on port `8082`, dashboard on `8083`) with a container health check polling `/health` every 10 seconds, and the dashboard container configured to start only after the API container reports healthy.
 
 ---
 
@@ -158,6 +159,20 @@ Section 4. The demonstration video remains outstanding.
 
 ---
 
+## Team Contribution and Equal Workload Allocation
+
+Each member is listed once below, with their original task-based work package alongside the team's separately agreed equal-effort rebalancing across the **full project scope** (including work already completed). Effort points are a relative planning unit, not a recorded hour, and the rebalancing is an effort-balancing allocation the team agreed on — not a time-tracking result or a retrospective claim that every completed task was performed by a different person than the "Original task-based contribution" column records.
+
+| Team member | Student email / ID | Original task-based contribution and status | Rebalanced effort across full project scope | Share |
+|---|---|---|---|---:|
+| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation. | Business understanding, dataset profile, data dictionary, ingestion and validation; data-quality review and report; final report compilation, citations, export, and submission checklist; report/evidence quality review. **10 pts** | 25% |
+| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing, pipeline automation, execution logging, and the two-minute Cloud Composer workflow; deployment evidence is documented in Section 2.9. | Preprocessing and transformations; pipeline and automated EDA generation; Composer DAG and two-minute scheduling; execution logging and reliability verification. **10 pts** | 25% |
+| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, feature-importance analysis, the optional Random Forest vs. Logistic Regression comparison, and dashboard analytics handoff. | EDA analysis and interpretation; charts and feature-importance analysis; optional model training and evaluation; dashboard analytics handoff. **10 pts** | 25% |
+| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and additional model endpoint, and captured live evidence. The demonstration video remains outstanding. | Dashboard implementation; four APIs, tests, and documentation; cloud integration and deployment; end-to-end demonstration production and evidence. **10 pts** | 25% |
+| **Total** | | | **40 pts** | **100%** |
+
+---
+
 ## 1. Business Understanding, Dataset, and Ingestion
 
 ### 1.1 Introduction
@@ -203,8 +218,6 @@ Health and lifestyle data flows through an automated cloud-based pipeline that i
 - **For healthcare providers/care coordinators:** a continuously updated risk-screening signal that helps prioritize outreach to higher-risk patients, instead of relying on manual chart review.
 - **For program administrators:** an aggregated dashboard view of risk distribution across a patient population, supporting resource and program planning.
 - **For the team:** a working, end-to-end demonstration of the assignment's required architecture (ingestion -> preprocessing -> EDA -> scheduled DataOps -> API layer), directly mapped to the grading rubric.
-
-As with the rest of this report, all outputs are a **risk-screening signal**, not a clinical diagnosis.
 
 ### 1.6 Dataset profile
 
@@ -274,7 +287,7 @@ Derived from the CDC's public **Behavioral Risk Factor Surveillance System (BRFS
 - **Dataset age:** collected in 2015 — over a decade old, so absolute rates (e.g., smoking, obesity) may not reflect current populations.
 - **Generalization:** BRFSS is a U.S.-only telephone survey; findings should not be generalized to non-U.S. populations, and telephone-survey methodology can under-represent some demographic groups.
 - **Bias and fairness:** `Income`, `Education`, and `AnyHealthcare`/`NoDocbcCost` reflect healthcare-access disparities as much as biological risk — correlations involving these fields should be discussed as access/equity signals, not purely clinical ones. `Sex` is recorded as a binary field only, per the original survey design.
-- **Not a diagnosis:** consistent with the rest of this report, all outputs are a **risk-screening signal**, not a clinical diagnosis, and must not be presented or used as one.
+- **Not a diagnosis:** all outputs remain a **risk-screening signal**, not a clinical diagnosis, as established in Section 1.3.
 
 ### 1.9 Data ingestion evidence
 
@@ -463,36 +476,17 @@ The runner records the status of each execution and writes outputs to predictabl
 
 ### 2.7 Verified full-dataset execution result
 
-To remove ambiguity about the size of the data actually processed, this section retained **one fresh successful end-to-end run only** against the complete raw CSV. No two-record test fixture is represented in the retained pipeline outputs or execution results. The test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file.
+To remove ambiguity about the size of the data actually processed, this section identifies **one fresh, successful end-to-end run** against the complete raw CSV as the authoritative record. No two-record test fixture is represented in the retained pipeline outputs or execution results — the test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file, and its input/output counts match the quality-validation table in Section 2.2 and the preprocessing table in Section 2.3.
 
 | Execution metric | Verified result |
 |---|---:|
 | Run ID | `20260912T025251232582Z` |
 | Input file | `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` |
-| Input rows read | **253,680** |
-| Input columns | **22** |
-| Missing values | **0** |
-| Exact duplicate records detected | **23,899 (9.42%)** |
-| Rows after duplicate removal | **229,781** |
-| Cleaned dataset | **229,781 × 22** |
-| Model-ready dataset | **229,781 × 22** |
-| Invalid target values | **0** |
-| Invalid known numeric-range values | **0** |
-| Invalid binary values | **0** |
-| Quality status | `PASS_WITH_WARNINGS` |
 | Execution status | `SUCCESS` |
+| Quality status | `PASS_WITH_WARNINGS` |
 | Runtime | **5.10 seconds** |
 
-The deduplicated target distribution used by the refreshed EDA artifacts is:
-
-| `Diabetes_012` | Records | Percentage |
-|---:|---:|---:|
-| 0 | 190,055 | 82.71% |
-| 1 | 4,629 | 2.01% |
-| 2 | 35,097 | 15.27% |
-| **Total** | **229,781** | **100.00%** |
-
-The original raw target distribution documented in Section 1 remains unchanged; the table above reflects the **post-duplicate-removal dataset** used for the refreshed EDA outputs in this section. The raw CSV itself remains immutable.
+The post-duplicate-removal target distribution produced by this run is interpreted in Section 3.3 (distinct from the raw, pre-deduplication distribution in Section 1.6).
 
 The authoritative execution record is stored at:
 
@@ -528,7 +522,7 @@ data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
-For the verified final local execution (`20260912T025251232582Z`), the execution status was **`SUCCESS`**, the quality status was **`PASS_WITH_WARNINGS`**, **253,680** records were read and processed, **23,899** exact duplicates were detected and removed, and **229,781** records were written to both the cleaned and model-ready outputs. No missing, invalid-target, invalid-known-range, or invalid-binary values were detected.
+For the verified final local execution (`20260912T025251232582Z`), the JSON log recorded these exact fields — status, timestamps, runtime, and the input/output/duplicate counts already verified in Section 2.7 — confirming the log schema is populated with real values rather than left as placeholders.
 
 ### 2.9 Airflow orchestration and two-minute schedule
 
@@ -631,11 +625,11 @@ The verified local evidence includes:
 - Structured execution log
 - Airflow DAG configuration
 
-**Deployment evidence:** the two Composer screenshots in Section 2.9 show the `*/2 * * * *` schedule, an Active DAG with 24 successful, 0 failed, and 1 active run in the one-hour window, and a selected run with all three tasks successful. An earlier one-hour snapshot showed ten failures; the newer status is time-sensitive.
+**Deployment evidence:** the two Composer screenshots in Section 2.9 confirm the `*/2 * * * *` schedule on an Active DAG, and a selected run with all three tasks successful.
 
 ### 2.13 Summary
 
-The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy. The latest authenticated Composer evidence shows 24 successful runs, 0 failed runs, and one active run in its one-hour window, with all three tasks successful in the selected run. The available automated verification suite passed at the time documented above. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
+The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy. The latest authenticated Composer evidence (Section 2.9) confirms successful scheduled execution, with all three tasks successful in the selected run. The available automated verification suite passed at the time documented above. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
 
 ---
 
@@ -664,7 +658,7 @@ Because the missing-value summary reports zero missing observations across all 2
 
 ### 3.3 Target distribution
 
-The target is strongly imbalanced, particularly for the prediabetes class:
+The target is strongly imbalanced, particularly for the prediabetes class. Figures below are **post-duplicate-removal** (229,781 rows); see Section 1.6 for the raw, pre-deduplication distribution:
 
 | `Diabetes_012` | Records | Percentage |
 |---:|---:|---:|
@@ -860,23 +854,25 @@ responses, not mocked test results.
 - Dashboard: https://diabetes-risk-dashboard-573458509120.us-central1.run.app/
 - Swagger/OpenAPI: https://diabetes-risk-api-573458509120.us-central1.run.app/docs
 
-| API | Purpose | Method and endpoint | Authentication | Live response/status | Evidence |
-|---|---|---|---|---|---|
-| Workflow | Recent execution history | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow` | Public Cloud Run URL; no credentials prompted | 200; 10 runs; newest was `20260923T094129650583Z`, `success` | ![Swagger workflow request and response; full request URL is visible in Swagger](imgs/p4-api-workflow-response.png) |
-| Latest execution | Detailed latest run status and metrics | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest` | Public Cloud Run URL; no credentials prompted | 200; `20260923T094129650583Z`, `SUCCESS`, 253,680 input records | ![Swagger latest-run request and response; full request URL is visible in Swagger](imgs/p4-api-latest-response.png) |
-| Dataset processing | Dataset and quality metrics | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/dataset` | Public Cloud Run URL; no credentials prompted | 200; 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, 0 missing values after processing, `PASS_WITH_WARNINGS` | ![Swagger dataset request and response; full request URL is visible in Swagger](imgs/p4-api-dataset-response.png) |
-| Schedule/deployment | Composer environment status and version | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/schedule` | Public Cloud Run URL; no credentials prompted | 200; `diabetes-risk-env` is `RUNNING`; Composer 3 / Airflow 2.11.1 | ![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png) |
+**1. Workflow — recent execution history**
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow`. Public Cloud Run URL, no credentials prompted. Live response: 200; 10 runs; newest was `20260923T094129650583Z`, `success`.
 
-### 4.3 Team contribution summary
+![Swagger workflow request and response; full request URL is visible in Swagger](imgs/p4-api-workflow-response.png)
 
-This table records the original work-package contributions and completion status documented for the project, distinct from the revised, equal-effort allocation in Section 4.4.
+**2. Latest execution — detailed latest run status and metrics**
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest`. Public Cloud Run URL, no credentials prompted. Live response: 200; `20260923T094129650583Z`, `SUCCESS`, 253,680 input records.
 
-| Team member | Student email / ID | Contribution and status |
-|---|---|---|
-| Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation. |
-| Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing, pipeline automation, execution logging, and the two-minute Cloud Composer workflow; deployment evidence is documented in Section 2.9. |
-| Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, feature-importance analysis, the optional Random Forest vs. Logistic Regression comparison, and dashboard analytics handoff. |
-| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and additional model endpoint, and captured live evidence. The demonstration video remains outstanding. |
+![Swagger latest-run request and response; full request URL is visible in Swagger](imgs/p4-api-latest-response.png)
+
+**3. Dataset processing — dataset and quality metrics**
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/dataset`. Public Cloud Run URL, no credentials prompted. Live response: 200; 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, 0 missing values after processing, `PASS_WITH_WARNINGS`.
+
+![Swagger dataset request and response; full request URL is visible in Swagger](imgs/p4-api-dataset-response.png)
+
+**4. Schedule/deployment — Composer environment status and version**
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/schedule`. Public Cloud Run URL, no credentials prompted. Live response: 200; `diabetes-risk-env` is `RUNNING`; Composer 3 / Airflow 2.11.1.
+
+![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png)
 
 The dashboard screenshot records the deployed view, including the API-derived
 application details and ten-row Execution History table. Its source page is
@@ -885,17 +881,3 @@ application details and ten-row Execution History table. Its source page is
 ![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
 
 The API and dashboard screenshot evidence above is current as of 23 September 2026. The end-to-end demonstration video is the one item from Section 4 not yet captured.
-
-### 4.4 Equal workload allocation
-
-Section 4.3 records the original, task-based work-package split (one package per person). Separately, the team agreed an equal-effort allocation across the **full project scope**, including work already completed: each member is assigned approximately ten effort points, where one point is a relative planning unit, not a recorded hour.
-
-| Person | Team member | Rebalanced project responsibilities | Effort points | Share |
-|---|---|---|---:|---:|
-| Person 1 | Pushadapu Sanjay Kumar | Business understanding, dataset profile, data dictionary, ingestion and validation (3); data-quality review and report (2); final report compilation, citations, export, and submission checklist (3); report/evidence quality review (2). | 10 | 25% |
-| Person 2 | Sathish Krishnan V | Preprocessing and transformations (3); pipeline and automated EDA generation (3); Composer DAG and two-minute scheduling (2); execution logging and reliability verification (2). | 10 | 25% |
-| Person 3 | Chezrla Raga Suma | EDA analysis and interpretation (4); charts and feature-importance analysis (2); optional model training and evaluation (3); dashboard analytics handoff (1). | 10 | 25% |
-| Person 4 | Bhuvnesh Mishra | Dashboard implementation (3); four APIs, tests, and documentation (3); cloud integration and deployment (2); end-to-end demonstration production and evidence (2). | 10 | 25% |
-| **Total** | | | **40** | **100%** |
-
-This is an effort-balancing allocation the team agreed on, not a time-tracking result or a retrospective claim that every completed task was performed by a different person than recorded in Section 4.3 — that section remains the task-based contribution record.
