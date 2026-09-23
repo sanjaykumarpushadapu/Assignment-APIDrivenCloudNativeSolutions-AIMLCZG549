@@ -213,6 +213,8 @@ uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 
 The four required application-detail endpoints are `/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, and `/api/v1/schedule`. `/api/v1/model` provides optional model-comparison details.
 
+`/api/v1/workflow` reads up to the 10 most recent run manifests from Cloud Storage (`data/outputs/execution/run_*.json`). After changing the workflow API, redeploy the API service and verify the endpoint itself; a successful `/health` response alone does not confirm execution history is available.
+
 ## Docker Compose
 
 After creating `.env`, start the API and dashboard containers from this directory:

@@ -894,7 +894,7 @@ application details map to the following endpoints:
 
 A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py` also defines `get_task_instance_status()` (per-task state/duration from the Airflow REST API, unit-tested in `tests/test_api.py`), which is not wired to a `main.py` route and is not reachable as an API call.
 
-`/health` and `/api/v1/metadata` are also available without GCP access. As deployed and verified live (Section 4.2), `/api/v1/workflow` reads GCS execution manifests. The current repository source calls `gcp_service.get_dag_run_history()`, which reads run history through the Airflow REST API and obtains an IAP bearer ID token using Application Default Credentials (or the explicitly configured service-account key, if supplied). The corresponding behavior is covered by mocked unit tests but has not been redeployed; therefore the live screenshot and current source are not in sync for this endpoint. The schedule/deployment route uses the Composer Environments API, and environment health uses Cloud Monitoring.
+`/health` and `/api/v1/metadata` are also available without GCP access. The workflow endpoint reads up to 10 recent GCS execution manifests, which avoids requiring access to the Composer Airflow web server for run history. GitHub Actions run 20 deployed a revision that routed this endpoint through Airflow REST; the dashboard then reported the workflow API as unavailable. The source has since been restored to the GCS-backed implementation, but that fix is awaiting deployment and live endpoint verification. The schedule/deployment route continues to use the Composer Environments API, and environment health uses Cloud Monitoring.
 
 ### 4.2 Live verification and evidence
 
@@ -942,15 +942,15 @@ The API and dashboard screenshot evidence above is current as of 23 September 20
 
 ## 5. Conclusion, Limitations, and Future Work
 
-**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The live API screenshots document the deployed workflow endpoint reading GCS manifests, while current repository code uses the Airflow REST API; this endpoint should be redeployed and the live evidence refreshed before submission. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
+**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The workflow API source has been restored to read the 10 most recent GCS run manifests after a regression in the deployed Airflow-backed route; redeploy the fix and refresh the live API evidence before submission. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
 
 **Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
 
-- The deployed `/api/v1/workflow` behavior and current repository implementation differ; redeploy the API and refresh the workflow evidence (Section 4.1).
+- The latest deployed `/api/v1/workflow` route is Airflow-backed and unavailable; the current source reads GCS run manifests, so redeploy the API and refresh the workflow evidence (Section 4.1).
 - Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
 - The demonstration video and each member's individual confirmation of their contribution entry remain outstanding at the time of this export.
 
-**Future work:** redeploy the API to align `/api/v1/workflow` with the current source and refresh its evidence; record and link the demonstration video; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
+**Future work:** redeploy `/api/v1/workflow` from the current GCS-backed source and verify it returns 10 recent runs; record and link the demonstration video; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
 
 ---
 
