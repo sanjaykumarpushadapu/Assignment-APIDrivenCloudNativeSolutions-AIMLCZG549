@@ -16,10 +16,10 @@ This satisfies Assessment Sub-Objective 2 (API Access):
 Endpoints cover the four required "application detail" categories from
 the assignment PDF's Activity 3.1 ("Use Built-in APIs to access important
 application information, e.g. flow, deployment etc."):
-  1. Workflow or pipeline information       -> /api/v1/workflow       (GCP)
-    2. Latest execution status                -> /api/v1/runs/latest    (GCS)
-    3. Processing, dataset, or flow info       -> /api/v1/dataset        (GCS)
-  4. Schedule/deployment/model/history info  -> /api/v1/schedule       (GCP)
+  1. Composer workflow history               -> /api/v1/workflow       (GCP)
+  2. Latest pipeline execution status        -> /api/v1/runs/latest    (GCS)
+  3. Processing and dataset details           -> /api/v1/dataset        (GCS)
+  4. Schedule and deployment details          -> /api/v1/schedule       (GCP)
 Plus an optional fifth (model results)       -> /api/v1/model          (GCS)
 
 Each endpoint is a thin wrapper: it calls one service-layer function and
@@ -111,17 +111,31 @@ def metadata() -> dict[str, str]:
 
 
 # ============================================================
-# Application detail #1: Workflow / pipeline information (GCS-backed)
+# Application detail #1: Composer DAG workflow history
 # ============================================================
 
 @app.get("/api/v1/workflow", tags=["pipeline"])
 def workflow_info() -> list[dict[str, object]]:
-    """Recent pipeline run history from the GCS execution manifests."""
+    """Recent scheduled DAG runs from the Cloud Composer Airflow API."""
+    return gcp_service.get_dag_run_history(limit=10)
+
+
+@app.get("/api/v1/workflow/{dag_run_id}/tasks", tags=["pipeline"])
+def workflow_task_instances(dag_run_id: str) -> list[dict[str, object]]:
+    """Task state and timing for one Composer DAG run."""
+    return gcp_service.get_task_instance_status(
+        dag_id="diabetes_risk_pipeline", dag_run_id=dag_run_id
+    )
+
+
+@app.get("/api/v1/pipeline/history", tags=["pipeline"])
+def pipeline_execution_history() -> list[dict[str, object]]:
+    """Recent GCS pipeline execution manifests (processing-level history)."""
     return local_service.get_execution_history()
 
 
 # ============================================================
-# Application detail #2: Latest execution status (GCP-backed)
+# Application detail #2: Latest pipeline execution status (GCS-backed)
 # ============================================================
 
 @app.get("/api/v1/runs/latest", tags=["pipeline"])

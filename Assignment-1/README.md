@@ -153,10 +153,10 @@ pip install -e ".[gcp]"
 
 ### Local GCP Configuration
 
-The `.env.example` file contains the project's current GCP settings. Copy it once, then set the project ID if it is blank:
+The `.env.example` file contains the GCP configuration keys. Copy it once, then set the project ID and bucket to the resources you are accessing:
 
 ```powershell
-Copy-Item .env.example .env
+cp .env.example .env
 ```
 
 Use these values for the deployed project:
@@ -165,11 +165,10 @@ Use these values for the deployed project:
 GCP_PROJECT_ID=diabetes-risk-group49
 GCP_LOCATION=us-central1
 GCP_COMPOSER_ENVIRONMENT=diabetes-risk-env
-GCP_IAP_SERVICE_ACCOUNT=diabetes-risk-runtime@diabetes-risk-group49.iam.gserviceaccount.com
 DIABETES_GCS_BUCKET=diabetes-risk-group49-pipeline
 ```
 
-The project ID, location, Composer environment, and bucket must match the GCP resources you are accessing. `GCP_IAP_SERVICE_ACCOUNT` is used for optional Composer Airflow REST task/run inspection. The GCP identity used locally needs read access to the bucket and Composer environment; direct Airflow REST access additionally requires permission to impersonate the configured runtime service account. Ask the project administrator to grant the appropriate roles if an API returns permission errors.
+The project ID, location, Composer environment, and bucket must match the GCP resources you are accessing. The local ADC identity needs read access to the bucket and Composer environment, including the `roles/composer.user` role and Airflow permissions to read DAG runs and task instances. Composer web server access control must also allow the request. Ask the project administrator to grant these permissions if a GCP-backed endpoint returns an authorization error.
 
 The Google libraries use ADC from `gcloud auth application-default login`; do not put credentials, access tokens, or credential-file paths in `.env` or source control. The complete example, including local dashboard/API settings, is in `.env.example`.
 
@@ -213,7 +212,7 @@ uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
 
 The four required application-detail endpoints are `/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, and `/api/v1/schedule`. `/api/v1/model` provides optional model-comparison details.
 
-`/api/v1/workflow` reads up to the 10 most recent run manifests from Cloud Storage (`data/outputs/execution/run_*.json`). After changing the workflow API, redeploy the API service and verify the endpoint itself; a successful `/health` response alone does not confirm execution history is available.
+`/api/v1/workflow` reads the 10 most recent DAG runs from the Cloud Composer Airflow REST API. Expand a dashboard run's **Tasks** button to read its Airflow task instances. Grant the API's Cloud Run runtime service account the `roles/composer.user` role and Airflow read access; Composer web server access control must allow requests from the API service. `/api/v1/pipeline/history` separately reads recent GCS pipeline manifests (`data/outputs/execution/run_*.json`). The deploy workflow checks that `/api/v1/workflow` returns 10 DAG runs. A successful `/health` response alone does not confirm history access.
 
 ## Docker Compose
 

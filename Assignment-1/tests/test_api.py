@@ -27,8 +27,9 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
     assert response.status_code == 200
     for expected in (
-        "Latest Workflow Status",
-        "Latest Run Duration",
+        "Latest Pipeline Run Status",
+        "Pipeline Processing Duration",
+        "Composer DAG Run History",
         "Errors",
         "Warnings",
         "/api/v1/workflow",
@@ -40,10 +41,10 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
 
 def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    from diabetes_risk.api import local_service
+    from diabetes_risk.api import gcp_service
 
     runs = [{"dag_run_id": "scheduled__run", "state": "success"}]
-    monkeypatch.setattr(local_service, "get_execution_history", lambda: runs)
+    monkeypatch.setattr(gcp_service, "get_dag_run_history", lambda limit=10: runs)
 
     response = TestClient(app).get("/api/v1/workflow")
 

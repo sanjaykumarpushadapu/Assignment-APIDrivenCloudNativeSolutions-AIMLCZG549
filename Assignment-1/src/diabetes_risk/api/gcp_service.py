@@ -16,10 +16,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from urllib.parse import quote
-import requests
 import google.auth
 import google.auth.transport.requests
-import google.oauth2.id_token
 
 from .gcp_config import GCPConfig, load_gcp_config
 
@@ -31,15 +29,6 @@ def _get_composer_web_server_url(config: GCPConfig) -> str:
     name = client.environment_path(config.project_id, config.location, config.composer_environment)
     environment = client.get_environment(name=name)
     return environment.config.airflow_uri.rstrip("/")
-
-def _get_iap_headers(web_server_url: str) -> dict[str, str]:
-    """Obtains an IAP Bearer ID token for Airflow REST API authentication."""
-    auth_req = google.auth.transport.requests.Request()
-    id_token = google.oauth2.id_token.fetch_id_token(auth_req, web_server_url)
-    return {
-        "Authorization": f"Bearer {id_token}",
-        "Content-Type": "application/json"
-    }
 
 def _load_credentials(config: GCPConfig):
     """Build explicit credentials from GOOGLE_APPLICATION_CREDENTIALS.
@@ -66,12 +55,27 @@ def _airflow_api_get(
 ) -> dict[str, object]:
     """Make an authenticated GET request to the Composer Airflow API."""
     web_url = _get_composer_web_server_url(config)
-    response = requests.get(
-        f"{web_url}/api/v1/{path.lstrip('/')}",
-        headers=_get_iap_headers(web_url),
-        params=params,
-        timeout=10,
+    credentials = _load_credentials(config)
+    scope = "https://www.googleapis.com/auth/cloud-platform"
+    if credentials is None:
+        credentials, _ = google.auth.default(scopes=[scope])
+    elif getattr(credentials, "requires_scopes", False):
+        credentials = credentials.with_scopes([scope])
+
+    # Composer's Airflow REST API expects an OAuth access token. Use ADC's
+    # authorized session instead of an IAP audience ID token.
+    session = google.auth.transport.requests.AuthorizedSession(credentials)
+    response = session.get(
+        f"{web_url}/api/v1/{path.lstrip('/')}", params=params, timeout=10
     )
+    if response.status_code in (401, 403):
+        raise PermissionError(
+            "Composer rejected the Airflow REST API request "
+            f"(HTTP {response.status_code}). Check that the Cloud Run runtime "
+            "service account can access the Composer environment and that its "
+            "Airflow user can view DAG runs and task instances. Also check "
+            "Composer web server access control."
+        )
     response.raise_for_status()
     return response.json()
 
@@ -139,12 +143,23 @@ def get_dag_run_history(
         )
         runs = []
         for run in data.get("dag_runs", []):
-            runs.append({
+            mapped_run = {
                 "dag_run_id": run.get("dag_run_id"),
                 "state": run.get("state"),
                 "start_date": run.get("start_date"),
                 "end_date": run.get("end_date"),
-            })
+            }
+            duration = run.get("duration")
+            if duration is None and mapped_run["start_date"] and mapped_run["end_date"]:
+                try:
+                    start = datetime.fromisoformat(str(mapped_run["start_date"]).replace("Z", "+00:00"))
+                    end = datetime.fromisoformat(str(mapped_run["end_date"]).replace("Z", "+00:00"))
+                    duration = (end - start).total_seconds()
+                except ValueError:
+                    duration = None
+            if duration is not None:
+                mapped_run["duration_seconds"] = float(duration)
+            runs.append(mapped_run)
         return runs
     except Exception as e:
         raise RuntimeError(f"Failed to fetch DAG run history from Airflow REST API: {e}") from e

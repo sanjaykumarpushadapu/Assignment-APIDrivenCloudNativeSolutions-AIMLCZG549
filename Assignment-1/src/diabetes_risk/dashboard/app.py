@@ -99,7 +99,7 @@ def render_dashboard() -> HTMLResponse:
             <div class="row">
                 <div class="col-md-3">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Latest Workflow Status</div>
+                        <div class="text-muted small">Latest Pipeline Run Status</div>
                         <h4 class="mt-2 pending" id="status-val">-</h4>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ def render_dashboard() -> HTMLResponse:
             <div class="row">
                 <div class="col-md-4">
                     <div class="metric-card text-center">
-                        <div class="text-muted small">Latest Run Duration</div>
+                        <div class="text-muted small">Pipeline Processing Duration</div>
                         <h4 class="mt-2 pending" id="runtime-val">-</h4>
                     </div>
                 </div>
@@ -152,7 +152,7 @@ def render_dashboard() -> HTMLResponse:
                         <h5 class="text-primary">API-Derived Application Details</h5>
                         <p class="text-muted small mb-2">Each value below is a live call to the real API at <code>{API_BASE_URL}</code> -- not hard-coded. Status text distinguishes loading, configuration, unavailable, and unimplemented states.</p>
                         <div class="row mt-2">
-                            <div class="col-md-3"><strong>Workflow (<code>/api/v1/workflow</code>):</strong> <span class="pending" id="api-workflow">Loading...</span></div>
+                            <div class="col-md-3"><strong>Composer DAG history (<code>/api/v1/workflow</code>):</strong> <span class="pending" id="api-workflow">Loading...</span></div>
                             <div class="col-md-3"><strong>Latest run (<code>/api/v1/runs/latest</code>):</strong> <span class="pending" id="api-runs-latest">Loading...</span></div>
                             <div class="col-md-3"><strong>Dataset (<code>/api/v1/dataset</code>):</strong> <span class="pending" id="api-dataset">Loading...</span></div>
                             <div class="col-md-3"><strong>Schedule (<code>/api/v1/schedule</code>):</strong> <span class="pending" id="api-schedule">Loading...</span></div>
@@ -170,13 +170,13 @@ def render_dashboard() -> HTMLResponse:
                 <div class="col-md-7">
                     <div class="metric-card">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h5 class="mb-0">Execution History</h5>
+                            <h5 class="mb-0">Composer DAG Run History <small class="text-muted">(UTC)</small></h5>
                             <span id="history-count" class="badge bg-light text-secondary">Recent runs</span>
                         </div>
                         <table class="table table-sm" id="history-table">
-                            <colgroup><col style="width: 26%"><col style="width: 17%"><col style="width: 22%"><col style="width: 22%"><col style="width: 13%"></colgroup>
-                            <thead><tr><th>Run ID</th><th>Status</th><th>Started</th><th>Finished</th><th>Time</th></tr></thead>
-                            <tbody><tr><td colspan="5" class="pending">Loading...</td></tr></tbody>
+                            <colgroup><col style="width: 26%"><col style="width: 14%"><col style="width: 20%"><col style="width: 20%"><col style="width: 10%"><col style="width: 10%"></colgroup>
+                            <thead><tr><th>DAG Run ID</th><th>Status</th><th>Started (UTC)</th><th>Finished (UTC)</th><th>DAG Duration</th><th>Tasks</th></tr></thead>
+                            <tbody><tr><td colspan="6" class="pending">Loading Composer history...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -229,6 +229,12 @@ def render_dashboard() -> HTMLResponse:
                     }}
                     return "Not implemented yet";
                 }}
+                if (result.body?.detail) {{
+                    return `${{fallback}}: ${{result.body.detail}}`;
+                }}
+                if (result.status) {{
+                    return `${{fallback}} (HTTP ${{result.status}})`;
+                }}
                 return fallback;
             }}
 
@@ -244,26 +250,13 @@ def render_dashboard() -> HTMLResponse:
             }}
 
             async function loadDashboard() {{
-                let fullHistoryLoaded = false;
                 const workflowPromise = fetchJson("/api/v1/workflow").then(workflow => {{
                     setSpan("api-workflow", workflow, (body) => `${{body.length}} run(s)`);
-                    if (workflow.ok && workflow.body.length) {{
-                        fullHistoryLoaded = true;
-                        renderHistory(document.querySelector("#history-table tbody"), workflow.body);
-                    }}
+                    renderHistory(document.querySelector("#history-table tbody"), workflow);
                     return workflow;
                 }});
                 const latestPromise = fetchJson("/api/v1/runs/latest").then(runsLatest => {{
                     renderLatestRun(runsLatest);
-                    if (!fullHistoryLoaded && runsLatest.ok) {{
-                        renderHistory(document.querySelector("#history-table tbody"), [{{
-                            dag_run_id: runsLatest.body.run_id,
-                            state: (runsLatest.body.status || "unknown").toLowerCase(),
-                            start_date: runsLatest.body.started_at,
-                            end_date: runsLatest.body.ended_at,
-                            duration_seconds: runsLatest.body.duration_seconds,
-                        }}]);
-                    }}
                     return runsLatest;
                 }});
                 const [meta, health, runsLatest, dataset, schedule, model] = await Promise.all([
@@ -273,6 +266,7 @@ def render_dashboard() -> HTMLResponse:
                     fetchJson("/api/v1/dataset"),
                     fetchJson("/api/v1/schedule"),
                     fetchJson("/api/v1/model"),
+                    workflowPromise,
                 ]);
                 document.getElementById("project-name").textContent = meta.ok ? meta.body.project : "Diabetes Risk Prediction Using Health and Lifestyle Indicators";
 
@@ -323,32 +317,75 @@ def render_dashboard() -> HTMLResponse:
                 }}
             }}
 
-            function renderHistory(body, runs) {{
+            function renderHistory(body, result) {{
                 const escapeHtml = value => String(value ?? "-").replace(/[&<>"']/g, character => ({{
                     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
                 }})[character]);
                 const formatTimestamp = value => {{
+                    if (!value) return "-";
                     const date = new Date(value);
                     return Number.isNaN(date.getTime()) ? "-" : new Intl.DateTimeFormat(undefined, {{
-                        month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit"
+                        month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit",
+                        timeZone: "UTC", timeZoneName: "short"
                     }}).format(date);
                 }};
+                if (!result.ok) {{
+                    body.innerHTML = `<tr><td colspan="6" class="text-danger">${{escapeHtml(failureText(result, "Composer history unavailable"))}}</td></tr>`;
+                    document.getElementById("history-count").textContent = "History unavailable";
+                    return;
+                }}
+                const runs = result.body;
+                if (!Array.isArray(runs) || runs.length === 0) {{
+                    body.innerHTML = '<tr><td colspan="6" class="text-muted">No Composer DAG runs found.</td></tr>';
+                    document.getElementById("history-count").textContent = "0 recent runs";
+                    return;
+                }}
                 body.innerHTML = runs.map((run, index) => {{
                     const runId = String(run.dag_run_id ?? "-");
+                    const dateId = runId.startsWith("scheduled__") ? runId.slice("scheduled__".length) : runId;
                     const state = String(run.state ?? "unknown").toLowerCase();
                     const statusClass = state === "success" ? "success" : state === "failed" ? "failed" : "other";
                     const duration = Number(run.duration_seconds);
                     return `
                         <tr>
-                            <td><span class="history-id" title="${{escapeHtml(runId)}}">${{escapeHtml(runId.length > 15 ? `${{runId.slice(0, 8)}}...${{runId.slice(-4)}}` : runId)}}</span>${{index === 0 ? '<span class="history-latest">LATEST</span>' : ""}}</td>
+                            <td><span class="history-id" title="${{escapeHtml(runId)}}">${{escapeHtml(dateId.length > 25 ? `${{dateId.slice(0, 22)}}...` : dateId)}}</span>${{index === 0 ? '<span class="history-latest">LATEST</span>' : ""}}</td>
                             <td><span class="history-status ${{statusClass}}">${{escapeHtml(state.charAt(0).toUpperCase() + state.slice(1))}}</span></td>
                             <td class="history-time" title="${{escapeHtml(run.start_date)}}">${{escapeHtml(formatTimestamp(run.start_date))}}</td>
                             <td class="history-time" title="${{escapeHtml(run.end_date)}}">${{escapeHtml(formatTimestamp(run.end_date))}}</td>
                             <td class="history-duration">${{Number.isFinite(duration) ? `${{duration.toFixed(1)}} s` : "-"}}</td>
+                            <td><button class="btn btn-sm btn-outline-primary history-tasks" data-run-id="${{escapeHtml(runId)}}" aria-expanded="false">Tasks</button></td>
                         </tr>
                     `;
                 }}).join("");
                 document.getElementById("history-count").textContent = `Showing ${{runs.length}} recent run(s)`;
+
+                body.onclick = async event => {{
+                    const button = event.target.closest(".history-tasks");
+                    if (!button) return;
+                    const currentRow = button.closest("tr");
+                    const existing = currentRow.nextElementSibling;
+                    if (existing?.classList.contains("task-details-row")) {{
+                        existing.remove();
+                        button.setAttribute("aria-expanded", "false");
+                        return;
+                    }}
+                    const detailRow = document.createElement("tr");
+                    detailRow.className = "task-details-row";
+                    detailRow.innerHTML = '<td colspan="6" class="pending">Loading Composer task instances...</td>';
+                    currentRow.after(detailRow);
+                    button.setAttribute("aria-expanded", "true");
+                    const taskResult = await fetchJson(`/api/v1/workflow/${{encodeURIComponent(button.dataset.runId)}}/tasks`);
+                    if (!taskResult.ok) {{
+                        detailRow.innerHTML = `<td colspan="6" class="text-danger">${{escapeHtml(failureText(taskResult, "Unable to load task instances"))}}</td>`;
+                        return;
+                    }}
+                    const tasks = taskResult.body;
+                    detailRow.innerHTML = `<td colspan="6"><table class="table table-sm mb-0"><thead><tr><th>Task</th><th>Status</th><th>Started (UTC)</th><th>Finished (UTC)</th><th>Duration</th></tr></thead><tbody>${{tasks.map(task => `
+                        <tr><td>${{escapeHtml(task.task_id)}}</td><td>${{escapeHtml(task.state)}}</td>
+                        <td>${{escapeHtml(formatTimestamp(task.start_date))}}</td><td>${{escapeHtml(formatTimestamp(task.end_date))}}</td>
+                        <td>${{task.duration != null && Number.isFinite(Number(task.duration)) ? `${{Number(task.duration).toFixed(1)}} s` : "-"}}</td></tr>
+                    `).join("") || '<tr><td colspan="5">No task instances returned.</td></tr>'}}</tbody></table></td>`;
+                }};
             }}
 
             let modelChart = null;

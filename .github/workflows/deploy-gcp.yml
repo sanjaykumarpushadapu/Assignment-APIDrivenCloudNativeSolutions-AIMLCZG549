@@ -147,7 +147,8 @@ jobs:
       - name: Smoke-test deployed services
         run: |
           curl --fail --retry 5 --retry-delay 3 "$API_URL/health"
-          curl --fail --retry 5 --retry-delay 3 --output /dev/null "$API_URL/api/v1/workflow"
+          WORKFLOW_JSON=$(curl --fail --retry 5 --retry-delay 3 "$API_URL/api/v1/workflow")
+          python3 -c 'import json,sys; runs=json.loads(sys.stdin.read()); assert isinstance(runs,list), "workflow response must be a JSON list"; assert len(runs) == 10, f"expected 10 Composer DAG runs, got {len(runs)}"; print(f"Composer workflow history returned {len(runs)} DAG runs")' <<< "$WORKFLOW_JSON"
           curl --fail --retry 5 --retry-delay 3 "$DASHBOARD_URL/health"
           echo "API URL: $API_URL"
           echo "Dashboard URL: $DASHBOARD_URL"
