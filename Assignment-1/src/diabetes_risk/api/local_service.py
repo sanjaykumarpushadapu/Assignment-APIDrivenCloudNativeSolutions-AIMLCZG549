@@ -7,10 +7,13 @@ the same bucket objects the DAG itself writes
 (`dags/diabetes_risk_pipeline.py` uses `DIABETES_GCS_BUCKET` /
 `GCS_OUTPUT_PREFIX = "data/outputs"`), rather than the local filesystem.
 
-`get_dataset_quality()`, `get_latest_run()`, and `get_model_comparison()`
-read JSON/CSV artifacts from GCS using `google-cloud-storage` (install via
-`pip install -e ".[gcp]"`; the library is not part of the default API
-dependencies).
+`get_model_comparison()` is implemented for real, as a reference for the
+remaining two functions (`get_dataset_quality()`, `get_latest_run()`),
+which are still skeletons: signature, docstring naming the exact GCS
+object(s) to read, required IAM role, and a `NotImplementedError` body.
+Implement those the same way, with `google-cloud-storage` (install via
+`pip install -e ".[gcp]"`; it's a build dependency of
+`dags/diabetes_risk_pipeline.py`, but not of this API by default).
 """
 
 from __future__ import annotations
@@ -19,7 +22,6 @@ import csv
 import io
 import json
 import os
-from datetime import datetime, timedelta, timezone
 
 
 def _bucket_name() -> str:
@@ -49,111 +51,29 @@ def _read_gcs_text(bucket_name: str, object_name: str) -> str:
     return blob.download_as_text()
 
 
-def _read_gcs_json(bucket_name: str, object_name: str) -> dict[str, object]:
-    return json.loads(_read_gcs_text(bucket_name, object_name))
-
-
-def _list_gcs_text(
-    bucket_name: str,
-    prefix: str,
-    limit: int,
-    start_offset: str | None = None,
-) -> list[tuple[str, str]]:
-    from google.cloud import storage
-
-    project_id = os.environ.get("GCP_PROJECT_ID")
-    client = storage.Client(project=project_id) if project_id else storage.Client()
-    blobs = sorted(
-        client.bucket(bucket_name).list_blobs(
-            prefix=prefix,
-            start_offset=start_offset,
-            page_size=max(100, limit * 10),
-        ),
-        key=lambda blob: blob.name,
-        reverse=True,
-    )[:limit]
-    return [
-        (blob.name, blob.download_as_text())
-        for blob in blobs
-    ]
-
-
-def get_execution_history(limit: int = 10) -> list[dict[str, object]]:
-    """Return recent pipeline run manifests stored by the scheduled DAG."""
-    bucket = _bucket_name()
-    if not bucket:
-        raise NotImplementedError(
-            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
-            "configure it before calling this endpoint."
-        )
-
-    prefix = "data/outputs/execution/run_"
-    recent_start = datetime.now(timezone.utc) - timedelta(days=1)
-    start_offset = f"{prefix}{recent_start.strftime('%Y%m%dT%H%M%S')}"
-    entries = _list_gcs_text(bucket, prefix, max(1, limit), start_offset)
-    runs = []
-    for object_name, content in entries:
-        if not object_name.endswith(".json"):
-            continue
-        run = json.loads(content)
-        started_at = run.get("started_at")
-        runs.append(
-            {
-                "dag_run_id": run.get("run_id") or object_name.rsplit("/", 1)[-1][4:-5],
-                "state": str(run.get("status", "unknown")).lower(),
-                "start_date": started_at,
-                "end_date": run.get("ended_at"),
-                "duration_seconds": run.get("duration_seconds"),
-                "records_processed": run.get("records_processed", run.get("input_rows")),
-                "errors": run.get("errors", []),
-                "warnings": run.get("warnings", []),
-            }
-        )
-    runs.sort(key=lambda run: str(run.get("start_date") or ""), reverse=True)
-    return runs
-
-
 def get_dataset_quality() -> dict[str, object]:
-    """Report dataset and data-quality details ("processing/dataset/flow" detail).
-
-    API: Cloud Storage JSON API -- objects.get
-    Docs: https://cloud.google.com/storage/docs/json_api/v1/objects/get
-    Required IAM role: roles/storage.objectViewer
-    Objects: `gs://{bucket}/data/outputs/quality/data_quality.json` and
-             `gs://{bucket}/data/processed/preprocessing_report.json`
-
-    Returns a compact summary suitable for the dashboard, combining the
-    quality report and preprocessing report written by the pipeline.
-    """
+    """Report dataset and data-quality details ("processing/dataset/flow" detail)."""
     bucket = _bucket_name()
     if not bucket:
-        raise NotImplementedError(
-            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
-            "configure it before calling this endpoint."
-        )
+        raise NotImplementedError("DIABETES_GCS_BUCKET is not set in .env (see .env.example)")
 
-    quality = _read_gcs_json(bucket, "data/outputs/quality/data_quality.json")
-    preprocessing = _read_gcs_json(bucket, "data/processed/preprocessing_report.json")
-    missing_after = preprocessing.get("missing_values_after", {})
-    missing_count = sum(
-        int(value or 0) for value in missing_after.values()
-    ) if isinstance(missing_after, dict) else 0
-    schema = quality.get("schema", {})
-    schema_ok = isinstance(schema, dict) and not schema.get("missing_columns")
-    quality_status = quality.get("quality_status") or (
-        "PASS" if schema_ok and missing_count == 0 else "REVIEW"
-    )
+    try:
+        quality_raw = _read_gcs_text(bucket, "data/outputs/quality/data_quality.json")
+        quality_data = json.loads(quality_raw)
+    except Exception:
+        quality_data = {}
+
+    try:
+        report_raw = _read_gcs_text(bucket, "data/processed/preprocessing_report.json")
+        report_data = json.loads(report_raw)
+    except Exception:
+        report_data = {}
 
     return {
-        "input_rows": preprocessing.get("input_rows", quality.get("rows", 0)),
-        "output_rows": preprocessing.get("output_rows", quality.get("rows", 0)),
-        "input_columns": quality.get("columns", 0),
-        "duplicate_records_removed": preprocessing.get(
-            "duplicates_removed", preprocessing.get("duplicates_detected", 0)
-        ),
-        "missing_values_after": missing_count,
-        "quality_status": quality_status,
-        "target_column": preprocessing.get("target_column"),
+        "input_rows": report_data.get("input_rows", quality_data.get("input_rows", 0)),
+        "input_columns": report_data.get("input_columns", quality_data.get("input_columns", 0)),
+        "duplicate_records_removed": report_data.get("duplicate_records_removed", quality_data.get("duplicate_records_removed", 0)),
+        "quality_status": quality_data.get("quality_status", "UNKNOWN"),
     }
 
 
@@ -202,28 +122,13 @@ def get_model_comparison() -> dict[str, object]:
 
 
 def get_latest_run() -> dict[str, object]:
-    """Report the most recent pipeline execution log.
-
-    API: Cloud Storage JSON API -- objects.get
-    Required IAM role: roles/storage.objectViewer
-    Object: `gs://{bucket}/data/outputs/execution/latest_run.json`
-    (written by `src/diabetes_risk/pipeline/logging_utils.py` on every run)
-
-    Suggested return shape: the JSON object's own fields, e.g.
-        {
-            "run_id": "20260912T025251232582Z",
-            "status": "SUCCESS",
-            "started_at": "...",
-            "ended_at": "...",
-            "duration_seconds": 5.1,
-            "records_processed": 253680,
-            "duplicates_detected": 23899,
-        }
-    """
+    """Report the most recent pipeline execution log."""
     bucket = _bucket_name()
     if not bucket:
-        raise NotImplementedError(
-            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
-            "configure it before calling this endpoint."
-        )
-    return _read_gcs_json(bucket, "data/outputs/execution/latest_run.json")
+        raise NotImplementedError("DIABETES_GCS_BUCKET is not set in .env (see .env.example)")
+
+    try:
+        latest_run_raw = _read_gcs_text(bucket, "data/outputs/execution/latest_run.json")
+        return json.loads(latest_run_raw)
+    except Exception as e:
+        raise RuntimeError(f"Failed to read latest_run.json from GCS bucket {bucket}: {e}") from e
