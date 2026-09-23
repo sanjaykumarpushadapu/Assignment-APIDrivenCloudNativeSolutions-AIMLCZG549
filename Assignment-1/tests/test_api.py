@@ -40,10 +40,10 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
 
 def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    from diabetes_risk.api import gcp_service
+    from diabetes_risk.api import local_service
 
     runs = [{"dag_run_id": "scheduled__run", "state": "success"}]
-    monkeypatch.setattr(gcp_service, "get_dag_run_history", lambda: runs)
+    monkeypatch.setattr(local_service, "get_execution_history", lambda: runs)
 
     response = TestClient(app).get("/api/v1/workflow")
 
@@ -219,6 +219,36 @@ def test_get_latest_run_reads_execution_manifest(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(local_service, "_read_gcs_json", lambda bucket, name: manifest)
 
     assert local_service.get_latest_run() == manifest
+
+
+def test_get_execution_history_maps_and_sorts_gcs_run_logs(monkeypatch: pytest.MonkeyPatch) -> None:
+    from diabetes_risk.api import local_service
+
+    logs = [
+        (
+            "data/outputs/execution/run_older.json",
+            '{"run_id":"older","status":"SUCCESS","started_at":"2026-09-22T09:00:00Z",'
+            '"ended_at":"2026-09-22T09:00:05Z","duration_seconds":5,"records_processed":100}',
+        ),
+        (
+            "data/outputs/execution/run_newer.json",
+            '{"run_id":"newer","status":"FAILED","started_at":"2026-09-23T09:00:00Z",'
+            '"ended_at":"2026-09-23T09:00:02Z","duration_seconds":2,"errors":["bad input"]}',
+        ),
+    ]
+    monkeypatch.setenv("DIABETES_GCS_BUCKET", "test-bucket")
+    monkeypatch.setattr(
+        local_service,
+        "_list_gcs_text",
+        lambda bucket, prefix, limit, start_offset=None: logs[:limit],
+    )
+
+    result = local_service.get_execution_history()
+
+    assert [run["dag_run_id"] for run in result] == ["newer", "older"]
+    assert result[0]["state"] == "failed"
+    assert result[0]["errors"] == ["bad input"]
+    assert result[1]["records_processed"] == 100
 
 
 def test_get_dag_run_history_maps_airflow_response(monkeypatch: pytest.MonkeyPatch) -> None:

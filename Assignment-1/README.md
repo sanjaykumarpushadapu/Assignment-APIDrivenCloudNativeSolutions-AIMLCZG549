@@ -142,11 +142,9 @@ The API's application-detail endpoints (`/api/v1/workflow`, `/api/v1/runs/latest
 
 **Current implementation status:**
 
-| Endpoint | Service function | Status |
-|---|---|---|
 | Endpoint | Service function | Source and status |
 |---|---|---|
-| `/api/v1/workflow` | `gcp_service.get_dag_run_history()` | Airflow REST API; implemented, live check requires Composer/IAP access |
+| `/api/v1/workflow` | `local_service.get_execution_history()` | Cloud Storage run manifests; implemented |
 | `/api/v1/runs/latest` | `local_service.get_latest_run()` | Cloud Storage execution manifest; implemented |
 | `/api/v1/dataset` | `local_service.get_dataset_quality()` | Cloud Storage quality and preprocessing reports; implemented |
 | `/api/v1/schedule` | `gcp_service.get_composer_environment_details()` | Cloud Composer Environments API; implemented |
@@ -171,15 +169,14 @@ unwired Cloud Monitoring extension and is not required by the four API categorie
    gcloud composer environments describe diabetes-risk-env --location=us-central1 --project=<your-project-id>
    ```
 3. Grant your Google account the required read-only roles. Airflow web-server
-access additionally requires `roles/composer.user`:
+  requests use an audience-bound token from the runtime service account; grant
+  the user permission to impersonate it as shown below, and ensure the runtime
+  service account has `roles/composer.viewer`, `roles/composer.user`, and
+  `roles/storage.objectViewer`:
    ```bash
    gcloud projects add-iam-policy-binding <your-project-id> \
      --member="user:your-google-account@example.com" \
      --role="roles/composer.viewer"
-
-   gcloud projects add-iam-policy-binding <your-project-id> \
-     --member="user:your-google-account@example.com" \
-     --role="roles/composer.user"
 
    gcloud projects add-iam-policy-binding <your-project-id> \
      --member="user:your-google-account@example.com" \
@@ -188,6 +185,10 @@ access additionally requires `roles/composer.user`:
    gcloud projects add-iam-policy-binding <your-project-id> \
      --member="user:your-google-account@example.com" \
      --role="roles/storage.objectViewer"
+
+   gcloud iam service-accounts add-iam-policy-binding diabetes-risk-runtime@<your-project-id>.iam.gserviceaccount.com \
+     --member="user:your-google-account@example.com" \
+     --role="roles/iam.serviceAccountTokenCreator"
    ```
 4. Configure Application Default Credentials locally:
    ```bash
@@ -199,6 +200,7 @@ access additionally requires `roles/composer.user`:
    GCP_PROJECT_ID=<your-project-id>
    GCP_LOCATION=us-central1
    GCP_COMPOSER_ENVIRONMENT=diabetes-risk-env
+  GCP_IAP_SERVICE_ACCOUNT=diabetes-risk-runtime@<your-project-id>.iam.gserviceaccount.com
    DIABETES_GCS_BUCKET=diabetes-risk-group49-pipeline
    ```
     `GCP_LOCATION` and `GCP_COMPOSER_ENVIRONMENT` are already filled in `.env.example` for this team's environment. `DIABETES_GCS_BUCKET` is `diabetes-risk-group49-pipeline` -- this is a bucket created directly inside the `diabetes-risk-group49` project (its DAG-code default in `dags/diabetes_risk_pipeline.py`, and the Composer environment's own `DIABETES_GCS_BUCKET` Airflow environment variable, are both set to this value). An earlier bucket, `apicloudsolutions49-diabetes-pipeline`, was used briefly but turned out to belong to a *different* GCP project (`apicloudsolutions49`), where the team's account could not be granted IAM access -- do not use that bucket name. The application uses the ADC credentials created by `gcloud auth application-default login`; no credential-file path is required in `.env`.
@@ -216,7 +218,7 @@ gcloud projects add-iam-policy-binding <your-project-id> \
   --member="user:teammate@example.com" --role="roles/storage.objectViewer"
 ```
 
-**Airflow REST authentication:** the DAG run history and task status calls request an IAP identity token for the Composer Airflow web-server URL. Local development uses Application Default Credentials; the deployed service must run as a service account with Composer viewer/user access and the corresponding GCS object-viewer access. No token or credential file belongs in `.env` or source control.
+**Airflow REST authentication:** the optional direct DAG/task status calls request an audience-bound IAP identity token for the Composer Airflow web-server URL. The dashboard's `/api/v1/workflow` execution history instead reads the GCS run manifests, so it does not depend on Airflow web-server impersonation. Local development uses ADC for GCS and Composer API calls. No token or credential file belongs in `.env` or source control.
 
 ## GCP CI/CD deployment
 
@@ -295,6 +297,10 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUN
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/composer.viewer"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/composer.user"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$RUNTIME" --role="roles/monitoring.viewer"
+
+# Allow the local developer to mint a Composer-audience token as the runtime identity.
+$DEVELOPER = gcloud auth list --filter="status:ACTIVE" --format="value(account)"
+gcloud iam service-accounts add-iam-policy-binding $RUNTIME --member="user:$DEVELOPER" --role="roles/iam.serviceAccountTokenCreator"
 
 gcloud iam workload-identity-pools create github --project=$PROJECT_ID --location=global --display-name="GitHub Actions"
 gcloud iam workload-identity-pools providers create-oidc github --project=$PROJECT_ID --location=global --workload-identity-pool=github --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" --attribute-condition="assertion.repository == '$GITHUB_REPOSITORY' && assertion.ref == 'refs/heads/main'"

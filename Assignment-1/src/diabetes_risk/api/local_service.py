@@ -19,6 +19,7 @@ import csv
 import io
 import json
 import os
+from datetime import datetime, timedelta, timezone
 
 
 def _bucket_name() -> str:
@@ -50,6 +51,66 @@ def _read_gcs_text(bucket_name: str, object_name: str) -> str:
 
 def _read_gcs_json(bucket_name: str, object_name: str) -> dict[str, object]:
     return json.loads(_read_gcs_text(bucket_name, object_name))
+
+
+def _list_gcs_text(
+    bucket_name: str,
+    prefix: str,
+    limit: int,
+    start_offset: str | None = None,
+) -> list[tuple[str, str]]:
+    from google.cloud import storage
+
+    project_id = os.environ.get("GCP_PROJECT_ID")
+    client = storage.Client(project=project_id) if project_id else storage.Client()
+    blobs = sorted(
+        client.bucket(bucket_name).list_blobs(
+            prefix=prefix,
+            start_offset=start_offset,
+            page_size=max(100, limit * 10),
+        ),
+        key=lambda blob: blob.name,
+        reverse=True,
+    )[:limit]
+    return [
+        (blob.name, blob.download_as_text())
+        for blob in blobs
+    ]
+
+
+def get_execution_history(limit: int = 10) -> list[dict[str, object]]:
+    """Return recent pipeline run manifests stored by the scheduled DAG."""
+    bucket = _bucket_name()
+    if not bucket:
+        raise NotImplementedError(
+            "DIABETES_GCS_BUCKET is not set in .env (see .env.example) -- "
+            "configure it before calling this endpoint."
+        )
+
+    prefix = "data/outputs/execution/run_"
+    recent_start = datetime.now(timezone.utc) - timedelta(days=1)
+    start_offset = f"{prefix}{recent_start.strftime('%Y%m%dT%H%M%S')}"
+    entries = _list_gcs_text(bucket, prefix, max(1, limit), start_offset)
+    runs = []
+    for object_name, content in entries:
+        if not object_name.endswith(".json"):
+            continue
+        run = json.loads(content)
+        started_at = run.get("started_at")
+        runs.append(
+            {
+                "dag_run_id": run.get("run_id") or object_name.rsplit("/", 1)[-1][4:-5],
+                "state": str(run.get("status", "unknown")).lower(),
+                "start_date": started_at,
+                "end_date": run.get("ended_at"),
+                "duration_seconds": run.get("duration_seconds"),
+                "records_processed": run.get("records_processed", run.get("input_rows")),
+                "errors": run.get("errors", []),
+                "warnings": run.get("warnings", []),
+            }
+        )
+    runs.sort(key=lambda run: str(run.get("start_date") or ""), reverse=True)
+    return runs
 
 
 def get_dataset_quality() -> dict[str, object]:

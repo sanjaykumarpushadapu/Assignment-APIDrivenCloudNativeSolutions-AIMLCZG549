@@ -20,6 +20,8 @@ with a fake `GCPConfig` instead of hitting real GCP.
 
 from __future__ import annotations
 
+import subprocess
+import os
 from urllib.parse import quote
 
 from .gcp_config import GCPConfig, load_gcp_config
@@ -53,6 +55,13 @@ def _get_composer_environment(config: GCPConfig):
 
 
 def _airflow_api_get(config: GCPConfig, path: str, params: dict[str, object] | None = None) -> dict[str, object]:
+    try:
+        import truststore
+
+        truststore.inject_into_ssl()
+    except ImportError:
+        pass
+
     from google.auth.transport.requests import Request
     from google.oauth2 import id_token
     import requests
@@ -61,7 +70,45 @@ def _airflow_api_get(config: GCPConfig, path: str, params: dict[str, object] | N
     airflow_uri = environment.config.airflow_uri.rstrip("/")
     if not airflow_uri:
         raise RuntimeError("The configured Cloud Composer environment has no Airflow web-server URL.")
-    token = id_token.fetch_id_token(Request(), airflow_uri)
+    try:
+        token = id_token.fetch_id_token(Request(), airflow_uri)
+    except Exception as adc_error:
+        service_account = os.environ.get("GCP_IAP_SERVICE_ACCOUNT")
+        if not service_account and config.project_id:
+            service_account = f"diabetes-risk-runtime@{config.project_id}.iam.gserviceaccount.com"
+        if not service_account:
+            raise RuntimeError(
+                "Local Airflow access requires GCP_IAP_SERVICE_ACCOUNT to name "
+                "a service account that can access the Composer web server."
+            ) from adc_error
+        try:
+            token_result = subprocess.run(
+                subprocess.list2cmdline(
+                    [
+                        "gcloud",
+                        "auth",
+                        "print-identity-token",
+                        f"--audiences={airflow_uri}",
+                        f"--impersonate-service-account={service_account}",
+                        "--include-email",
+                    ]
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+                shell=True,
+                timeout=30,
+            )
+            token = token_result.stdout.strip()
+            if not token:
+                raise RuntimeError("gcloud returned an empty identity token.")
+        except Exception as cli_error:
+            raise RuntimeError(
+                "Could not obtain an audience-bound Composer identity token. "
+                "Grant the active user roles/iam.serviceAccountTokenCreator on "
+                f"{service_account}, and ensure that service account has "
+                "roles/composer.viewer and roles/composer.user."
+            ) from cli_error
     response = requests.get(
         f"{airflow_uri}/api/v1/{path.lstrip('/')}",
         headers={"Authorization": f"Bearer {token}"},

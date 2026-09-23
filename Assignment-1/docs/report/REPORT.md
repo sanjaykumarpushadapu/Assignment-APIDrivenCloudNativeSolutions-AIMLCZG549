@@ -758,7 +758,7 @@ The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
 application values from the FastAPI service; it does not embed run or dataset
 results. It displays the most recent pipeline status and runtime, processed
 records, duplicate removals, quality status, error and warning counts, recent
-Airflow execution history, and optional model-comparison metrics. Its API-derived
+GCS-backed execution history, and optional model-comparison metrics. Its API-derived
 details identify the endpoint used and show the latest refresh time.
 
 Run the API and dashboard in separate terminals after configuring GCP access:
@@ -774,7 +774,7 @@ application details map to the following endpoints:
 
 | API | Purpose | Method | Data source | Authentication / expected status |
 |---|---|---|---|---|
-| Workflow | Recent scheduled DAG runs | GET `/api/v1/workflow` | Composer Airflow REST API | Application ADC/IAP identity; 200 when authorized |
+| Workflow | Recent pipeline executions | GET `/api/v1/workflow` | GCS `data/outputs/execution/run_*.json` manifests | Application ADC with bucket object-list/read access; 200 when run logs exist |
 | Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Application ADC; 200 when object exists |
 | Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Application ADC; 200 when objects exist |
 | Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
@@ -783,7 +783,9 @@ application details map to the following endpoints:
 `/health` and `/api/v1/metadata` are also available without GCP access. The
 Airflow service client and GCS artifact parsers are covered by mocked unit tests;
 `tests/test_api.py` verifies that the workflow, latest-run, dataset, schedule,
-and model routes return successful responses with those service results.
+and model routes return successful responses with those service results. Workflow
+history is read from GCS run manifests, so it remains available if Airflow
+web-server identity access is not configured.
 
 ### 4.2 Live verification and evidence
 

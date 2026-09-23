@@ -14,7 +14,7 @@ This satisfies Assessment Sub-Objective 2 (API Access):
 
 Endpoints cover the four required "application detail" categories from
 Assignment_1_Workload_Plan.md Section 8, Step 4:
-  1. Workflow or pipeline information       -> /api/v1/workflow       (GCP)
+    1. Workflow or pipeline information       -> /api/v1/workflow       (GCS run history)
     2. Latest execution status                -> /api/v1/runs/latest    (GCS)
   3. Processing, dataset, or flow info       -> /api/v1/dataset        (local)
   4. Schedule/deployment/model/history info  -> /api/v1/schedule       (GCP)
@@ -112,16 +112,13 @@ def metadata() -> dict[str, str]:
 
 
 # ============================================================
-# Application detail #1: Workflow / pipeline information (GCP-backed)
+# Application detail #1: Workflow / pipeline information (GCS-backed)
 # ============================================================
 
 @app.get("/api/v1/workflow", tags=["pipeline"])
 def workflow_info() -> list[dict[str, object]]:
-    """Recent DAG run history -- the pipeline's execution "flow".
-
-    Delegates to `gcp_service.get_dag_run_history()` (Airflow REST API).
-    """
-    return gcp_service.get_dag_run_history()
+    """Recent pipeline run history from the GCS execution manifests."""
+    return local_service.get_execution_history()
 
 
 # ============================================================

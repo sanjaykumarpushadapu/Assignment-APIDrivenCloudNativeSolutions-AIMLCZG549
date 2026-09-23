@@ -64,6 +64,22 @@ def render_dashboard() -> HTMLResponse:
             .status-badge {{ font-size: 0.9rem; padding: 6px 12px; border-radius: 4px; }}
             .api-section {{ background: #eef2f7; border-left: 4px solid #0d6efd; padding: 15px; border-radius: 6px; }}
             .pending {{ color: #adb5bd; font-style: italic; }}
+            #history-table {{ width: 100%; table-layout: fixed; font-size: 0.82rem; }}
+            #history-table th {{ color: #687386; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }}
+            #history-table td, #history-table th {{ padding: 0.7rem 0.45rem; vertical-align: middle; }}
+            .history-id {{ display: block; overflow: hidden; color: #344054; font-family: Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }}
+            .history-time {{ color: #344054; white-space: nowrap; }}
+            .history-duration {{ color: #475467; font-variant-numeric: tabular-nums; white-space: nowrap; }}
+            .history-status {{ display: inline-block; border-radius: 999px; padding: 0.25rem 0.55rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }}
+            .history-status.success {{ background: #e8f5ed; color: #16713b; }}
+            .history-status.failed {{ background: #fdecec; color: #a52828; }}
+            .history-status.other {{ background: #edf0f4; color: #596579; }}
+            .history-latest {{ display: inline-block; margin-top: 0.2rem; color: #697586; font-family: inherit; font-size: 0.62rem; font-weight: 700; }}
+            @media (max-width: 680px) {{
+                #history-table {{ font-size: 0.74rem; }}
+                #history-table td, #history-table th {{ padding: 0.55rem 0.25rem; }}
+                .history-status {{ padding: 0.2rem 0.35rem; font-size: 0.65rem; }}
+            }}
         </style>
     </head>
     <body class="p-4">
@@ -152,10 +168,14 @@ def render_dashboard() -> HTMLResponse:
             <div class="row mt-3">
                 <div class="col-md-7">
                     <div class="metric-card">
-                        <h5>Execution History</h5>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h5 class="mb-0">Execution History</h5>
+                            <span id="history-count" class="badge bg-light text-secondary">Recent runs</span>
+                        </div>
                         <table class="table table-sm" id="history-table">
-                            <thead><tr><th>Run</th><th>Status</th><th>Start</th><th>End</th></tr></thead>
-                            <tbody><tr><td colspan="4" class="pending">Loading...</td></tr></tbody>
+                            <colgroup><col style="width: 26%"><col style="width: 17%"><col style="width: 22%"><col style="width: 22%"><col style="width: 13%"></colgroup>
+                            <thead><tr><th>Run ID</th><th>Status</th><th>Started</th><th>Finished</th><th>Time</th></tr></thead>
+                            <tbody><tr><td colspan="5" class="pending">Loading...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -177,7 +197,7 @@ def render_dashboard() -> HTMLResponse:
 
             async function fetchJson(path) {{
                 try {{
-                    const res = await fetch(API_BASE_URL + path, {{ signal: AbortSignal.timeout(10000) }});
+                    const res = await fetch(API_BASE_URL + path, {{ signal: AbortSignal.timeout(30000) }});
                     const body = await res.json().catch(() => null);
                     if (res.status === 501) {{
                         return {{ ok: false, pending: true, body, status: res.status }};
@@ -187,6 +207,9 @@ def render_dashboard() -> HTMLResponse:
                     }}
                     return {{ ok: true, pending: false, body, status: res.status }};
                 }} catch (err) {{
+                    if (err.name === "TimeoutError" || err.name === "AbortError") {{
+                        return {{ ok: false, pending: false, timeout: true }};
+                    }}
                     return {{ ok: false, pending: false, unreachable: true }};
                 }}
             }}
@@ -194,6 +217,9 @@ def render_dashboard() -> HTMLResponse:
             function failureText(result, fallback) {{
                 if (result.unreachable) {{
                     return "API unavailable";
+                }}
+                if (result.timeout) {{
+                    return "Request timed out";
                 }}
                 if (result.pending) {{
                     const detail = result.body?.detail || "";
@@ -217,11 +243,32 @@ def render_dashboard() -> HTMLResponse:
             }}
 
             async function loadDashboard() {{
-                const [meta, health, workflow, runsLatest, dataset, schedule, model] = await Promise.all([
+                let fullHistoryLoaded = false;
+                const workflowPromise = fetchJson("/api/v1/workflow").then(workflow => {{
+                    setSpan("api-workflow", workflow, (body) => `${{body.length}} run(s)`);
+                    if (workflow.ok && workflow.body.length) {{
+                        fullHistoryLoaded = true;
+                        renderHistory(document.querySelector("#history-table tbody"), workflow.body);
+                    }}
+                    return workflow;
+                }});
+                const latestPromise = fetchJson("/api/v1/runs/latest").then(runsLatest => {{
+                    renderLatestRun(runsLatest);
+                    if (!fullHistoryLoaded && runsLatest.ok) {{
+                        renderHistory(document.querySelector("#history-table tbody"), [{{
+                            dag_run_id: runsLatest.body.run_id,
+                            state: (runsLatest.body.status || "unknown").toLowerCase(),
+                            start_date: runsLatest.body.started_at,
+                            end_date: runsLatest.body.ended_at,
+                            duration_seconds: runsLatest.body.duration_seconds,
+                        }}]);
+                    }}
+                    return runsLatest;
+                }});
+                const [meta, health, runsLatest, dataset, schedule, model] = await Promise.all([
                     fetchJson("/api/v1/metadata"),
                     fetchJson("/health"),
-                    fetchJson("/api/v1/workflow"),
-                    fetchJson("/api/v1/runs/latest"),
+                    latestPromise,
                     fetchJson("/api/v1/dataset"),
                     fetchJson("/api/v1/schedule"),
                     fetchJson("/api/v1/model"),
@@ -237,17 +284,6 @@ def render_dashboard() -> HTMLResponse:
                     badge.className = "badge bg-danger status-badge";
                 }}
 
-                setSpan("api-workflow", workflow, (b) => `${{b.length}} run(s)`);
-
-                setSpan("api-runs-latest", runsLatest, (b) => b.status || "status unavailable");
-                setSpan("status-val", runsLatest, (b) => b.status || "unknown");
-                setSpan("runtime-val", runsLatest, (b) => b.duration_seconds == null ? "not reported" : `${{Number(b.duration_seconds).toFixed(2)}} s`);
-                setSpan("errors-val", runsLatest, (b) => Array.isArray(b.errors) ? b.errors.length : 0);
-                setSpan("warnings-val", runsLatest, (b) => Array.isArray(b.warnings) ? b.warnings.length : 0);
-                if (runsLatest.ok && runsLatest.body.records_processed != null) {{
-                    setSpan("records-val", runsLatest, (b) => Number(b.records_processed).toLocaleString());
-                }}
-
                 setSpan("api-dataset", dataset, (b) => b.quality_status || "ok");
                 if (!runsLatest.ok || runsLatest.body.records_processed == null) {{
                     setSpan("records-val", dataset, (b) => (b.input_rows ?? "-").toLocaleString());
@@ -260,20 +296,46 @@ def render_dashboard() -> HTMLResponse:
                 setSpan("api-model", model, (b) => "ok");
                 renderModelChart(model);
 
-                const historyBody = document.querySelector("#history-table tbody");
-                if (workflow.ok && workflow.body.length) {{
-                    historyBody.innerHTML = workflow.body.map(r => `
-                        <tr>
-                            <td>${{r.dag_run_id ?? "-"}}</td>
-                            <td>${{r.state ?? "-"}}</td>
-                            <td>${{r.start_date ?? "-"}}</td>
-                            <td>${{r.end_date ?? "-"}}</td>
-                        </tr>
-                    `).join("");
-                }} else {{
-                    historyBody.innerHTML = `<tr><td colspan="4" class="pending">${{failureText(workflow, "No execution history available")}}</td></tr>`;
-                }}
                 document.getElementById("api-retrieved-at").textContent = new Date().toISOString();
+            }}
+
+            function renderLatestRun(result) {{
+                setSpan("api-runs-latest", result, (body) => body.status || "status unavailable");
+                setSpan("status-val", result, (body) => body.status || "unknown");
+                setSpan("runtime-val", result, (body) => body.duration_seconds == null ? "not reported" : `${{Number(body.duration_seconds).toFixed(2)}} s`);
+                setSpan("errors-val", result, (body) => Array.isArray(body.errors) ? body.errors.length : 0);
+                setSpan("warnings-val", result, (body) => Array.isArray(body.warnings) ? body.warnings.length : 0);
+                if (result.ok && result.body.records_processed != null) {{
+                    setSpan("records-val", result, (body) => Number(body.records_processed).toLocaleString());
+                }}
+            }}
+
+            function renderHistory(body, runs) {{
+                const escapeHtml = value => String(value ?? "-").replace(/[&<>"']/g, character => ({{
+                    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+                }})[character]);
+                const formatTimestamp = value => {{
+                    const date = new Date(value);
+                    return Number.isNaN(date.getTime()) ? "-" : new Intl.DateTimeFormat(undefined, {{
+                        month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit"
+                    }}).format(date);
+                }};
+                body.innerHTML = runs.map((run, index) => {{
+                    const runId = String(run.dag_run_id ?? "-");
+                    const state = String(run.state ?? "unknown").toLowerCase();
+                    const statusClass = state === "success" ? "success" : state === "failed" ? "failed" : "other";
+                    const duration = Number(run.duration_seconds);
+                    return `
+                        <tr>
+                            <td><span class="history-id" title="${{escapeHtml(runId)}}">${{escapeHtml(runId.length > 15 ? `${{runId.slice(0, 8)}}...${{runId.slice(-4)}}` : runId)}}</span>${{index === 0 ? '<span class="history-latest">LATEST</span>' : ""}}</td>
+                            <td><span class="history-status ${{statusClass}}">${{escapeHtml(state.charAt(0).toUpperCase() + state.slice(1))}}</span></td>
+                            <td class="history-time" title="${{escapeHtml(run.start_date)}}">${{escapeHtml(formatTimestamp(run.start_date))}}</td>
+                            <td class="history-time" title="${{escapeHtml(run.end_date)}}">${{escapeHtml(formatTimestamp(run.end_date))}}</td>
+                            <td class="history-duration">${{Number.isFinite(duration) ? `${{duration.toFixed(1)}} s` : "-"}}</td>
+                        </tr>
+                    `;
+                }}).join("");
+                document.getElementById("history-count").textContent = `Showing ${{runs.length}} recent run(s)`;
             }}
 
             let modelChart = null;

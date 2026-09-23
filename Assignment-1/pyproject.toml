@@ -30,6 +30,7 @@ gcp = [
   "google-cloud-monitoring>=2.22,<3",
   "google-cloud-storage>=2.18,<3",
   "requests>=2.32,<3",
+  "truststore>=0.10,<1",
 ]
 
 [tool.setuptools.packages.find]
