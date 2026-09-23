@@ -7,13 +7,8 @@ the same bucket objects the DAG itself writes
 (`dags/diabetes_risk_pipeline.py` uses `DIABETES_GCS_BUCKET` /
 `GCS_OUTPUT_PREFIX = "data/outputs"`), rather than the local filesystem.
 
-`get_model_comparison()` is implemented for real, as a reference for the
-remaining two functions (`get_dataset_quality()`, `get_latest_run()`),
-which are still skeletons: signature, docstring naming the exact GCS
-object(s) to read, required IAM role, and a `NotImplementedError` body.
-Implement those the same way, with `google-cloud-storage` (install via
-`pip install -e ".[gcp]"`; it's a build dependency of
-`dags/diabetes_risk_pipeline.py`, but not of this API by default).
+The functions in this module read the pipeline's JSON and CSV artifacts
+from Cloud Storage. Install the optional `gcp` dependencies to use them.
 """
 
 from __future__ import annotations
@@ -51,29 +46,40 @@ def _read_gcs_text(bucket_name: str, object_name: str) -> str:
     return blob.download_as_text()
 
 
+def _read_gcs_json(bucket_name: str, object_name: str) -> dict[str, object]:
+    """Download and decode one JSON artifact from GCS."""
+    return json.loads(_read_gcs_text(bucket_name, object_name))
+
+
 def get_dataset_quality() -> dict[str, object]:
     """Report dataset and data-quality details ("processing/dataset/flow" detail)."""
     bucket = _bucket_name()
     if not bucket:
         raise NotImplementedError("DIABETES_GCS_BUCKET is not set in .env (see .env.example)")
 
-    try:
-        quality_raw = _read_gcs_text(bucket, "data/outputs/quality/data_quality.json")
-        quality_data = json.loads(quality_raw)
-    except Exception:
-        quality_data = {}
+    quality_data = _read_gcs_json(bucket, "data/outputs/quality/data_quality.json")
+    report_data = _read_gcs_json(bucket, "data/processed/preprocessing_report.json")
 
-    try:
-        report_raw = _read_gcs_text(bucket, "data/processed/preprocessing_report.json")
-        report_data = json.loads(report_raw)
-    except Exception:
-        report_data = {}
+    missing_after = report_data.get("missing_values_after", {})
+    if isinstance(missing_after, dict):
+        missing_count = sum(value for value in missing_after.values() if isinstance(value, (int, float)))
+    else:
+        missing_count = missing_after if isinstance(missing_after, (int, float)) else 0
+
+    quality_status = quality_data.get("quality_status")
+    if quality_status is None:
+        schema = quality_data.get("schema", {})
+        missing_columns = schema.get("missing_columns", []) if isinstance(schema, dict) else []
+        quality_status = "PASS" if not missing_columns and missing_count == 0 else "WARN"
 
     return {
-        "input_rows": report_data.get("input_rows", quality_data.get("input_rows", 0)),
-        "input_columns": report_data.get("input_columns", quality_data.get("input_columns", 0)),
-        "duplicate_records_removed": report_data.get("duplicate_records_removed", quality_data.get("duplicate_records_removed", 0)),
-        "quality_status": quality_data.get("quality_status", "UNKNOWN"),
+        "input_rows": report_data.get("input_rows", quality_data.get("input_rows", quality_data.get("rows", 0))),
+        "output_rows": report_data.get("output_rows", 0),
+        "input_columns": report_data.get("input_columns", quality_data.get("input_columns", quality_data.get("columns", 0))),
+        "duplicate_records_removed": report_data.get("duplicates_removed", report_data.get("duplicate_records_removed", quality_data.get("duplicate_count", 0))),
+        "missing_values_after": missing_count,
+        "quality_status": quality_status,
+        "target_column": report_data.get("target_column", quality_data.get("schema", {}).get("target_column", "")),
     }
 
 
@@ -128,7 +134,6 @@ def get_latest_run() -> dict[str, object]:
         raise NotImplementedError("DIABETES_GCS_BUCKET is not set in .env (see .env.example)")
 
     try:
-        latest_run_raw = _read_gcs_text(bucket, "data/outputs/execution/latest_run.json")
-        return json.loads(latest_run_raw)
+        return _read_gcs_json(bucket, "data/outputs/execution/latest_run.json")
     except Exception as e:
         raise RuntimeError(f"Failed to read latest_run.json from GCS bucket {bucket}: {e}") from e

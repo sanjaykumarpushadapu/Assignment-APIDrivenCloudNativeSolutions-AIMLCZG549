@@ -28,9 +28,8 @@ class GCPConfig:
     def is_configured(self) -> bool:
         """True once the required identifiers are present.
 
-        TODO (Person 4): call this before making any GCP API request, and
-        return a clear 5xx/"not configured" error from the endpoint instead
-        of letting an SDK call fail with a confusing exception.
+        Service functions call this before making GCP API requests so
+        missing identifiers produce a clear configuration error.
         """
         return bool(self.project_id and self.location and self.composer_environment)
 

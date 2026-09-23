@@ -40,10 +40,10 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
 
 def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    from diabetes_risk.api import local_service
+    from diabetes_risk.api import gcp_service
 
     runs = [{"dag_run_id": "scheduled__run", "state": "success"}]
-    monkeypatch.setattr(local_service, "get_execution_history", lambda: runs)
+    monkeypatch.setattr(gcp_service, "get_dag_run_history", lambda: runs)
 
     response = TestClient(app).get("/api/v1/workflow")
 
@@ -51,10 +51,19 @@ def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) 
     assert response.json() == runs
 
 
-def test_latest_run_endpoint_returns_execution_log(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_latest_run_endpoint_returns_execution_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
     from diabetes_risk.api import local_service
 
-    run = {"run_id": "run-1", "status": "SUCCESS", "warnings": [], "errors": []}
+    run = {
+        "run_id": "run-1",
+        "status": "SUCCESS",
+        "duration_seconds": 2.5,
+        "records_processed": 90,
+        "errors": [],
+        "warnings": [],
+        "started_at": "2026-09-23T09:00:00Z",
+        "ended_at": "2026-09-23T09:00:02Z",
+    }
     monkeypatch.setattr(local_service, "get_latest_run", lambda: run)
 
     response = TestClient(app).get("/api/v1/runs/latest")
@@ -221,36 +230,6 @@ def test_get_latest_run_reads_execution_manifest(monkeypatch: pytest.MonkeyPatch
     assert local_service.get_latest_run() == manifest
 
 
-def test_get_execution_history_maps_and_sorts_gcs_run_logs(monkeypatch: pytest.MonkeyPatch) -> None:
-    from diabetes_risk.api import local_service
-
-    logs = [
-        (
-            "data/outputs/execution/run_older.json",
-            '{"run_id":"older","status":"SUCCESS","started_at":"2026-09-22T09:00:00Z",'
-            '"ended_at":"2026-09-22T09:00:05Z","duration_seconds":5,"records_processed":100}',
-        ),
-        (
-            "data/outputs/execution/run_newer.json",
-            '{"run_id":"newer","status":"FAILED","started_at":"2026-09-23T09:00:00Z",'
-            '"ended_at":"2026-09-23T09:00:02Z","duration_seconds":2,"errors":["bad input"]}',
-        ),
-    ]
-    monkeypatch.setenv("DIABETES_GCS_BUCKET", "test-bucket")
-    monkeypatch.setattr(
-        local_service,
-        "_list_gcs_text",
-        lambda bucket, prefix, limit, start_offset=None: logs[:limit],
-    )
-
-    result = local_service.get_execution_history()
-
-    assert [run["dag_run_id"] for run in result] == ["newer", "older"]
-    assert result[0]["state"] == "failed"
-    assert result[0]["errors"] == ["bad input"]
-    assert result[1]["records_processed"] == 100
-
-
 def test_get_dag_run_history_maps_airflow_response(monkeypatch: pytest.MonkeyPatch) -> None:
     from diabetes_risk.api import gcp_service
     from diabetes_risk.api.gcp_config import GCPConfig
@@ -266,7 +245,7 @@ def test_get_dag_run_history_maps_airflow_response(monkeypatch: pytest.MonkeyPat
 
     result = gcp_service.get_dag_run_history(dag_id="risk/pipeline", limit=3, config=config)
 
-    assert calls == [("dags/risk%2Fpipeline/dagRuns", {"limit": 3, "order_by": "-start_date"})]
+    assert calls == [("dags/risk%2Fpipeline/dagRuns", {"limit": 3, "order_by": "-execution_date"})]
     assert result == [{"dag_run_id": "scheduled__run", "state": "success", "start_date": "start", "end_date": None}]
 
 

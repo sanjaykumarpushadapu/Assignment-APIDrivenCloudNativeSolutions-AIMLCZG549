@@ -9,7 +9,7 @@ The project contains a platform-neutral Python data pipeline, a Cloud Composer d
 - **Person 1:** Complete. Business context, dataset verification, and ingestion validation are in place.
 - **Person 2:** Complete, including verified Cloud Composer deployment evidence (two consecutive scheduled runs, two minutes apart, all tasks successful).
 - **Person 3:** Complete. EDA interpretation (dataset overview, target distribution, feature distribution, correlation, bivariate analysis) is documented in `docs/report/REPORT.md` Section 3. An optional Random Forest vs. Logistic Regression model comparison is also implemented and evaluated, including feature importance and class-level metrics.
-- **Person 4:** Application implementation complete. Dashboard and five API routes are implemented and covered by tests; live GCP response screenshots and the final demonstration video remain.
+- **Person 4:** Dashboard and five API routes are implemented, tested, and deployed to Cloud Run. Live dashboard and four required Swagger response screenshots are documented in `docs/report/REPORT.md`; the final demonstration video remains.
 
 ## Project structure
 

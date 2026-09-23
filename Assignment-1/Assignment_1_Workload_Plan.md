@@ -24,22 +24,22 @@ Do not remove an open question until the team or instructor has answered it. Res
 - **Video submission:** Per the assessment PDF, no length or format is specified, but the delivery mechanism is: "Upload the Video into a google drive that will be shared" — Google Drive with a shared link, not the assignment portal.
 - **University restrictions:** None. Confirmed by the team — no BITS/university restrictions on cloud regions, services, or student credits apply to this assignment.
 - **Submission deadline:** Friday, 18 September 2026
-- **Current workload status:** Persons 1-3 are complete. Person 4's dashboard/API implementation and automated tests are complete; live GCP evidence and the demonstration video remain.
+- **Current workload status:** Persons 1-3 are complete. Person 4's dashboard/API implementation, Cloud Run deployment, automated tests, and live GCP screenshots are complete; the demonstration video remains.
 
 ---
 
 ## Current Delivery Status
 
 - **Person 1:** Complete. Business understanding, dataset verification, and raw-data ingestion have been documented and validated.
-- **Person 2:** Complete. Data quality, preprocessing, automation, execution logging, and the two-minute scheduled Airflow/Cloud Composer deployment have been implemented and verified against a live Cloud Composer environment (see `docs/report/REPORT.md` Section 2).
+- **Person 2:** Implementation and two-minute Composer verification complete. The latest authenticated Composer evidence on 23 September 2026 shows the DAG Active, with 24 successful runs, 0 failed runs, and 1 active run in the selected one-hour window; the selected run shows all three tasks successful (see `docs/report/REPORT.md` Section 2.9). Counts are time-sensitive.
 - **Person 3:** Complete. EDA interpretation and an optional Random Forest vs. Logistic Regression model comparison have been implemented, evaluated, tested, and documented (see `docs/report/REPORT.md` Section 3).
-- **Person 4:** In progress. Dashboard and API implementation/tests are complete; live GCP API screenshots and the final demonstration remain.
+- **Person 4:** In progress. Dashboard/API implementation, Cloud Run deployment, tests, and live GCP evidence are complete; the final demonstration video remains.
 
 ## Team progress summary
 
-- **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation; Person 2 data quality, preprocessing, automation, logging, and verified two-minute Cloud Composer scheduling; Person 3 EDA interpretation, feature importance, and the optional model comparison.
-- **Still required before final submission:** Person 4's authenticated live API screenshots and demonstration video, plus final review and submission upload.
-- **Current project status:** The pipeline, EDA, optional model, dashboard, and API code are implemented; Person 4's API code is covered by automated tests. Live API evidence and video capture require the team's GCP credentials and submission access.
+- **Completed:** Person 1 business problem, dataset profile, data dictionary, and ingestion validation; Person 2 data quality, preprocessing, automation, logging, and two-minute Cloud Composer verification; Person 3 EDA interpretation, feature importance, and the optional model comparison. The latest Composer status is healthy at the time checked; continue to monitor the scheduled runs.
+- **Still required before final submission:** Demonstration video and verified Google Drive link, final report export as `49.docx` or `49.pdf`, final review, and submission upload.
+- **Current project status:** The pipeline, EDA, optional model, dashboard, and API are implemented and deployed; API tests and live Cloud Run evidence are complete. The demonstration video and final submission packaging remain.
 
 ---
 
@@ -144,9 +144,9 @@ _Status: **Confirmed — Google Cloud Platform (GCP).** Recorded per the team's 
 - **Selected region or workspace:** _TBD — team to confirm._
 - **Required services:** Cloud Composer (managed Apache Airflow), Cloud Storage, Cloud Logging/Monitoring
 - **Two-minute scheduling method:** Airflow DAG (`dags/diabetes_risk_pipeline.py`) with `schedule="*/2 * * * *"`, deployed to Cloud Composer. **Confirmed supported** — Cloud Composer schedules are plain Airflow cron expressions with no documented minimum-interval restriction (verified against Google's Cloud Composer scheduling docs). The only real constraint is cost, not the schedule itself: Cloud Composer is an always-on managed environment with a baseline cost (~$44/month minimum for Composer 3, more for Composer 2) regardless of how often the DAG runs — this should be covered by the $300/90-day Google Cloud free trial credit for the assignment's ~3-week duration, but the team should confirm Composer is included under whichever account/credits are actually used.
-- **Exact four APIs:** _TBD — Person 4's work package._
-- **Dashboard method:** _TBD — Person 4's work package._
-- **Authentication method:** _TBD — team to confirm._
+- **Exact four APIs:** `GET /api/v1/workflow`, `GET /api/v1/runs/latest`, `GET /api/v1/dataset`, and `GET /api/v1/schedule` (verified against the deployed API; see `docs/report/REPORT.md` Section 4.2).
+- **Dashboard method:** FastAPI-backed dashboard deployed as a Cloud Run service; the live dashboard URL and screenshot are recorded in `docs/report/REPORT.md` Section 4.2.
+- **Authentication method:** The deployed API routes are publicly reachable for the read-only demonstration; GCP data access uses the Cloud Run runtime service account and Application Default Credentials. Local GCP development uses user ADC.
 - **Cost limit:** _TBD — team to confirm._
 - **Data-storage locations:** `data/raw/` (immutable source), `data/processed/` (cleaned + model-ready datasets), `data/outputs/` (quality, EDA, execution logs) — mapped to Cloud Storage once deployed
 - **Failure-handling method:** One retry with a one-minute retry delay (DAG `default_args`)
@@ -181,9 +181,9 @@ Automated EDA Outputs        -> Python pipeline (eda.py) -> Cloud Storage (data/
           ↓
 Optional Prediction Model    -> Implemented (Person 3): Random Forest + Logistic Regression
           ↓
-Dashboard and Execution Logs -> Cloud Logging/Monitoring + TBD dashboard (Person 4)
+Dashboard and Execution Logs -> Cloud Run dashboard consuming FastAPI activity endpoints
           ↓
-Application APIs (FastAPI)   -> TBD (Person 4)
+Application APIs (FastAPI)   -> Cloud Run API service backed by Cloud Storage and Composer APIs
 ```
 
 Orchestration/scheduling for the middle stages is Cloud Composer (managed
@@ -872,11 +872,11 @@ Every member must review the complete project and confirm:
 - [ ] EDA is automated.
 - [ ] Workflow runs every two minutes.
 - [ ] Activity logs are generated.
-- [ ] Activity details are displayed on a cloud dashboard.
-- [ ] At least four accepted application details are retrieved through APIs.
-- [ ] API requests are tested through Swagger/OpenAPI or the approved equivalent.
-- [ ] API responses and HTTP status codes are documented.
-- [ ] Screenshots are included.
+- [x] Activity details are displayed on a cloud dashboard.
+- [x] At least four accepted application details are retrieved through APIs.
+- [x] API requests are tested through Swagger/OpenAPI or the approved equivalent.
+- [x] API responses and HTTP status codes are documented.
+- [x] Screenshots are included.
 
 ## Submission
 

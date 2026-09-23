@@ -106,9 +106,9 @@ settings are supplied through environment configuration or Application Default
 Credentials; they are not embedded in the DAG or committed to the repository.
 
 **Implementation status:** the pipeline, DAG, Cloud Storage hand-off, and Composer
-schedule are implemented and verified in Section 2. The API and dashboard path shown
-above is the target application boundary; the remaining endpoint implementations,
-API tests, dashboard evidence, and demonstration are tracked in Section 4.
+schedule are implemented and verified in Section 2. The API and dashboard are
+implemented, deployed, and tested; live API and dashboard evidence is recorded in
+Section 4. The demonstration video remains outstanding.
 
 ---
 
@@ -523,26 +523,15 @@ The DAG was deployed to a live **Google Cloud Composer** environment to verify t
 | Airflow version | `2.11.1` |
 | Confirmed schedule interval (Composer console) | `*/2 * * * *` |
 
-![Cloud Composer DAGs list showing diabetes_risk_pipeline with schedule interval */2 * * * *, active state, and successful run counts](imgs/p2-composer-1.png)
+![Cloud Composer DAG overview on 23 September 2026 showing diabetes_risk_pipeline Active on */2 * * * *, with 1 active, 24 successful, and 0 failed runs in the one-hour window](imgs/DAG-img-1.png)
 
 The Cloud Storage bucket managed by the environment is used as the data hand-off between Airflow tasks: the raw dataset is read from `data/raw/`, and processed/EDA/model outputs are written back to `data/processed/` and `data/outputs/`.
 
-Two consecutive scheduled runs, exactly two minutes apart, were captured as evidence of the configured cadence:
+The selected Composer run, `scheduled__2026-09-23T10:14:00+00:00`, completed successfully across all three tasks: `data_quality_preprocessing_and_eda`, `random_forest`, and `model_evaluation`.
 
-| DAG run (UTC) | Task | Status | Start (UTC) | End (UTC) | Duration |
-|---|---|---|---|---|---|
-| `scheduled__2026-09-12T12:10:00+00:00` | data_quality_preprocessing_and_eda | Success | 12:12 PM | 12:12 PM | 17.88 s |
-| `scheduled__2026-09-12T12:10:00+00:00` | random_forest | Success | 12:12 PM | 12:13 PM | 1 min 19.59 s |
-| `scheduled__2026-09-12T12:10:00+00:00` | model_evaluation | Success | 12:13 PM | 12:15 PM | 1 min 25.61 s |
-| `scheduled__2026-09-12T12:12:00+00:00` | data_quality_preprocessing_and_eda | Success | 12:15 PM | 12:16 PM | 53.00 s |
-| `scheduled__2026-09-12T12:12:00+00:00` | random_forest | Success | 12:16 PM | 12:19 PM | 3 min 6.47 s |
-| `scheduled__2026-09-12T12:12:00+00:00` | model_evaluation | Success | 12:19 PM | 12:21 PM | 1 min 36.85 s |
+![Cloud Composer run history for scheduled__2026-09-23T10:14:00+00:00 showing all three pipeline tasks in Success state](imgs/DAG-List-IMG-2.png)
 
-![Cloud Composer run history: scheduled run at 12:10 PM UTC with all three tasks (data_quality_preprocessing_and_eda, random_forest, model_evaluation) showing Success](imgs/p2-composer-3.png)
-
-![Cloud Composer run history: scheduled run at 12:12 PM UTC, exactly two minutes after the previous run, with all three tasks showing Success](imgs/p2-composer-2.png)
-
-All three tasks completed successfully for both scheduled runs, confirming that the DAG executes the complete data-quality, preprocessing, EDA, and model pipeline automatically every two minutes as required. The environment was torn down after evidence capture to avoid ongoing Cloud Composer billing; it can be recreated from the same DAG and infrastructure notes at any time.
+A previous one-hour console snapshot showed 10 failed runs. The later authenticated view above showed 24 successful runs, 0 failed runs, and 1 active run; these counts are time-window snapshots and change as scheduled runs complete. The deployed `/api/v1/schedule` endpoint also returned `RUNNING` for the Composer environment. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
 
 ### 2.10 Configuration and local execution
 
@@ -596,11 +585,11 @@ The verified local evidence includes:
 - Structured execution log
 - Airflow DAG configuration
 
-**Deployment-time evidence:** captured. Two consecutive Cloud Composer scheduled runs (`12:10 PM` and `12:12 PM`, exactly two minutes apart) both completed successfully across all three tasks, and the Composer console confirms the `*/2 * * * *` schedule interval. See "Cloud Composer deployment verification" under Section 2.9 for the full run table.
+**Deployment evidence:** the two Composer screenshots in Section 2.9 show the `*/2 * * * *` schedule, an Active DAG with 24 successful, 0 failed, and 1 active run in the one-hour window, and a selected run with all three tasks successful. An earlier one-hour snapshot showed ten failures; the newer status is time-sensitive.
 
 ### 2.13 Summary
 
-The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy, verified against a live Cloud Composer deployment (Section 2.9, Section 2.12). The complete implementation has passed the available automated verification suite. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
+The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, structured execution logging is implemented, and the Airflow DAG is configured for the required two-minute schedule with an explicit overlapping-run policy. The latest authenticated Composer evidence shows 24 successful runs, 0 failed runs, and one active run in its one-hour window, with all three tasks successful in the selected run. The available automated verification suite passed at the time documented above. This section does **not** implement model training, model deployment, final dashboarding, or the four required application APIs; those are covered in Sections 3 and 4.
 
 ---
 
@@ -610,7 +599,7 @@ The approved dataset has been validated, quality checks and preprocessing are au
 
 This section covers interpretation of the automated EDA outputs from Section 2, plus an optional (not required by the assessment) predictive-model comparison built on top of the model-ready dataset. It does not implement the dashboard or the four required application APIs; those are covered in Section 4.
 
-**Source:** the EDA interpretation and charts in Sections 3.2-3.7 are drawn from [`Diabetes_EDA_Person3.pptx`](../../Diabetes_EDA_Person3.pptx) (the original analysis deck for this section); the four chart images embedded below are extracted directly from that file. Section 3.8's model implementation, evaluation, and evidence were independently run and verified for this report (see Section 3.9 for the reproducibility distinction between the two).
+**Source:** the EDA interpretation and feature/correlation charts in Sections 3.2-3.7 are drawn from [`Diabetes_EDA_Person3.pptx`](../../Diabetes_EDA_Person3.pptx) (the original analysis deck for this section). The target-distribution chart below was refreshed from the automated EDA run against the current raw CSV on 23 September 2026, after exact-duplicate removal; its values match the 229,781-row analytical dataset documented in this report. Section 3.8's model implementation, evaluation, and evidence were independently run and verified for this report (see Section 3.9 for the reproducibility distinction between the two).
 
 ### 3.2 Dataset overview and completeness
 
@@ -637,7 +626,7 @@ The target is strongly imbalanced, particularly for the prediabetes class:
 | 1 — Prediabetes | 4,629 | 2.01% |
 | 2 — Diabetes | 35,097 | 15.27% |
 
-![Diabetes risk target distribution: bar chart showing 190,055 records for class 0, 4,629 for class 1, and 35,097 for class 2](imgs/p3-target-distribution.png)
+![Refreshed diabetes risk target distribution from the 229,781-row cleaned dataset: 190,055 records for class 0, 4,629 for class 1, and 35,097 for class 2](imgs/p3-target-distribution-refreshed.png)
 
 **Modeling implication:** with this degree of imbalance, accuracy alone is not a reliable measure of model quality. Class-level precision, recall, and F1-score must be reported alongside it — this is confirmed empirically in Section 3.8 below.
 
@@ -744,7 +733,7 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ### 3.9 Known limitations
 
-- The four EDA charts in this section were authored as a standalone analysis with embedded static images; there is no checked-in reproducible script that regenerates them from the dataset. The model-evaluation charts and metrics in Section 3.8, by contrast, were regenerated from a fresh local pipeline run for this report and are fully reproducible via the two CLI commands listed above.
+- The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 was refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
 - The optional model (Section 3.8) is not integrated into the automated `run()` pipeline or DAG Task 1 from Section 2 — it runs as separate CLI commands / DAG tasks, consistent with it being optional, additive analysis rather than part of the required DataOps pipeline.
 
 
@@ -789,12 +778,31 @@ web-server identity access is not configured.
 
 ### 4.2 Live verification and evidence
 
-Live GCP responses, the four Swagger request/response screenshots, the dashboard
-screenshot, and the final demonstration video are **not yet captured**. They must
-be recorded after the team configures Application Default Credentials and grants
-the API identity `roles/composer.viewer`, `roles/composer.user`, and
-`roles/storage.objectViewer` on the project (plus `roles/monitoring.viewer` only
-if the optional health-metrics extension is added). Capture the actual HTTP status
-codes and response bodies in Swagger; do not treat mocked test results as
-cloud-response evidence. Upload the finished video to the team's shared Google
-Drive and add the verified sharing link here before submission.
+The deployed dashboard and API were opened and tested through the public Cloud Run
+URLs on 23 September 2026. The dashboard loaded live API values and displayed the
+latest successful run, dataset metrics, Composer state, and ten recent executions.
+Swagger `Try it out` requests were executed against the deployed API; all four
+required application-detail endpoints returned HTTP 200. These are live cloud
+responses, not mocked test results.
+
+**Deployed services:**
+
+- Dashboard: https://diabetes-risk-dashboard-573458509120.us-central1.run.app/
+- Swagger/OpenAPI: https://diabetes-risk-api-573458509120.us-central1.run.app/docs
+
+| API | Purpose | Method and endpoint | Authentication | Live response/status | Evidence |
+|---|---|---|---|---|---|
+| Workflow | Recent execution history | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow` | Public Cloud Run URL; no credentials prompted | 200; 10 runs; newest was `20260923T094129650583Z`, `success` | ![Swagger workflow request and response; full request URL is visible in Swagger](imgs/p4-api-workflow-response.png) |
+| Latest execution | Detailed latest run status and metrics | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest` | Public Cloud Run URL; no credentials prompted | 200; `20260923T094129650583Z`, `SUCCESS`, 253,680 input records | ![Swagger latest-run request and response; full request URL is visible in Swagger](imgs/p4-api-latest-response.png) |
+| Dataset processing | Dataset and quality metrics | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/dataset` | Public Cloud Run URL; no credentials prompted | 200; 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, 0 missing values after processing, `PASS_WITH_WARNINGS` | ![Swagger dataset request and response; full request URL is visible in Swagger](imgs/p4-api-dataset-response.png) |
+| Schedule/deployment | Composer environment status and version | GET `https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/schedule` | Public Cloud Run URL; no credentials prompted | 200; `diabetes-risk-env` is `RUNNING`; Composer 3 / Airflow 2.11.1 | ![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png) |
+
+The dashboard screenshot records the deployed view, including the API-derived
+application details and ten-row Execution History table. Its source page is
+[https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/):
+
+![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
+
+The API and dashboard screenshot evidence is now captured. The final demonstration
+video is still outstanding: it must show the end-to-end workflow, be uploaded to
+the team's shared Google Drive, and have its verified sharing link added here.

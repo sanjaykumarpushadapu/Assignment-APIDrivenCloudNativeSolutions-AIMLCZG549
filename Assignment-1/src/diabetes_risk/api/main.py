@@ -9,23 +9,21 @@ This satisfies Assessment Sub-Objective 2 (API Access):
     information, e.g. flow, deployment etc.") -- the data behind these
     endpoints should come from GCP's own built-in APIs (Cloud Composer,
     the Airflow REST API, Cloud Monitoring), via `gcp_service.py`, for the
-    workflow/schedule/deployment details. Dataset-quality and model
-    results are the pipeline's own generated artifacts, so those two
-    endpoints read local files via `local_service.py` instead.
+    workflow/schedule/deployment details. Dataset quality, latest execution,
+    and model results are pipeline artifacts in Cloud Storage, read via
+    `local_service.py`.
 
 Endpoints cover the four required "application detail" categories from
 Assignment_1_Workload_Plan.md Section 8, Step 4:
   1. Workflow or pipeline information       -> /api/v1/workflow       (GCP)
-  2. Latest execution status                -> /api/v1/runs/latest    (GCP)
-  3. Processing, dataset, or flow info       -> /api/v1/dataset        (local)
+    2. Latest execution status                -> /api/v1/runs/latest    (GCS)
+    3. Processing, dataset, or flow info       -> /api/v1/dataset        (GCS)
   4. Schedule/deployment/model/history info  -> /api/v1/schedule       (GCP)
-Plus an optional fifth (model results)       -> /api/v1/model          (local)
+Plus an optional fifth (model results)       -> /api/v1/model          (GCS)
 
 Each endpoint is a thin wrapper: it calls one service-layer function and
-returns the result. The service-layer functions are the actual skeletons
-(signature + docstring + `NotImplementedError`) -- see `gcp_service.py`
-and `local_service.py`. Nothing below needs to change once those are
-implemented.
+returns the result. Implementations and GCP authentication are kept in
+`gcp_service.py` and `local_service.py`.
 """
 
 import os
@@ -64,14 +62,12 @@ app.add_middleware(
 
 
 @app.exception_handler(NotImplementedError)
-def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONResponse:
-    """Turn a skeleton function's NotImplementedError into a clean 501.
+def not_implemented_handler(_request: Request, exc: NotImplementedError) -> JSONResponse:
+    """Return a clear 501 when a requested integration is not configured.
 
     Without this, FastAPI would return a generic 500 for every endpoint
-    that still delegates to an unimplemented gcp_service/local_service
-    function. A 501 is the honest, correct status code for "this route
-    exists but isn't implemented yet" -- useful to show during API testing
-    (activity 3.3) even before gcp_service.py is filled in for real.
+    that delegates to a GCP or Cloud Storage service with missing
+    configuration. A 501 makes that integration requirement explicit.
     """
     return JSONResponse(
         status_code=501,
@@ -80,7 +76,7 @@ def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONR
 
 
 @app.exception_handler(Exception)
-def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+def unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     """Turn any other uncaught exception into a clean, CORS-safe 500.
 
     Without a registered handler, an uncaught exception (e.g. a missing
@@ -131,24 +127,9 @@ def workflow_info() -> list[dict[str, object]]:
 # ============================================================
 
 @app.get("/api/v1/runs/latest", tags=["pipeline"])
-def latest_run() -> list[dict[str, object]]:
-    """Most recent DAG run's task-level status.
-
-    Resolves the latest `dag_run_id` from `get_dag_run_history()` first
-    (Airflow orders dagRuns by execution date descending by default), then
-    fetches that run's task instances. Both calls go through
-    `gcp_service.py` (Airflow REST API) -- TODO (Person 4): implement
-    `get_dag_run_history()` and `get_task_instance_status()` there; this
-    function should not need to change once they are.
-    """
-    runs = gcp_service.get_dag_run_history(dag_id="diabetes_risk_pipeline", limit=1)
-    if not runs:
-        return []
-    latest_dag_run_id = runs[0]["dag_run_id"]
-    return gcp_service.get_task_instance_status(
-        dag_id="diabetes_risk_pipeline",
-        dag_run_id=latest_dag_run_id,
-    )
+def latest_run() -> dict[str, object]:
+    """Return the latest pipeline execution manifest from Cloud Storage."""
+    return local_service.get_latest_run()
 
 
 # ============================================================

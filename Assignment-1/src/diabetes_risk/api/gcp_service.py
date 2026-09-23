@@ -8,26 +8,14 @@ functions in this module and re-expose the results as the application's
 own tested API (satisfying Objective 2, "Access the application's details
 using APIs").
 
-`get_composer_environment_details()` is implemented for real, as a
-reference for the remaining three functions (`get_dag_run_history()`,
-`get_task_instance_status()`, `get_environment_health()`), which are
-still skeletons: signature, docstring (exact GCP API/method, required
-IAM role, and a suggested return shape), and a `NotImplementedError`
-body. Implement those with either:
-  - `google-cloud-orchestration-airflow` (Composer Environments API), or
-  - direct authenticated HTTP requests (`google-auth` + `requests`) to the
-    Composer-hosted Airflow REST API and the Cloud Monitoring REST API.
-These are NOT in `pyproject.toml`'s default dependencies -- see the
-`gcp` optional dependency group added there, and install with
-`pip install -e ".[gcp]"` once you start implementing.
-
-All functions accept an optional `config` so they're easy to unit test
-with a fake `GCPConfig` instead of hitting real GCP.
+The service functions use the optional `gcp` dependencies. Functions
+accept an optional `config` so they can be unit tested without calling
+real GCP services.
 """
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
+from urllib.parse import quote
 import requests
 import google.auth
 import google.auth.transport.requests
@@ -69,6 +57,23 @@ def _load_credentials(config: GCPConfig):
     from google.oauth2 import service_account
 
     return service_account.Credentials.from_service_account_file(config.credentials_path)
+
+
+def _airflow_api_get(
+    config: GCPConfig,
+    path: str,
+    params: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Make an authenticated GET request to the Composer Airflow API."""
+    web_url = _get_composer_web_server_url(config)
+    response = requests.get(
+        f"{web_url}/api/v1/{path.lstrip('/')}",
+        headers=_get_iap_headers(web_url),
+        params=params,
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def get_composer_environment_details(config: GCPConfig | None = None) -> dict[str, object]:
@@ -126,15 +131,12 @@ def get_dag_run_history(
     if not config.is_configured():
         raise NotImplementedError("GCP is not configured: set GCP_PROJECT_ID, GCP_LOCATION and GCP_COMPOSER_ENVIRONMENT in .env")
 
-    web_url = _get_composer_web_server_url(config)
-    endpoint = f"{web_url}/api/v1/dags/{dag_id}/dagRuns?limit={limit}&order_by=-execution_date"
-    
     try:
-        headers = _get_iap_headers(web_url)
-        response = requests.get(endpoint, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
+        data = _airflow_api_get(
+            config,
+            f"dags/{quote(dag_id, safe='')}/dagRuns",
+            params={"limit": limit, "order_by": "-execution_date"},
+        )
         runs = []
         for run in data.get("dag_runs", []):
             runs.append({
@@ -158,14 +160,11 @@ def get_task_instance_status(
     if not config.is_configured():
         raise NotImplementedError("GCP is not configured: set GCP_PROJECT_ID, GCP_LOCATION and GCP_COMPOSER_ENVIRONMENT in .env")
 
-    web_url = _get_composer_web_server_url(config)
-    endpoint = f"{web_url}/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"
-
     try:
-        headers = _get_iap_headers(web_url)
-        response = requests.get(endpoint, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        data = _airflow_api_get(
+            config,
+            f"dags/{quote(dag_id, safe='')}/dagRuns/{quote(dag_run_id, safe='')}/taskInstances",
+        )
 
         tasks = []
         for task in data.get("task_instances", []):
@@ -173,6 +172,8 @@ def get_task_instance_status(
                 "task_id": task.get("task_id"),
                 "state": task.get("state"),
                 "duration": task.get("duration"),
+                "start_date": task.get("start_date"),
+                "end_date": task.get("end_date"),
             })
         return tasks
     except Exception as e:
