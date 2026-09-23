@@ -63,7 +63,7 @@ Deployment of the API and dashboard is automated through `.github/workflows/depl
 
 1. **`ci`** — installs dependencies, runs the automated test suite (`pytest -q`), and compiles all Python sources (`compileall`) as a quality gate.
 2. **`build`** — runs only if `ci` succeeds and the branch is `main`; builds the Docker image from the repository `Dockerfile` and pushes it to Google Artifact Registry, tagged with the commit SHA.
-3. **`deploy`** — runs only if `build` succeeds; deploys the same image to both Cloud Run services (`diabetes-risk-api`, `diabetes-risk-dashboard`) under the configured runtime service account, then smoke-tests both deployed `/health` endpoints with `curl --fail --retry 5` before the workflow is considered successful.
+3. **`deploy`** — runs only if `build` succeeds; deploys the same image to both Cloud Run services (`diabetes-risk-api`, `diabetes-risk-dashboard`) under the configured runtime service account, then checks that both deployed `/health` endpoints respond successfully with `curl --fail --retry 5` before the workflow is considered successful.
 
 Authentication uses GitHub OIDC via Workload Identity Federation (`google-github-actions/auth`) rather than a long-lived service-account key stored as a GitHub secret — the workflow exchanges a short-lived, GitHub-issued token for GCP credentials at run time. This automates the deployment of the application layer itself, not just the data pipeline's Composer schedule.
 
@@ -867,55 +867,65 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ### 4.1 Activity dashboard
 
-The dashboard is served by `src/diabetes_risk/dashboard/app.py` and reads all
-application values from the FastAPI service; it does not embed run or dataset
-results. The latest completed Composer status and its whole-DAG duration are
-shown in summary cards for quick visibility; in-progress runs remain in the
-10-row Composer history table, which shows state, timestamps, duration, and
-expandable task-instance details. The
-separate processing cards show **Processed Records**, duplicate removals,
-quality status, and processing error/warning counts, which do not appear in
-the Composer history. These come from the GCS execution manifest
-and dataset reports. The record count is the pipeline's **input** row count
-(253,680), not the 229,781-row cleaned output. A Composer Environment card
-shows the environment name, state, Airflow version, and configured two-minute
-DAG schedule. Optional model-comparison metrics appear in the chart. DAG and
-task timestamps are displayed in UTC to match Composer. GCS pipeline manifests
+The dashboard is served by `src/diabetes_risk/dashboard/app.py`. It retrieves
+run, dataset, and Composer environment details from the FastAPI service. The
+schedule shown on the environment card matches the cron expression configured
+in the DAG. Summary cards show the latest completed Composer status and its
+whole-DAG duration. In-progress runs remain in the 10-row Composer history
+table, which shows each run's state, timestamps, duration, and expandable task
+details. Separate processing cards show **Processed Records**, duplicate
+removals, quality status, and processing error/warning counts. The GCS
+execution manifest supplies the record and error/warning counts; dataset
+reports supply duplicate and quality metrics. The record count is the
+pipeline's **input** row count (253,680), not the 229,781-row cleaned output.
+A Composer Environment card shows the environment name, state, and Airflow
+version. Optional model-comparison metrics appear in the chart. DAG and task
+timestamps are displayed in UTC to match Composer. GCS pipeline manifests
 remain available separately through `/api/v1/pipeline/history`.
 
-Run the API and dashboard in separate terminals after configuring GCP access:
+The public dashboard is available at
+[https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/),
+and its Swagger/OpenAPI documentation is at
+[https://diabetes-risk-api-573458509120.us-central1.run.app/docs](https://diabetes-risk-api-573458509120.us-central1.run.app/docs).
 
-```powershell
-uvicorn diabetes_risk.api.main:app --reload --host 127.0.0.1 --port 9000
-uvicorn diabetes_risk.dashboard.app:app --reload --host 127.0.0.1 --port 8000
-```
+The dashboard and API are deployed as public Cloud Run services at the URLs
+above. The dashboard reads the API URL from `DIABETES_API_BASE_URL`. The API's
+Cloud Run service account must be able to read pipeline outputs in GCS and
+access Composer DAG runs, task instances, and environment details. Without
+those permissions or the required GCP configuration, the public pages can load
+but the dashboard may show configuration or availability errors for
+GCP-backed values.
 
-Open `http://127.0.0.1:8000/` for the dashboard and
-`http://127.0.0.1:9000/docs` for Swagger/OpenAPI. The dashboard's four required
-application details map to the following endpoints:
+The dashboard displays four main types of application information: Composer
+workflow history, processing-manifest metrics such as records and
+errors/warnings, dataset and quality results, and Composer environment
+details. Their endpoints are listed below. The task-instance and GCS
+execution-history endpoints provide supporting details; the model endpoint is
+optional.
 
 | API | Purpose | Method | Data source | Authentication / expected status |
 |---|---|---|---|---|
 | Workflow | Recent scheduled DAG runs | GET `/api/v1/workflow` | Cloud Composer Airflow REST API | Runtime service account needs `roles/composer.user` and Airflow read access |
 | Workflow task details | Task states and timings for a DAG run | GET `/api/v1/workflow/{dag_run_id}/tasks` | Cloud Composer Airflow REST API | Same Composer/Airflow permissions |
-| Pipeline execution history | Recent processing manifests | GET `/api/v1/pipeline/history` | GCS execution manifests (`data/outputs/execution/`) | Application ADC; 200 when objects exist |
-| Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Application ADC; 200 when object exists |
-| Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Application ADC; 200 when objects exist |
-| Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
-| Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Application ADC; 200 when objects exist |
+| Pipeline execution history | Recent processing manifests | GET `/api/v1/pipeline/history` | GCS execution manifests (`data/outputs/execution/`) | Cloud Run service account needs GCS read access; 200 when objects exist |
+| Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Cloud Run service account needs GCS read access; 200 when object exists |
+| Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Cloud Run service account needs GCS read access; 200 when objects exist |
+| Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Cloud Run service account needs Composer environment access; 200 when authorized |
+| Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Cloud Run service account needs GCS read access; 200 when objects exist |
 
 A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py`'s `get_task_instance_status()` returns per-task state and duration through `GET /api/v1/workflow/{dag_run_id}/tasks`, which the dashboard loads when a Composer run's **Tasks** button is opened.
 
-`/health` and `/api/v1/metadata` are also available without GCP access. The dashboard workflow history now reads up to 10 DAG runs from the Composer Airflow REST API; each run can be expanded to show task-instance state and timing. This route uses an OAuth-authenticated ADC session. The Cloud Run runtime service account must be allowed to access the Composer environment, its Airflow user must have read access to DAGs and task instances, and Composer web server access control must permit the request. The GCS-backed processing history remains available through `/api/v1/pipeline/history`. After this source change is deployed, verify the endpoint and refresh its screenshots; the current checked-in live screenshots predate the Composer-backed history. The schedule/deployment route continues to use the Composer Environments API, and environment health uses Cloud Monitoring.
+`/health` and `/api/v1/metadata` are also available without GCP access. The deployed dashboard workflow history reads up to 10 DAG runs from the Composer Airflow REST API; each run can be expanded to show task-instance state and timing. The completed-run summary uses the newest successful or failed Composer run, while in-progress runs remain visible in the history table. The API uses OAuth credentials supplied through Application Default Credentials by its Cloud Run runtime service account. That account needs access to the Composer environment, Airflow read access to DAGs and task instances, and permission through Composer web server access control. The GCS-backed processing history remains available through `/api/v1/pipeline/history`. The schedule/deployment route continues to use the Composer Environments API, and environment health uses Cloud Monitoring.
 
 ### 4.2 Live verification and evidence
 
-The deployed dashboard and API were opened through the public Cloud Run URLs on
-23 September 2026. The screenshots currently in this report show the earlier
-GCS-manifest version of workflow history. The Composer-backed history change in
-the current source has not yet been deployed and captured in updated screenshots.
-Refresh the dashboard and workflow API evidence after deployment before final
-submission.
+The deployed dashboard and API are available through the public Cloud Run
+URLs. The dashboard, Swagger UI, and the four endpoints that supply its
+application details returned HTTP 200. The workflow endpoint returned 10
+Composer DAG runs. Its response included an in-progress run followed by a
+successful run lasting about 192 seconds; the dashboard showed the in-progress
+run in the history and the completed run's status and duration in the summary
+cards. The screenshots below show these deployed pages and their responses.
 
 **Deployed services:**
 
@@ -923,12 +933,12 @@ submission.
 - Swagger/OpenAPI: https://diabetes-risk-api-573458509120.us-central1.run.app/docs
 
 **1. Workflow — recent Composer DAG runs**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow`. The current source calls the Composer Airflow REST API and returns up to 10 recent DAG runs. Capture the live status and response after deploying the source change; the existing screenshot shows GCS pipeline manifests and must be refreshed.
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow`. The deployed Composer Airflow REST API returned 10 recent DAG runs (HTTP 200). The response shows an in-progress newest run followed by a successful run lasting about 192 seconds. The dashboard summary uses the latest completed run until the in-progress run finishes.
 
 ![Swagger workflow request and response; full request URL is visible in Swagger](imgs/p4-api-workflow-response.png)
 
 **2. Latest execution — detailed latest run status and metrics**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest`. Public Cloud Run URL, no credentials prompted. Live response: 200; `20260923T094129650583Z`, `SUCCESS`, 253,680 input records.
+`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest`. Public Cloud Run URL, no credentials prompted. Captured Swagger response: HTTP 200; `20260923T180635380306Z`, `SUCCESS`, 253,680 input records. This processing manifest is GCS-backed and distinct from the Composer DAG history above.
 
 ![Swagger latest-run request and response; full request URL is visible in Swagger](imgs/p4-api-latest-response.png)
 
@@ -942,28 +952,26 @@ submission.
 
 ![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png)
 
-The existing dashboard screenshot records the deployed view before the history
-source change. Refresh it to show the Composer DAG Run History table and an
-expanded task list. The dashboard source page is
+The refreshed dashboard screenshot shows the Composer DAG Run History table
+and an expanded successful run with its three task instances. Open the dashboard at
 [https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/):
 
 ![Deployed Cloud Run dashboard with live metrics and Composer DAG run history](imgs/p4-cloud-run-dashboard.png)
 
-The API and dashboard screenshot evidence above is current as of 23 September 2026. The demonstration video required by the brief remains to be recorded and added as a shared Google Drive link before final submission.
+The screenshots show the deployed API and dashboard responses. The demonstration video required by the brief remains to be recorded and added as a shared Google Drive link before final submission.
 
 ---
 
 ## 5. Conclusion, Limitations, and Future Work
 
-**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The dashboard source now uses Composer DAG history with expandable task details and retains GCS pipeline manifests through a separate endpoint. Deploy this change and refresh the live API/dashboard evidence before submission. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
+**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The deployed dashboard uses Composer DAG history with expandable task details and a completed-run summary, and retains GCS processing manifests through separate endpoints. Live API and dashboard responses and refreshed screenshots are included in Section 4.2. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
 
 **Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
 
-- The Composer-backed `/api/v1/workflow` change has not yet been deployed and verified with refreshed live evidence (Section 4.1).
 - Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
 - The demonstration video and each member's individual confirmation of their contribution entry remain outstanding at the time of this export.
 
-**Future work:** deploy and verify the Composer-backed `/api/v1/workflow` route, refresh the dashboard/API screenshots, and record and link the demonstration video; retrain Random Forest with class-weight balancing (or apply a decision threshold adjustment) to give a fairer, less confounded model comparison; and add permutation or SHAP-based feature importance to separate genuine signal from the impurity-based ranking's bias toward high-cardinality features.
+**Optional future model improvements:** if the model comparison is retained, apply class weighting or threshold tuning to Random Forest for a more balanced comparison with Logistic Regression. Permutation importance or SHAP could also be added as supplementary feature-importance analyses. The current code already produces Random Forest feature-importance results required for the EDA activity. Recording and linking the demonstration video remains an outstanding assessment deliverable, as noted above.
 
 ---
 
