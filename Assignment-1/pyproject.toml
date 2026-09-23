@@ -18,7 +18,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.27,<1",
+  # Starlette versions used by the supported FastAPI range pass the
+  # deprecated `app=` argument to httpx.Client. httpx 0.28 removed it,
+  # which makes TestClient fail during test collection.
+  "httpx>=0.27,<0.28",
   "pytest>=8.3,<9",
 ]
 # Install with `pip install -e ".[gcp]"` when using the GCP-backed API,
