@@ -111,16 +111,13 @@ def metadata() -> dict[str, str]:
 
 
 # ============================================================
-# Application detail #1: Workflow / pipeline information (GCP-backed)
+# Application detail #1: Workflow / pipeline information (GCS-backed)
 # ============================================================
 
 @app.get("/api/v1/workflow", tags=["pipeline"])
 def workflow_info() -> list[dict[str, object]]:
-    """Recent DAG run history -- the pipeline's execution "flow".
-
-    Delegates to `gcp_service.get_dag_run_history()` (Airflow REST API).
-    """
-    return gcp_service.get_dag_run_history()
+    """Recent pipeline run history from the GCS execution manifests."""
+    return local_service.get_execution_history()
 
 
 # ============================================================

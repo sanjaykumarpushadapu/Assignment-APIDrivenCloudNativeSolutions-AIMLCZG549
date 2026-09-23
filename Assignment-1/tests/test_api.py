@@ -40,10 +40,10 @@ def test_dashboard_renders_activity_metrics_and_api_sources() -> None:
 
 
 def test_workflow_endpoint_returns_run_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    from diabetes_risk.api import gcp_service
+    from diabetes_risk.api import local_service
 
     runs = [{"dag_run_id": "scheduled__run", "state": "success"}]
-    monkeypatch.setattr(gcp_service, "get_dag_run_history", lambda: runs)
+    monkeypatch.setattr(local_service, "get_execution_history", lambda: runs)
 
     response = TestClient(app).get("/api/v1/workflow")
 

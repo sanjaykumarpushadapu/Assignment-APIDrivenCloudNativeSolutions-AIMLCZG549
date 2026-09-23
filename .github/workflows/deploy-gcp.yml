@@ -147,6 +147,7 @@ jobs:
       - name: Smoke-test deployed services
         run: |
           curl --fail --retry 5 --retry-delay 3 "$API_URL/health"
+          curl --fail --retry 5 --retry-delay 3 --output /dev/null "$API_URL/api/v1/workflow"
           curl --fail --retry 5 --retry-delay 3 "$DASHBOARD_URL/health"
           echo "API URL: $API_URL"
           echo "Dashboard URL: $DASHBOARD_URL"
