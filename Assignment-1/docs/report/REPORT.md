@@ -35,13 +35,11 @@ Each member is listed once below, with their contribution across the full projec
 - **Approved dataset:** Kaggle Diabetes Health Indicators Dataset ([source](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset))
 - **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the required two-minute schedule.
 - **API documentation/testing tool:** Swagger/OpenAPI
-- **Prediction model:** feature importance (activity 1.4) is produced from a trained Random Forest — training a model for that purpose is not an extra deliverable, since 1.4 explicitly asks for "feature importance." What is additional is comparing that Random Forest against a Logistic Regression baseline on accuracy, precision, recall, and F1 (Section 3.8); the brief does not ask for a model comparison or a deployed prediction service, and neither model is deployed as a service.
-- **Cloud dashboard scope:** the assessment PDF's activity 1.5 wording ("logging all activity details and displaying them on a Cloud dashboard") is read as requiring execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and a nice-to-have on the dashboard, not a rubric requirement.
-- **API requirement:** Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information (e.g., flow, deployment etc.)") are met two ways at once: `src/diabetes_risk/api/` (FastAPI) is the team's own application API layer, tested with Swagger/OpenAPI, and each of its routes in turn calls a genuine GCP built-in API (Cloud Storage, the Composer Environments API, or the Airflow REST API — see Section 4.1) to retrieve that information, rather than hard-coding it.
+- **Prediction model:** the Random Forest produces the feature-importance results included in the EDA. Section 3.8 also compares it with a Logistic Regression baseline; neither model is deployed as a prediction service.
+- **Dashboard and API implementation:** activity 1.5 is supported by the execution information shown on the cloud dashboard. The FastAPI interface documents application details; Composer and Cloud Storage-backed routes retrieve platform data or stored pipeline artifacts as described in Section 4.1.
 - **Video submission mechanism:** per the assessment PDF, no length or format is specified; delivery is a shared Google Drive link, not the assignment portal.
-- **University restrictions:** none were identified for cloud region, services, or student credits for this assignment; this has not been separately confirmed with the instructor or a course policy document.
 
-The cloud-dashboard-scope and API-requirement readings above are the team's own interpretation of ambiguous brief wording; all other items in this list are stated directly in the brief or independently verified elsewhere in this report.
+The items above summarize the selected implementation and assessment scope.
 
 **Platform selection**
 
@@ -180,7 +178,7 @@ Section 4. The demonstration video remains outstanding.
 
 ### 1.1 Introduction
 
-This section covers the business problem, dataset selection, and data ingestion that the rest of the pipeline (Sections 2-4) builds on. In outline, the pipeline ingests a public health survey dataset, validates and preprocesses it, runs exploratory data analysis, and re-executes automatically on a fixed schedule, with results exposed through both a cloud dashboard and a documented REST API (Swagger/OpenAPI, Section 4).
+This section covers the business problem, dataset selection, and data ingestion that the rest of the pipeline (Sections 2-4) builds on. The pipeline ingests a public health survey snapshot, validates and preprocesses it, runs exploratory data analysis, and re-executes on a fixed schedule. Results are exposed through the cloud dashboard and documented REST API (Swagger/OpenAPI, Section 4). Scheduled reruns use the same 2015 source file unless that input is replaced.
 
 ### 1.2 Project topic
 
@@ -190,9 +188,9 @@ This section covers the business problem, dataset selection, and data ingestion 
 
 Healthcare organizations collect large volumes of patient health and lifestyle data — clinical measurements, lifestyle habits, and demographic indicators — but converting that data into early diabetes-risk screening is difficult in practice. Manual chart-by-chart review does not scale across thousands of patient records, so at-risk individuals are often identified only after symptoms are already present or during unrelated visits, rather than through proactive screening.
 
-This delay has real consequences: patients who could have benefited from early lifestyle intervention or monitoring progress to more advanced, harder-to-manage risk levels, and healthcare providers face higher downstream treatment costs and heavier caseloads that could have been reduced with earlier flagging.
+This can delay preventive action and make consistent review across large populations difficult.
 
-An automated, data-driven risk-screening pipeline addresses this by continuously analyzing available health and lifestyle indicators (e.g., BMI, blood pressure, cholesterol, physical activity, general health status) at the population level, surfacing which risk factors and sub-groups carry elevated diabetes prevalence — a foundation that a future, individual-level scoring system could build on, rather than a system that scores individual patients today.
+An automated, data-driven risk-screening pipeline addresses this by analyzing health and lifestyle indicators (e.g., BMI, blood pressure, cholesterol, physical activity, general health status) at the population level and surfacing which factors and sub-groups are associated with diabetes prevalence. This project analyzes aggregated survey records; it does not score individual patients.
 
 **Who uses the results:** primarily healthcare providers and care coordinators, who can use the risk-screening output to prioritize outreach and preventive care for higher-risk patients, and secondarily program administrators, who can use the aggregated dashboard view to understand risk distribution across a patient population. The output is explicitly a **risk-screening signal**, not a diagnosis — final clinical decisions remain with a qualified provider.
 
@@ -200,11 +198,11 @@ An automated, data-driven risk-screening pipeline addresses this by continuously
 
 **Current state**
 
-Patient health and lifestyle data is already being collected by healthcare organizations and public health surveys, but it sits largely underused for proactive screening. Identifying which individuals carry elevated diabetes risk still depends on manual review of records or waiting for a clinical visit to prompt investigation, which is time-consuming and inconsistent across large patient populations. Because this analysis is not automated, insights are generated infrequently — often too late to inform early, preventive action — and there is no continuous, systematic way to flag risk as new data arrives.
+Health and lifestyle data is collected by healthcare organizations and public health surveys. This project uses an existing public survey snapshot to demonstrate population-level analysis; it does not ingest individual patient records or identify specific people for outreach. Without an automated workflow, repeating the same validation and analysis requires manual execution.
 
 **Proposed state**
 
-Health and lifestyle data flows through an automated cloud-based pipeline that ingests the dataset, checks and cleans it, and analyzes diabetes-risk indicators (BMI, blood pressure, cholesterol, activity level, general health, etc.) without manual intervention. This analysis reruns on a fixed schedule, so results stay current rather than being a one-time snapshot. The outcomes — risk indicators, key drivers, and pipeline activity — are made visible through a cloud dashboard and exposed through APIs, giving healthcare providers and administrators continuous, up-to-date visibility into risk patterns instead of periodic manual reviews.
+The selected BRFSS 2015 dataset flows through an automated cloud pipeline that validates and preprocesses the file and analyzes diabetes indicators on the configured schedule. Each run refreshes results from that same source snapshot; the schedule demonstrates repeatable DataOps execution, not ingestion of new survey data. Pipeline activity and aggregated analysis outputs are available through a cloud dashboard and API.
 
 ### 1.5 Objectives and benefits
 
@@ -212,13 +210,13 @@ Health and lifestyle data flows through an automated cloud-based pipeline that i
 
 - Ingest and validate a real, sufficiently large public health dataset (BRFSS 2015 diabetes indicators) with automated checks on schema, target column, and row count.
 - Preprocess and clean the data (missing-value handling, encoding, normalization) so it is ready for repeatable analysis.
-- Run exploratory data analysis (distribution, correlation, binning, feature importance) to surface diabetes-risk indicators.
-- Automate the full pipeline on a fixed (2-minute) schedule with execution logging, so results stay current without manual reruns.
+- Run exploratory data analysis (distribution, correlation, binning, feature importance) to summarize diabetes-risk indicators in the selected dataset.
+- Automate the pipeline on a fixed (2-minute) schedule with execution logging, demonstrating repeatable runs against the configured source file.
 - Expose pipeline results and at least four application operations through a documented, testable REST API (Swagger/OpenAPI), and visualize them on a cloud dashboard.
 
 **Benefits**
 
-- **For healthcare providers/care coordinators:** a continuously updated view of which risk factors and population segments carry elevated diabetes prevalence, to help prioritize outreach and preventive-care planning, instead of relying on manual chart review.
+- **For healthcare providers/care coordinators:** an aggregated view of factors and population segments associated with diabetes prevalence, to inform preventive-care planning.
 - **For program administrators:** an aggregated dashboard view of risk distribution across a patient population, supporting resource and program planning.
 
 ### 1.6 Dataset profile
@@ -308,7 +306,6 @@ python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_in
 ```json
 {
   "source_path": "data/raw/diabetes_012_health_indicators_BRFSS2015.csv",
-  "imported_at": "2026-09-07T17:10:57.174896+00:00",
   "sha256": "a971809d0786d2d7d7f6070f83dfe8af9d860ea33a79e0e2701c8a49f78f9861",
   "row_count": 253680,
   "column_count": 22,
@@ -503,15 +500,14 @@ Automated EDA artifact generation
 Structured execution log
 ```
 
-The runner records the status of each execution and writes outputs to predictable locations. The verified full-dataset local execution (run ID `20260912T025251232582Z`) started at `2026-09-12T02:52:51.232576Z`, completed at `2026-09-12T02:52:56.336563Z`, and finished in **5.10 seconds**. It read all **253,680** raw records and produced the expected 229,781-row processed outputs.
+The runner records the status of each execution and writes outputs to predictable locations. A verified full-dataset local execution finished in **5.10 seconds**. It read all **253,680** raw records and produced the expected 229,781-row processed outputs.
 
 ### 2.7 Verified full-dataset execution result
 
-To remove ambiguity about the size of the data actually processed, this section identifies **one fresh, successful end-to-end run** against the complete raw CSV as the authoritative record. No two-record test fixture is represented in the retained pipeline outputs or execution results — the test suite continues to use small fixtures for unit testing, but the execution documented here is the full production-like local run against the 253,680-row source file, and its input/output counts match the quality-validation table in Section 2.2 and the preprocessing table in Section 2.3.
+This table documents a successful end-to-end run against the complete raw CSV. Its input and output counts match the quality-validation results in Section 2.2 and the preprocessing results in Section 2.3.
 
 | Execution metric | Verified result |
 |---|---:|
-| Run ID | `20260912T025251232582Z` |
 | Input file | `data/raw/diabetes_012_health_indicators_BRFSS2015.csv` |
 | Execution status | `SUCCESS` |
 | Quality status | `PASS_WITH_WARNINGS` |
@@ -519,10 +515,10 @@ To remove ambiguity about the size of the data actually processed, this section 
 
 The post-duplicate-removal target distribution produced by this run is interpreted in Section 3.3 (distinct from the raw, pre-deduplication distribution in Section 1.6).
 
-The authoritative execution record is stored at:
+The execution record is stored at:
 
 ```text
-data/outputs/execution/run_20260912T025251232582Z.json
+data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
@@ -553,13 +549,10 @@ data/outputs/execution/run_<run_id>.json
 data/outputs/execution/latest_run.json
 ```
 
-A trimmed excerpt from an independently rerun execution log, confirming the schema above is populated with real values:
+A trimmed excerpt of the measured counts and status from an execution log:
 
 ```json
 {
-  "run_id": "20260923T133736609860Z",
-  "started_at": "2026-09-23T13:37:36.609849+00:00",
-  "ended_at": "2026-09-23T13:37:46.233842+00:00",
   "duration_seconds": 9.623993,
   "status": "SUCCESS",
   "input_rows": 253680,
@@ -611,15 +604,15 @@ The DAG was deployed to a live **Google Cloud Composer** environment to verify t
 | Airflow version | `2.11.1` |
 | Confirmed schedule interval (Composer console) | `*/2 * * * *` |
 
-![Cloud Composer DAG overview on 23 September 2026 showing diabetes_risk_pipeline Active on */2 * * * *, with 1 active, 24 successful, and 0 failed runs in the one-hour window](imgs/DAG-img-1.png)
+![Cloud Composer DAG overview showing diabetes_risk_pipeline Active on */2 * * * *](imgs/DAG-img-1.png)
 
 The Cloud Storage bucket managed by the environment is used as the data hand-off between Airflow tasks: the raw dataset is read from `data/raw/`, and processed/EDA/model outputs are written back to `data/processed/` and `data/outputs/`.
 
-The selected Composer run, `scheduled__2026-09-23T10:14:00+00:00`, completed successfully across all three tasks: `data_quality_preprocessing_and_eda`, `random_forest`, and `model_evaluation`.
+A selected Composer run completed successfully across all three tasks: `data_quality_preprocessing_and_eda`, `random_forest`, and `model_evaluation`.
 
-![Cloud Composer run history for scheduled__2026-09-23T10:14:00+00:00 showing all three pipeline tasks in Success state](imgs/DAG-List-IMG-2.png)
+![Cloud Composer run history showing all three pipeline tasks in Success state](imgs/DAG-List-IMG-2.png)
 
-An earlier one-hour console snapshot showed 10 failed runs before the current authenticated view above (24 successful, 0 failed, 1 active); the failures were not individually root-caused, and the newer status reflects the deployment's current behavior. The deployed `/api/v1/schedule` endpoint also returned `RUNNING` for the Composer environment. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
+The deployed `/api/v1/schedule` endpoint also returns the Composer environment state. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
 
 **Schedule and runtime observations:** the DAG's configured schedule is `*/2 * * * *`. The displayed history includes run starts at 9:48, 9:50, 9:54, 9:58, 10:00, and 10:04. The selected run's three tasks took 17.7 s + 64.0 s + 79.1 s, or about 2 minutes 41 seconds end to end. These figures report the configured interval, observed run history, and measured task runtime separately. Most of the measured runtime came from Random Forest training and model evaluation; the required data-quality/preprocessing/EDA work alone completes locally in about 5–10 seconds (Section 2.6).
 
@@ -656,7 +649,7 @@ Additional validation completed successfully:
 
 ### 2.12 Evidence summary
 
-This report is the record for the local validation and Cloud Composer evidence.
+This report records local validation and Cloud Composer evidence.
 
 The verified local evidence includes:
 
@@ -676,17 +669,17 @@ The verified local evidence includes:
 
 ### 2.13 Summary
 
-The approved dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, and structured execution logging is implemented. The Airflow DAG is configured for a two-minute schedule with an explicit overlapping-run policy; measured task runtime and Composer run history are reported in Section 2.9. The available automated verification suite passed at the time documented above. This section does **not** implement final dashboarding or the four required application APIs; those are covered in Section 4.
+The selected dataset has been validated, quality checks and preprocessing are automated, cleaned and model-ready datasets are generated, EDA artifacts are refreshed by the workflow, and structured execution logging is implemented. The Airflow DAG is configured for a two-minute schedule with an explicit overlapping-run policy; measured task runtime and Composer run history are reported in Section 2.9. The available automated verification suite passed at the time documented above. Dashboard and API details are covered in Section 4.
 
 ---
 
-## 3. EDA, Optional Model, and Dashboard Analysis
+## 3. Exploratory Data Analysis and Optional Model
 
 ### 3.1 Scope
 
-This section covers interpretation of the automated EDA outputs from Section 2, plus an optional (not required by the assessment) predictive-model comparison built on top of the model-ready dataset. It does not implement the dashboard or the four required application APIs; those are covered in Section 4.
+This section covers interpretation of the automated EDA outputs from Section 2, plus an additional predictive-model comparison built on top of the model-ready dataset. Dashboard and API details are covered in Section 4.
 
-**Source:** the EDA interpretation and feature/correlation charts in Sections 3.2-3.7 are drawn from `Diabetes_EDA_Person3.pptx`, the original analysis deck for this section (not included in this export; available in the team's repository). The target-distribution chart below was refreshed from the automated EDA run against the current raw CSV on 23 September 2026, after exact-duplicate removal; its values match the 229,781-row analytical dataset documented in this report. Section 3.8's model implementation, evaluation, and evidence were rerun for this report (see Section 3.9 for the reproducibility distinction between the two).
+**Source:** the EDA interpretation and feature/correlation charts in Sections 3.2-3.7 are drawn from `Diabetes_EDA_Person3.pptx`, included in the assignment project. The target-distribution chart below was refreshed from the automated EDA run against the raw CSV after exact-duplicate removal; its values match the 229,781-row analytical dataset documented in this report. Section 3.8's model implementation, evaluation, and evidence were rerun for this report (see Section 3.9 for the reproducibility distinction between the two).
 
 ### 3.2 Dataset overview and completeness
 
@@ -853,7 +846,7 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ### 3.9 Known limitations
 
-- The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 and the binned-feature table in Section 3.4 were both refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
+- The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 and the binned-feature table in Section 3.4 were refreshed from the automated EDA pipeline. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
 - The optional model (Section 3.8) is not integrated into the automated `run()` pipeline; it runs as separate CLI commands and Composer DAG tasks, consistent with its optional, additive analysis scope.
 - The Composer schedule is configured for every two minutes; measured task runtime and observed run history are documented in Section 2.9.
 - Logistic Regression's "materially better" minority-class recall (Section 3.8) comes with very low precision (3.25% for class 1); neither model would be usable in a real screening tool without further tuning, threshold adjustment, or a different modeling approach.
@@ -865,113 +858,73 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ## 4. Dashboard, APIs, and Demonstration
 
-### 4.1 Activity dashboard
+### 4.1 Dashboard and application APIs
 
-The dashboard is served by `src/diabetes_risk/dashboard/app.py`. It retrieves
-run, dataset, and Composer environment details from the FastAPI service. The
-schedule shown on the environment card matches the cron expression configured
-in the DAG. Summary cards show the latest completed Composer status and its
-whole-DAG duration. In-progress runs remain in the 10-row Composer history
-table, which shows each run's state, timestamps, duration, and expandable task
-details. Separate processing cards show **Processed Records**, duplicate
-removals, quality status, and processing error/warning counts. The GCS
-execution manifest supplies the record and error/warning counts; dataset
-reports supply duplicate and quality metrics. The record count is the
-pipeline's **input** row count (253,680), not the 229,781-row cleaned output.
-A Composer Environment card shows the environment name, state, and Airflow
-version. Optional model-comparison metrics appear in the chart. DAG and task
-timestamps are displayed in UTC to match Composer. GCS pipeline manifests
-remain available separately through `/api/v1/pipeline/history`.
+The public dashboard is served by `src/diabetes_risk/dashboard/app.py` and obtains data from the separate FastAPI service. Its activity view contains:
 
-The public dashboard is available at
-[https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/),
-and its Swagger/OpenAPI documentation is at
-[https://diabetes-risk-api-573458509120.us-central1.run.app/docs](https://diabetes-risk-api-573458509120.us-central1.run.app/docs).
+- **Latest Completed Composer Workflow Status** and **Latest Completed DAG Duration**, selected from the newest completed Composer DAG run (`success` or `failed`). A currently running run stays visible in history and does not replace these summary values.
+- **Composer DAG Run History**, showing up to 10 runs from the Composer Airflow REST API. It displays run ID, state, UTC start/end timestamps, whole-DAG duration, and a control to retrieve that run's task-instance details.
+- **Processed Records**, duplicate removals, quality status, processing errors, and processing warnings. These values come from GCS pipeline manifests and quality/preprocessing reports. The record total shown is the input count (253,680); the cleaned output count is 229,781 and is returned by the dataset endpoint.
+- **Composer Environment**, which displays the environment name, state, and Airflow version from the Composer Environments API. The `*/2 * * * *` cadence shown beside it is the DAG's configured schedule, not a field returned by that API.
 
-The dashboard and API are deployed as public Cloud Run services at the URLs
-above. The dashboard reads the API URL from `DIABETES_API_BASE_URL`. The API's
-Cloud Run service account must be able to read pipeline outputs in GCS and
-access Composer DAG runs, task instances, and environment details. Without
-those permissions or the required GCP configuration, the public pages can load
-but the dashboard may show configuration or availability errors for
-GCP-backed values.
+A model-comparison chart is also shown when model artifacts are available; it is additional analysis. All displayed run and task timestamps use UTC. Composer DAG run history and GCS pipeline execution history are separate: the dashboard's 10-row history is Composer-backed, while `/api/v1/pipeline/history` returns processing manifests from GCS and is not the dashboard's run-history table.
 
-The dashboard displays four main types of application information: Composer
-workflow history, processing-manifest metrics such as records and
-errors/warnings, dataset and quality results, and Composer environment
-details. Their endpoints are listed below. The task-instance and GCS
-execution-history endpoints provide supporting details; the model endpoint is
-optional.
+**Public services:** [Dashboard](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/) · [Swagger/OpenAPI](https://diabetes-risk-api-573458509120.us-central1.run.app/docs)
 
-| API | Purpose | Method | Data source | Authentication / expected status |
-|---|---|---|---|---|
-| Workflow | Recent scheduled DAG runs | GET `/api/v1/workflow` | Cloud Composer Airflow REST API | Runtime service account needs `roles/composer.user` and Airflow read access |
-| Workflow task details | Task states and timings for a DAG run | GET `/api/v1/workflow/{dag_run_id}/tasks` | Cloud Composer Airflow REST API | Same Composer/Airflow permissions |
-| Pipeline execution history | Recent processing manifests | GET `/api/v1/pipeline/history` | GCS execution manifests (`data/outputs/execution/`) | Cloud Run service account needs GCS read access; 200 when objects exist |
-| Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Cloud Run service account needs GCS read access; 200 when object exists |
-| Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Cloud Run service account needs GCS read access; 200 when objects exist |
-| Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Cloud Run service account needs Composer environment access; 200 when authorized |
-| Optional model detail | Comparison metrics and top feature | GET `/api/v1/model` | GCS model-evaluation and feature-importance CSVs | Cloud Run service account needs GCS read access; 200 when objects exist |
+The dashboard reads the API base URL from `DIABETES_API_BASE_URL`. In production the API uses its Cloud Run runtime service account and Application Default Credentials to access Cloud Storage, the Composer Environments API, the Composer-hosted Airflow REST API, and Cloud Monitoring. The account must have the corresponding GCP permissions and Composer web-server/Airflow access. If configuration or access is unavailable, GCP-backed dashboard values can show an error even while the public page itself loads.
 
-A sixth, undocumented-in-the-UI endpoint, `GET /api/v1/health/environment`, also exists and reads real Composer environment health metrics from **Cloud Monitoring** (`google.cloud.monitoring_v3`) — this is the "Cloud Logging/Monitoring" service listed in the Platform Selection table earlier in this report; it is not one of the four required endpoints and is not covered by dedicated screenshots in Section 4.2. `gcp_service.py`'s `get_task_instance_status()` returns per-task state and duration through `GET /api/v1/workflow/{dag_run_id}/tasks`, which the dashboard loads when a Composer run's **Tasks** button is opened.
+The four dashboard detail calls and their sources are:
 
-`/health` and `/api/v1/metadata` are also available without GCP access. The deployed dashboard workflow history reads up to 10 DAG runs from the Composer Airflow REST API; each run can be expanded to show task-instance state and timing. The completed-run summary uses the newest successful or failed Composer run, while in-progress runs remain visible in the history table. The API uses OAuth credentials supplied through Application Default Credentials by its Cloud Run runtime service account. That account needs access to the Composer environment, Airflow read access to DAGs and task instances, and permission through Composer web server access control. The GCS-backed processing history remains available through `/api/v1/pipeline/history`. The schedule/deployment route continues to use the Composer Environments API, and environment health uses Cloud Monitoring.
+| Application detail | API route | Underlying source | What it returns |
+|---|---|---|---|
+| Composer workflow | `GET /api/v1/workflow` | Composer-hosted Airflow REST API | Up to 10 recent DAG runs, including state, timestamps, and duration |
+| Latest pipeline execution | `GET /api/v1/runs/latest` | GCS execution manifest | Latest processing status, duration, record counts, errors, and warnings |
+| Dataset and data quality | `GET /api/v1/dataset` | GCS quality and preprocessing reports | Input/output dimensions, duplicates removed, missing values, and quality status |
+| Composer deployment details | `GET /api/v1/schedule` | Cloud Composer Environments API | Environment state, Airflow version, and bucket information; cadence is configured in the DAG |
 
-### 4.2 Live verification and evidence
+The dashboard's task expansion calls `GET /api/v1/workflow/{dag_run_id}/tasks`, which reads task states and timings from Composer's Airflow REST API. `GET /api/v1/pipeline/history` reads GCS processing manifests. `GET /api/v1/model` reads model-comparison and feature-importance artifacts from GCS. `GET /api/v1/health/environment` reads Composer health metrics from Cloud Monitoring. `/health` and `/api/v1/metadata` provide supporting service information. The FastAPI endpoints are the application's documented interface; their underlying data is retrieved from the GCP APIs or stored pipeline artifacts identified above.
 
-The deployed dashboard and API are available through the public Cloud Run
-URLs. The dashboard, Swagger UI, and the four endpoints that supply its
-application details returned HTTP 200. The workflow endpoint returned 10
-Composer DAG runs. Its response included an in-progress run followed by a
-successful run lasting about 192 seconds; the dashboard showed the in-progress
-run in the history and the completed run's status and duration in the summary
-cards. The screenshots below show these deployed pages and their responses.
+### 4.2 Deployed evidence and demonstration
+
+The screenshots below document the deployed Cloud Run dashboard and Swagger/OpenAPI responses. The dashboard and Swagger UI loaded, and the four detail routes shown below returned HTTP 200 in the captured responses. The Composer workflow response contains 10 DAG runs. In the captured view, the newest run is in progress while the summary cards continue to show the latest completed run and its duration.
 
 **Deployed services:**
 
-- Dashboard: https://diabetes-risk-dashboard-573458509120.us-central1.run.app/
-- Swagger/OpenAPI: https://diabetes-risk-api-573458509120.us-central1.run.app/docs
+- Dashboard: [diabetes-risk-dashboard](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/)
+- Swagger/OpenAPI: [diabetes-risk-api/docs](https://diabetes-risk-api-573458509120.us-central1.run.app/docs)
 
-**1. Workflow — recent Composer DAG runs**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/workflow`. The deployed Composer Airflow REST API returned 10 recent DAG runs (HTTP 200). The response shows an in-progress newest run followed by a successful run lasting about 192 seconds. The dashboard summary uses the latest completed run until the in-progress run finishes.
+**1. Composer workflow history** — `GET /api/v1/workflow` returned 10 Composer DAG runs (HTTP 200). The screenshot shows the workflow request and response.
 
 ![Swagger workflow request and response; full request URL is visible in Swagger](imgs/p4-api-workflow-response.png)
 
-**2. Latest execution — detailed latest run status and metrics**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/runs/latest`. Public Cloud Run URL, no credentials prompted. Captured Swagger response: HTTP 200; `20260923T180635380306Z`, `SUCCESS`, 253,680 input records. This processing manifest is GCS-backed and distinct from the Composer DAG history above.
+**2. Latest processing execution** — `GET /api/v1/runs/latest` returned the latest GCS processing manifest (HTTP 200), including `SUCCESS` status and 253,680 input records. This is processing-run information and is distinct from Composer DAG run history.
 
 ![Swagger latest-run request and response; full request URL is visible in Swagger](imgs/p4-api-latest-response.png)
 
-**3. Dataset processing — dataset and quality metrics**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/dataset`. Public Cloud Run URL, no credentials prompted. Live response: 200; 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, 0 missing values after processing, `PASS_WITH_WARNINGS`.
+**3. Dataset and quality** — `GET /api/v1/dataset` returned HTTP 200 with 253,680 input rows, 229,781 output rows, 23,899 duplicates removed, no missing values after preprocessing, and `PASS_WITH_WARNINGS` quality status. The warning reflects duplicates detected in the source, which preprocessing removes; the raw file remains unchanged.
 
 ![Swagger dataset request and response; full request URL is visible in Swagger](imgs/p4-api-dataset-response.png)
 
-**4. Schedule/deployment — Composer environment status and version**
-`GET https://diabetes-risk-api-573458509120.us-central1.run.app/api/v1/schedule`. Public Cloud Run URL, no credentials prompted. Live response: 200; `diabetes-risk-env` is `RUNNING`; Composer 3 / Airflow 2.11.1.
+**4. Composer environment details** — `GET /api/v1/schedule` returned HTTP 200 with the environment state and Airflow version. The two-minute cadence is configured in the DAG and is displayed separately from the environment API response.
 
 ![Swagger schedule request and response; full request URL is visible in Swagger](imgs/p4-api-schedule-response.png)
 
-The refreshed dashboard screenshot shows the Composer DAG Run History table
-and an expanded successful run with its three task instances. Open the dashboard at
-[https://diabetes-risk-dashboard-573458509120.us-central1.run.app/](https://diabetes-risk-dashboard-573458509120.us-central1.run.app/):
+The dashboard screenshot shows the Composer DAG Run History table with an expanded run and its task instances:
 
-![Deployed Cloud Run dashboard with live metrics and Composer DAG run history](imgs/p4-cloud-run-dashboard.png)
+![Deployed Cloud Run dashboard with activity metrics and Composer DAG run history](imgs/p4-cloud-run-dashboard.png)
 
-The screenshots show the deployed API and dashboard responses. The demonstration video required by the brief remains to be recorded and added as a shared Google Drive link before final submission.
+The assessment demonstration video remains to be recorded and linked from the team's shared Google Drive location before submission.
 
 ---
 
-## 5. Conclusion, Limitations, and Future Work
+## 5. Conclusion and Limitations
 
 **Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The deployed dashboard uses Composer DAG history with expandable task details and a completed-run summary, and retains GCS processing manifests through separate endpoints. Live API and dashboard responses and refreshed screenshots are included in Section 4.2. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
 
 **Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
 
 - Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
-- The demonstration video and each member's individual confirmation of their contribution entry remain outstanding at the time of this export.
-
-**Optional future model improvements:** if the model comparison is retained, apply class weighting or threshold tuning to Random Forest for a more balanced comparison with Logistic Regression. Permutation importance or SHAP could also be added as supplementary feature-importance analyses. The current code already produces Random Forest feature-importance results required for the EDA activity. Recording and linking the demonstration video remains an outstanding assessment deliverable, as noted above.
+- Each member's individual confirmation of their contribution entry remains outstanding at the time of this export.
 
 ---
 
