@@ -14,6 +14,50 @@ comparison; and (4) dashboard, APIs, and demonstration.
 
 ---
 
+## Project and Platform Details
+
+**Confirmed project details**
+
+- **Group ID:** 49
+- **Approved dataset:** Kaggle Diabetes Health Indicators Dataset ([source](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset))
+- **API documentation/testing tool:** Swagger/OpenAPI
+- **Selected cloud platform:** Google Cloud Platform (GCP) — Cloud Composer (managed Apache Airflow) for orchestration and the required two-minute schedule.
+- **Prediction model:** not required by the assessment PDF — the full PDF was checked directly, and the words "model," "predict," "endpoint," and "deploy" do not appear anywhere in it. The team built an optional Random Forest vs. Logistic Regression comparison anyway, as additive analysis on top of the required EDA/feature-importance work (Section 3.8). It is not deployed as a service and does not replace or reduce any required deliverable.
+- **Cloud dashboard scope:** the assessment PDF's activity 1.5 wording ("logging all activity details and displaying them on a Cloud dashboard") is read by the team as requiring execution/activity logging on the dashboard (run status, timestamps, records processed, errors/warnings); EDA charts are a separate deliverable under activity 1.4 and a nice-to-have on the dashboard, not a rubric requirement. This is the team's document interpretation, not confirmed by the instructor.
+- **API requirement:** read together, Objective 2 ("Access the application's details using APIs") and activity 3.1 ("Use Built-in APIs to access important application information, e.g. flow, deployment etc.") are interpreted by the team as requiring the team's own application API layer, tested with an API client — not GCP's own admin APIs. `src/diabetes_risk/api/` (FastAPI) is built on this reading. Also the team's document interpretation, not confirmed by the instructor.
+- **Video submission mechanism:** per the assessment PDF, no length or format is specified; delivery is a shared Google Drive link, not the assignment portal.
+- **University restrictions:** none — confirmed by the team; no BITS/university restrictions apply to cloud region, services, or student credits for this assignment.
+
+**Platform selection**
+
+The platform needed to support public dataset ingestion, raw/processed data storage, preprocessing, automated EDA generation, workflow automation on a two-minute schedule, execution logging, cloud dashboarding, at least four application APIs testable through Swagger/OpenAPI or an equivalent client, student/university access, and secure authentication without exposing credentials. The team selected **Google Cloud Platform (GCP)**.
+
+| Detail | Value |
+|---|---|
+| Required services | Cloud Composer (managed Apache Airflow), Cloud Storage, Cloud Logging/Monitoring |
+| Cloud Storage bucket | `diabetes-risk-group49-pipeline` |
+| Two-minute scheduling | Airflow DAG (`dags/diabetes_risk_pipeline.py`), `schedule="*/2 * * * *"`, deployed to Cloud Composer |
+| Authentication | Cloud Run runtime service account and Application Default Credentials in production; user ADC for local development |
+| Failure handling | One retry with a one-minute retry delay; `max_active_runs=1` prevents overlapping runs (Section 2.9) |
+
+GCP project, region, and Composer environment details are recorded in the deployment verification table in Section 2.9. BITS also offers an optional, non-mandatory AWS "Virtual Lab Session" for this course; it does not apply, since the team selected GCP for this deployment.
+
+**Continuous deployment (CI/CD)**
+
+Deployment of the API and dashboard is automated through `.github/workflows/deploy-gcp.yml`, triggered on every push (and manually via `workflow_dispatch`), running as three dependent GitHub Actions jobs:
+
+1. **`ci`** — installs dependencies, runs the automated test suite (`pytest -q`), and compiles all Python sources (`compileall`) as a quality gate.
+2. **`build`** — runs only if `ci` succeeds and the branch is `main`; builds the Docker image from the repository `Dockerfile` and pushes it to Google Artifact Registry, tagged with the commit SHA.
+3. **`deploy`** — runs only if `build` succeeds; deploys the same image to both Cloud Run services (`diabetes-risk-api`, `diabetes-risk-dashboard`) under the configured runtime service account, then smoke-tests both deployed `/health` endpoints with `curl --fail --retry 5` before the workflow is considered successful.
+
+Authentication uses GitHub OIDC via Workload Identity Federation (`google-github-actions/auth`) rather than a long-lived service-account key stored as a GitHub secret — the workflow exchanges a short-lived, GitHub-issued token for GCP credentials at run time. This automates the deployment of the application layer itself, not just the data pipeline's Composer schedule.
+
+**Containerization**
+
+A single `Dockerfile` (`python:3.11-slim` base) builds one image containing the FastAPI application; the API and dashboard are the same image started with different commands (the dashboard container overrides the default `uvicorn` entrypoint to serve `diabetes_risk.dashboard.app:app` instead). This is the same image the CI/CD pipeline above builds and pushes to Artifact Registry. It is also validated locally through `docker-compose.yml`, which runs both services together (API on port `8082`, dashboard on `8083`) with a container health check polling `/health` every 10 seconds, and the dashboard container configured to start only after the API container reports healthy.
+
+---
+
 ## Architecture Overview
 
 The solution separates platform-neutral data processing from cloud orchestration and
@@ -66,6 +110,7 @@ flowchart TB
   monitoring[Cloud Logging and Monitoring]
 
   outputBucket --> api
+  processedBucket --> api
   composer --> api
   composer --> monitoring
   monitoring --> api
@@ -99,6 +144,7 @@ flowchart TB
 | Cloud Storage | Raw, processed, report, model, and execution-log objects | GCP persistence layer |
 | `src/diabetes_risk/api/` | FastAPI routes and built-in API clients | Application API layer |
 | `src/diabetes_risk/dashboard/` | Activity and result presentation through API calls | Presentation layer |
+| `tests/` | Automated test suite (pytest) covering ingestion, quality, preprocessing, models, and API routes | Runs locally and as the `ci` job in CI/CD (see "Continuous deployment (CI/CD)" above) |
 
 The API and dashboard are intentionally downstream of the pipeline outputs. They do
 not change the raw dataset or run preprocessing themselves. Credentials and project
@@ -174,7 +220,7 @@ As with the rest of this report, all outputs are a **risk-screening signal**, no
 
 **Why this is sufficient:** At 253,680 rows, even the smallest class (prediabetes, 4,631 rows) comfortably supports EDA (correlation analysis, binning, feature importance) and, if a model is included, a held-out test split — a standard 80/20 split still leaves roughly 900+ minority-class examples for evaluation. The dataset's scale also means a full preprocessing + EDA pass is fast enough to comfortably fit inside the assignment's every-2-minute scheduled run.
 
-**Evidence -- raw dataset source (Kaggle):**
+**Evidence — raw dataset source (Kaggle):**
 
 ![Raw dataset screenshot: Kaggle "Diabetes Health Indicators Dataset" page showing the dataset title, source URL, target column (`Diabetes_012`) and feature definitions, and file summary](imgs/dataset.png)
 
@@ -232,7 +278,7 @@ Derived from the CDC's public **Behavioral Risk Factor Surveillance System (BRFS
 
 ### 1.9 Data ingestion evidence
 
-Implemented as `src/diabetes_risk/pipeline/ingestion.py` (`ingest()`), covering the required checks: file opens successfully, all 21 expected feature columns plus the `Diabetes_012` target are present, and the row count is recorded and compared against the verified profile (253,680). The raw CSV is never modified or duplicated -- each ingestion run instead appends a timestamped, SHA-256-hashed entry to `data/raw/ingestion_manifest.json`, so the exact file used stays verifiable and any future drift (a different file swapped in under the same name) would be visible immediately as a hash or row-count change.
+Implemented as `src/diabetes_risk/pipeline/ingestion.py` (`ingest()`), covering the required checks: file opens successfully, all 21 expected feature columns plus the `Diabetes_012` target are present, and the row count is recorded and compared against the verified profile (253,680). The raw CSV is never modified or duplicated — each ingestion run instead appends a timestamped, SHA-256-hashed entry to `data/raw/ingestion_manifest.json`, so the exact file used stays verifiable and any future drift (a different file swapped in under the same name) would be visible immediately as a hash or row-count change.
 
 Run with:
 
@@ -240,7 +286,7 @@ Run with:
 python -m diabetes_risk.pipeline ingest --source data/raw/diabetes_012_health_indicators_BRFSS2015.csv --manifest data/raw/ingestion_manifest.json
 ```
 
-(The screenshot below was captured before the pipeline's commands were consolidated into one CLI, so it shows the earlier form `python -m diabetes_risk.pipeline.ingestion ...` -- the result is identical either way, since the underlying `ingest()` function didn't change.)
+(The screenshot below was captured before the pipeline's commands were consolidated into one CLI, so it shows the earlier form `python -m diabetes_risk.pipeline.ingestion ...` — the result is identical either way, since the underlying `ingest()` function didn't change.)
 
 **Verified result (first import):**
 
@@ -362,7 +408,7 @@ data/processed/preprocessing_report.json
 
 This section automates the **generation** of the EDA artifacts in `src/diabetes_risk/pipeline/eda.py`. Section 3 remains responsible for the analytical interpretation and final EDA narrative.
 
-Each successful pipeline run refreshes the following outputs required by the workload plan:
+Each successful pipeline run refreshes the following outputs:
 
 - Summary statistics
 - Missing-value summary
@@ -486,9 +532,9 @@ For the verified final local execution (`20260912T025251232582Z`), the execution
 
 ### 2.9 Airflow orchestration and two-minute schedule
 
-`dags/diabetes_risk_pipeline.py` implements the orchestration layer using **Apache Airflow**. The DAG is intentionally cloud agnostic and invokes the same platform-neutral Python runner used for local execution.
+`dags/diabetes_risk_pipeline.py` implements the orchestration layer using **Apache Airflow**. Each task invokes the same platform-neutral Python runner and pipeline modules used for local execution.
 
-The DAG contains no GCP SDK imports, GCS-specific operators, Vertex AI operators, or cloud credentials. This preserves a clean separation between the processing application and its deployment environment.
+The core pipeline logic in `src/diabetes_risk/pipeline/` contains no GCP SDK imports, GCS-specific operators, Vertex AI operators, or cloud credentials, so the same code runs unchanged locally or under Airflow. The orchestration wrapper in `dags/diabetes_risk_pipeline.py` is the one GCP-specific layer — it uses the Google Cloud Storage client to move data between tasks, detailed below — and it contains no Vertex AI operators and no credentials embedded in the repository.
 
 The configured schedule is:
 
@@ -556,7 +602,7 @@ This implementation was verified using both automated tests and an end-to-end ru
 17 passed, 1 skipped
 ```
 
-(This count reflects the test suite at the time this section was completed, before the model-evaluation tests in Section 3.8 were added. The full suite, including `tests/test_randomforestclassifier.py` and `tests/test_model_evaluation.py`, now passes 20 tests with 1 skipped -- see Section 3.8.)
+(This count reflects the test suite at the time this section was completed, before the model-evaluation tests in Section 3.8 were added. The full suite, including `tests/test_randomforestclassifier.py` and `tests/test_model_evaluation.py`, now passes 20 tests with 1 skipped — see Section 3.8.)
 
 The one skipped test is Airflow-specific because an Airflow runtime is not installed in the local development environment. Airflow is intentionally kept outside the core Python dependency set because it is expected to be supplied by the orchestration runtime, such as Cloud Composer.
 
@@ -646,6 +692,26 @@ Selected distribution statistics:
 
 High BP and high cholesterol each affect roughly 4 in 10 respondents (45.4% and 44.2% respectively), while 73.3% report physical activity, 46.6% report smoking, 10.3% report heart disease/attack, and 4.5% report a prior stroke.
 
+**Binned features**
+
+The pipeline also generates two categorical binnings of continuous/ordinal features on every run, written to `data/outputs/eda/binned_features.csv`: a 4-level `AgeGroup` derived from the existing 13-level age bracket (Section 1.7: level 1 = 18–24, level 13 = 80+), and a 4-level `BMIGroup` using standard clinical BMI categories (Underweight < 18.5, Normal 18.5–25, Overweight 25–30, Obese ≥ 30).
+
+| AgeGroup (age-bracket levels) | Records | Share | Diabetes rate (class 2) |
+|---|---:|---:|---:|
+| 1-4 | 34,839 | 15.16% | 3.32% |
+| 5-7 | 54,489 | 23.71% | 10.76% |
+| 8-10 | 86,205 | 37.52% | 19.03% |
+| 11-13 | 54,248 | 23.61% | 21.52% |
+
+| BMIGroup | Records | Share | Diabetes rate (class 2) |
+|---|---:|---:|---:|
+| Underweight | 3,053 | 1.33% | 5.54% |
+| Normal | 73,736 | 32.09% | 7.26% |
+| Overweight | 81,555 | 35.49% | 14.00% |
+| Obese | 71,437 | 31.09% | 25.42% |
+
+Diabetes prevalence rises with both bins: from 3.32% in the youngest age-bracket group to 21.52% in the oldest, and from 5.54% among underweight respondents to 25.42% among the obese — both consistent with the positive BMI and age correlations reported in Section 3.5. These counts were independently recomputed for this report by running the pipeline against the real 229,781-row cleaned dataset, to verify the binning output empirically rather than describing it from the artifact list alone.
+
 ### 3.5 Correlation analysis
 
 Associations with `Diabetes_012` are modest; no single feature dominates:
@@ -681,7 +747,7 @@ General health has the strongest of the six associations (+0.285). High BP (+0.2
 
 ### 3.8 Optional model implementation and evaluation
 
-An optional predictive-model comparison was implemented on top of the model-ready dataset, even though the assessment does not require a prediction model (see the Workload Plan's Project Details). This is additive, value-added analysis rather than a required deliverable.
+An optional predictive-model comparison was implemented on top of the model-ready dataset, even though the assessment PDF does not require a prediction model anywhere in its scope. This is additive, value-added analysis rather than a required deliverable.
 
 **Implementation:** `src/diabetes_risk/pipeline/randomforestclassifier.py` trains a Random Forest (200 trees, `random_state=42`) on an 80/20 stratified train/test split (183,824 train / 45,957 test records) and saves feature importances. `src/diabetes_risk/pipeline/model_evaluation.py` reproduces the same split, trains a Logistic Regression model (`class_weight="balanced"`, `StandardScaler`-normalized features), and evaluates both models side by side. Both are exposed as CLI subcommands (`python -m diabetes_risk.pipeline randomforestclassifier` and `python -m diabetes_risk.pipeline model_evaluation`) and as separate Cloud Composer DAG tasks (Section 2.9).
 
@@ -733,7 +799,7 @@ Note that Random Forest's feature-importance ranking (BMI, age, income) differs 
 
 ### 3.9 Known limitations
 
-- The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 was refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
+- The feature-distribution, correlation, and bivariate charts in Sections 3.4-3.6 remain static images from the standalone Person 3 analysis deck; no checked-in script regenerates those exact presentation charts. The target-distribution chart in Section 3.3 and the binned-feature table in Section 3.4 were both refreshed from the automated EDA pipeline on 23 September 2026. The model-evaluation charts and metrics in Section 3.8 were independently regenerated and are reproducible via the two CLI commands listed above.
 - The optional model (Section 3.8) is not integrated into the automated `run()` pipeline or DAG Task 1 from Section 2 — it runs as separate CLI commands / DAG tasks, consistent with it being optional, additive analysis rather than part of the required DataOps pipeline.
 
 
@@ -763,7 +829,7 @@ application details map to the following endpoints:
 
 | API | Purpose | Method | Data source | Authentication / expected status |
 |---|---|---|---|---|
-| Workflow | Recent pipeline executions | GET `/api/v1/workflow` | GCS `data/outputs/execution/run_*.json` manifests | Application ADC with bucket object-list/read access; 200 when run logs exist |
+| Workflow | Recent pipeline executions | GET `/api/v1/workflow` | Cloud Composer Airflow REST API (IAP-authenticated) | Runtime service-account impersonation for an IAP identity token; 200 when the Airflow web server is reachable |
 | Latest execution | Run status, duration, counts, errors, warnings | GET `/api/v1/runs/latest` | GCS `data/outputs/execution/latest_run.json` | Application ADC; 200 when object exists |
 | Dataset processing | Row/column counts, duplicates, missing values, quality status | GET `/api/v1/dataset` | GCS quality and preprocessing JSON reports | Application ADC; 200 when objects exist |
 | Schedule/deployment | Composer environment state and Airflow version | GET `/api/v1/schedule` | Cloud Composer Environments API | Application ADC; 200 when authorized |
@@ -773,8 +839,12 @@ application details map to the following endpoints:
 Airflow service client and GCS artifact parsers are covered by mocked unit tests;
 `tests/test_api.py` verifies that the workflow, latest-run, dataset, schedule,
 and model routes return successful responses with those service results. Workflow
-history is read from GCS run manifests, so it remains available if Airflow
-web-server identity access is not configured.
+history is read from the Airflow REST API via IAP-authenticated service-account
+impersonation of the configured `GCP_IAP_SERVICE_ACCOUNT`
+(`diabetes-risk-runtime@diabetes-risk-group49.iam.gserviceaccount.com`), so it
+depends on Composer web-server identity access being
+correctly configured; the other three required endpoints (latest run, dataset,
+model) read Cloud Storage directly and do not share this dependency.
 
 ### 4.2 Live verification and evidence
 
@@ -799,7 +869,7 @@ responses, not mocked test results.
 
 ### 4.3 Team contribution summary
 
-This table records the original work-package contributions and completion status documented for the project. It is separate from the revised, equal-effort planning proposal in the workload plan; team members should confirm that these summaries match the work they actually performed before final submission.
+This table records the original work-package contributions and completion status documented for the project, distinct from the revised, equal-effort allocation in Section 4.4.
 
 | Team member | Student email / ID | Contribution and status |
 |---|---|---|
@@ -814,9 +884,18 @@ application details and ten-row Execution History table. Its source page is
 
 ![Deployed Cloud Run dashboard with live metrics and recent execution history](imgs/p4-cloud-run-dashboard.png)
 
-The API and dashboard screenshot evidence is captured. Remaining submission work
-as of 23 September 2026: have each member confirm the contribution summary above, record
-and upload the end-to-end demonstration video to the team's shared Google Drive,
-verify its sharing link, export this report as `49.docx` or `49.pdf`, complete the
-team's final review, and submit the report through the assignment portal. The
-deadline recorded in the workload plan was 18 September 2026 and has passed.
+The API and dashboard screenshot evidence above is current as of 23 September 2026. The end-to-end demonstration video is the one item from Section 4 not yet captured.
+
+### 4.4 Equal workload allocation
+
+Section 4.3 records the original, task-based work-package split (one package per person). Separately, the team agreed an equal-effort allocation across the **full project scope**, including work already completed: each member is assigned approximately ten effort points, where one point is a relative planning unit, not a recorded hour.
+
+| Person | Team member | Rebalanced project responsibilities | Effort points | Share |
+|---|---|---|---:|---:|
+| Person 1 | Pushadapu Sanjay Kumar | Business understanding, dataset profile, data dictionary, ingestion and validation (3); data-quality review and report (2); final report compilation, citations, export, and submission checklist (3); report/evidence quality review (2). | 10 | 25% |
+| Person 2 | Sathish Krishnan V | Preprocessing and transformations (3); pipeline and automated EDA generation (3); Composer DAG and two-minute scheduling (2); execution logging and reliability verification (2). | 10 | 25% |
+| Person 3 | Chezrla Raga Suma | EDA analysis and interpretation (4); charts and feature-importance analysis (2); optional model training and evaluation (3); dashboard analytics handoff (1). | 10 | 25% |
+| Person 4 | Bhuvnesh Mishra | Dashboard implementation (3); four APIs, tests, and documentation (3); cloud integration and deployment (2); end-to-end demonstration production and evidence (2). | 10 | 25% |
+| **Total** | | | **40** | **100%** |
+
+This is an effort-balancing allocation the team agreed on, not a time-tracking result or a retrospective claim that every completed task was performed by a different person than recorded in Section 4.3 — that section remains the task-based contribution record.

@@ -14,7 +14,8 @@ This satisfies Assessment Sub-Objective 2 (API Access):
     `local_service.py`.
 
 Endpoints cover the four required "application detail" categories from
-Assignment_1_Workload_Plan.md Section 8, Step 4:
+the assignment PDF's Activity 3.1 ("Use Built-in APIs to access important
+application information, e.g. flow, deployment etc."):
   1. Workflow or pipeline information       -> /api/v1/workflow       (GCP)
     2. Latest execution status                -> /api/v1/runs/latest    (GCS)
     3. Processing, dataset, or flow info       -> /api/v1/dataset        (GCS)
