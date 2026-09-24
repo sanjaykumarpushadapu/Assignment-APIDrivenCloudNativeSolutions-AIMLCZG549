@@ -234,62 +234,48 @@ Cloud Composer runs the scheduled DAG. Cloud Run hosts the API and dashboard. Th
 
 ## Demonstration Video
 
-The PDF requires one video demonstrating the entire project, uploaded to a shared Google Drive link (no required length or format). Target 5-7 minutes: long enough to cover every required activity, short enough to stay watchable.
+The assessment requires one video demonstrating the complete project, uploaded to a shared Google Drive folder. It does not specify a duration; about 5-7 minutes is a practical target for covering the required work clearly.
 
 ### Recording setup
 
-Pick whichever is easier for the team -- both produce one acceptable video file.
-
-**Option A -- one Zoom/Google Meet call (recommended, no editing needed)**
-
-1. Start a call with all four members.
-2. One member starts local recording (Zoom: **Record** -> **Record on this Computer**).
-3. Each member shares their screen in turn for their own section below, then hands off to the next person.
-4. Stop recording after the closing sentence. This produces a single `.mp4` file -- no clips to merge.
-
-**Option B -- record each section separately, then combine**
-
-1. Each person records their own screen with OBS Studio (free, Windows/Mac/Linux), the Windows Game Bar (`Win+G`), or QuickTime Player's screen recording (Mac).
-2. Combine the four clips in order with a simple free editor -- Clipchamp (Windows, built-in), iMovie (Mac, built-in), or OpenShot (cross-platform, free).
+One person can present and record the complete walkthrough; the other members do not need to join. In OBS Studio, add a display capture and microphone source, check that both screen and microphone levels are active, then start recording. Windows Game Bar (`Win+G`) or QuickTime Player on Mac are alternatives. Save one video file with clear narration.
 
 ### Before recording
 
-1. Re-verify all 4 required live endpoints return 200 the same day you record (`/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, `/api/v1/schedule` on the deployed API URL above) -- screenshots and old checks go stale.
-2. Agree on speaking order (Person 1 -> 2 -> 3 -> 4) and who hosts/records.
-3. Each person pre-opens their own tabs/windows before recording starts, so there's no dead time searching for a page on camera:
-   - Person 1: the Kaggle dataset page, and a terminal/screenshot showing the ingestion run.
-   - Person 2: `data_quality.py`/`preprocessing.py` in an editor, and the Cloud Composer console DAG view.
-   - Person 3: the EDA charts (target distribution, correlation, one bivariate) and the model-comparison chart.
-   - Person 4: the live dashboard URL, and Swagger (`/docs`) on the live API URL.
-4. Close notifications (Slack, email, OS banners) and unrelated tabs. Set browser zoom to ~110% so text is readable on the recording.
-5. Do one full silent run-through (no recording) to check timing and hand-offs between people.
+1. Open the deployed dashboard and API links in the [Deployment](#deployment) section. In Swagger, confirm the four dashboard detail routes respond successfully: `/api/v1/workflow`, `/api/v1/runs/latest`, `/api/v1/dataset`, and `/api/v1/schedule`.
+2. Pre-open the pages and evidence in this order so the walkthrough flows without searching on camera:
+   - Kaggle dataset page and report's dataset profile/ingestion evidence.
+   - Cloud Composer DAG schedule and run history.
+   - Cloud Console GCS quality, preprocessing, and execution records.
+   - EDA target-distribution, feature-importance, correlation, and one bivariate chart. Keep the optional model-comparison chart ready if time allows.
+   - Public dashboard and Swagger (`/docs`) on the public API URL.
+3. Close notifications (Slack, email, OS banners) and unrelated tabs. Set browser zoom to ~110% so text is readable on the recording.
+4. Do one full silent run-through (no recording) to check timing and page transitions.
 
 ### Recording script
 
-1. **Introduction (30s)** -- title, "Group 49", all four members introduce themselves by name, one sentence on the business problem (early diabetes-risk screening from health and lifestyle data).
-2. **Person 1 -- dataset and ingestion (45-60s)**
+1. **Introduction (20-30s)** -- give the project title, identify Group 49 and yourself as the presenter, and summarize the project as population-level analysis of diabetes indicators.
+2. **Dataset and ingestion (45-60s)**
    - Show the Kaggle dataset page (or `docs/report/imgs/dataset.png`). Say: source, 253,680 rows, 22 columns, target column `Diabetes_012`.
-   - Switch to the terminal/screenshot showing the ingestion run and passing tests. Say: the raw file is never modified -- each run appends a timestamped SHA-256 record to the manifest, so a swapped file would be detected.
-3. **Person 2 -- preprocessing and scheduling (60-90s)**
-   - Briefly scroll (don't read line-by-line) through `data_quality.py` / `preprocessing.py`.
-   - Switch to the live Cloud Composer console DAG view. Point at two consecutive scheduled runs roughly two minutes apart to prove the `*/2 * * * *` schedule is real, not just configured.
-   - Briefly show one execution-log JSON file.
-4. **Person 3 -- EDA and optional model (60-90s)**
-   - Show the target-distribution chart and state the imbalance out loud (82.71% / 2.01% / 15.27%).
-   - Show the correlation chart and one bivariate chart, naming the strongest association (general health).
-   - Show the model-comparison chart. Say clearly: this model is a bonus, not a grading requirement, and flag the honest finding -- Random Forest has higher accuracy but never predicts the minority class.
-5. **Person 4 -- dashboard and APIs (90-120s)**
+   - Show the report's ingestion evidence. Explain that ingestion validates the source schema and row count and records a SHA-256 hash in the manifest; the raw dataset is preserved.
+3. **Data quality, preprocessing, and scheduling (60-90s)**
+   - Show the Cloud Composer DAG's `*/2 * * * *` schedule and recent run history. Explain the schedule interval separately from each run's end-to-end runtime.
+   - Show the GCS quality and preprocessing records, then the execution record and the dashboard's quality, record, error, and warning details.
+4. **EDA and optional model (60-90s)**
+   - Show the target-distribution chart and state the imbalance (82.71% / 2.01% / 15.27%).
+   - Show the feature-importance and correlation charts, then one bivariate chart. Explain that general health has the strongest linear correlation with the target.
+   - If time allows, show the model-comparison chart and explain its limitation: Random Forest has higher accuracy but does not correctly identify the minority prediabetes class in this evaluation.
+5. **Dashboard and APIs (90-120s)**
    - Show the live dashboard loading real metrics.
-   - Switch to Swagger (`/docs`) on the live API URL and actually click **Try it out -> Execute** on all 4 required endpoints live (not a pre-made screenshot). Read one HTTP `200` response out loud.
-6. **Closing (15-20s)** -- summarize what is implemented and verified, including the configured schedule and measured run time; thank the viewer.
+   - Switch to Swagger (`/docs`) on the public API URL and execute all four dashboard detail routes. Show each request, response, and HTTP status; point out that workflow history is read from Composer while processing records come from GCS.
+6. **Closing (15-20s)** -- summarize the pipeline, dashboard, APIs, configured schedule, and observed runtime. Mention that team member contributions are listed in the report.
 
 ### After recording
 
-1. If using Option B, add each person's name as a title card/caption at the start of their section, so individual contribution is visible on the video itself, separate from the report's contribution table.
-2. Watch the full video once against the PDF's required list (dataset, quality checks, preprocessing, EDA, schedule, logs, dashboard, 4 APIs) to confirm nothing was skipped.
-3. Rename the file to something identifiable, e.g. `Group49_AIMLCZG549_Assignment1_Demo.mp4`.
-4. Upload it to a shared Google Drive folder, set sharing to "Anyone with the link -- Viewer," and test the link in a private/incognito browser window (logged out) before calling it done.
-5. Add the working Drive link to the final submission document.
+1. Watch the full video once against the assessment topics (dataset, quality checks, preprocessing, EDA, schedule, logs, dashboard, and API requests) to confirm nothing was skipped.
+2. Rename the file to something identifiable, e.g. `Group49_AIMLCZG549_Assignment1_Demo.mp4`.
+3. Upload it to a shared Google Drive folder, give the assessors viewer access, and test that the link opens for a viewer who is not signed in to the recording account.
+4. Add the working Drive link to the final submission document.
 
 ## Final Submission Checklist
 
