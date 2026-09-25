@@ -55,7 +55,7 @@ TERMINAL_COMMANDS = {
         "shown_as": "python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012",
     },
 }
-EXECUTION_LOG = "data/outputs/execution/latest_run.json"
+EXECUTION_LOG = "reports/generated/execution/latest_run.json"
 IMAGES_DIR = "docs/report/imgs"
 
 

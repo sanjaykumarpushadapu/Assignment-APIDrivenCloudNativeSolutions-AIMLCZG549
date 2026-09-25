@@ -70,18 +70,49 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
+def ffmpeg_install_hint() -> str:
+    """Return the install command appropriate for the current platform."""
+    system = platform.system()
+    if system == "Windows":
+        return " Install it with: winget install Gyan.FFmpeg, then open a new terminal"
+    if system == "Darwin":
+        return " Install it with: brew install ffmpeg"
+    if system == "Linux":
+        return " Install it with: sudo apt install ffmpeg"
+    return " Install ffmpeg with your operating system's package manager"
+
+
+def refresh_windows_path() -> None:
+    """Include the latest Windows user PATH in this process."""
+    if platform.system() != "Windows":
+        return
+    import winreg
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            user_path = winreg.QueryValueEx(key, "Path")[0]
+    except (FileNotFoundError, OSError):
+        return
+    current_path = os.environ.get("PATH", "")
+    os.environ["PATH"] = os.pathsep.join(part for part in (user_path, current_path) if part)
+
+
 # ======================================================================
 # Preflight
 # ======================================================================
 
 def _ssl_context():
-    """Use certifi's CA bundle when present.
+    """Use the operating system trust store when available.
 
-    python.org builds of Python on macOS ship without system root
-    certificates, so plain urllib fails every HTTPS request with
-    CERTIFICATE_VERIFY_FAILED even though the site works in a browser.
+    This handles enterprise certificates installed in Windows, macOS, or
+    Linux system stores. Fall back to certifi for minimal Python installs.
     """
     import ssl
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except ImportError:
+        pass
     try:
         import certifi
         return ssl.create_default_context(cafile=certifi.where())
@@ -638,7 +669,8 @@ def launch_signed_in(pw, profile_dir: Path, headless: bool, **opts):
     Uses your installed Google Chrome when available (Google accepts sign-in there more
     readily), otherwise Playwright's Chromium. The automation banner is switched off.
     """
-    kwargs = dict(headless=headless, ignore_default_args=["--enable-automation"], **opts)
+    kwargs = dict(headless=headless, chromium_sandbox=True,
+                  ignore_default_args=["--enable-automation"], **opts)
     try:
         return pw.chromium.launch_persistent_context(str(profile_dir), channel="chrome", **kwargs)
     except Exception:  # noqa: BLE001 - Google Chrome not installed
@@ -1063,7 +1095,8 @@ def parse_args():
     ap.add_argument("--list", action="store_true", help="list scene ids and exit")
     ap.add_argument("--headed", action="store_true", help="show the browser while recording")
     ap.add_argument("--allow-non-200", action="store_true", help="record even if a live URL is not HTTP 200")
-    ap.add_argument("--skip-commands", action="store_true", help="reuse the previous run's terminal output")
+    ap.add_argument("--skip-commands", action="store_true",
+                    help="optional: reuse the previous run's terminal output; omit for a fresh run")
     ap.add_argument("--composer-live", action="store_true",
                     help="record the real Cloud Composer console (run --login-composer once first)")
     ap.add_argument("--login-composer", action="store_true",
@@ -1101,9 +1134,11 @@ def main() -> None:
     except ImportError:
         fail("Playwright is not installed. Run: pip install -r demo_video/requirements.txt && "
              "python -m playwright install chromium")
+    refresh_windows_path()
     for tool in ("ffmpeg", "ffprobe") + (("say",) if args.tts == "say" else ()):
         if not shutil.which(tool):
-            fail(f"'{tool}' was not found on PATH." + (" Install it with: brew install ffmpeg" if tool.startswith("ff") else ""))
+            hint = ffmpeg_install_hint() if tool.startswith("ff") else ""
+            fail(f"'{tool}' was not found on PATH." + hint)
 
     if args.finish:
         work, out_path = Path(args.work), Path(args.out)

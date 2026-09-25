@@ -245,9 +245,9 @@ Quick reference, in the order you run them:
 | Command | What it does |
 |---|---|
 | `pip install -r demo_video/requirements.txt` | One-time install of what the recorder needs: browser automation (Playwright), code highlighting, caption drawing, and microphone recording. |
-| `python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands` | Records the full video with **no voice** and captions drawn on screen. |
+| `python demo_video/record_demo.py --tts none --burn-subtitles` | Records a **fresh** full video with no voice and captions drawn on screen. |
 | `python demo_video/record_voice.py` | Shows each scene's script and **records your voice** with the microphone, one scene at a time. Files are saved in `demo_video/voice/`. |
-| `python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands` | Records the full video again, using **your recorded voice** as the narration. |
+| `python demo_video/record_demo.py --tts files --burn-subtitles` | Records a fresh full video using **your recorded voice** as the narration. |
 | `python demo_video/record_demo.py --clean` | **Cleans up** leftover temporary files and caches. Keeps the finished videos and your voice recordings. |
 | `python demo_video/record_demo.py --clean-all` | **Last step only**, after the videos are uploaded and submitted: deletes everything generated, including the videos and voice recordings. It asks you to type `yes` first. The scripts are kept. |
 
@@ -256,7 +256,7 @@ The options mean:
 - `--tts none`: no narration voice; captions only.
 - `--tts files`: use your recordings from `demo_video/voice/`.
 - `--burn-subtitles`: draw the captions on the picture, so they show everywhere, including Google Drive.
-- `--skip-commands`: reuse the ingestion, test and pipeline output from an earlier run, which saves about 5 minutes. On the very first run on a computer, leave it out.
+- Every recording runs fresh ingestion, tests, and the pipeline.
 
 #### Cloud Composer: with or without Google login
 
@@ -265,8 +265,8 @@ Cloud Composer can appear in the video in two ways.
 **Without login (default).** The Cloud Composer part shows the run-history screenshots from the report. Live Composer data still appears through the live dashboard and the Swagger `/api/v1/workflow` and `/api/v1/schedule` calls. Nothing extra is needed:
 
 ```bash
-python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands    # no voice
-python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands   # your voice
+python demo_video/record_demo.py --tts none --burn-subtitles    # no voice
+python demo_video/record_demo.py --tts files --burn-subtitles   # your voice
 ```
 
 **With login (live Cloud Composer console).** The video opens the real Google Cloud console page, with its `console.cloud.google.com` address visible.
@@ -282,8 +282,8 @@ python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands   
 2. Record with `--composer-live` added:
 
    ```bash
-   python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands --composer-live    # no voice
-   python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands --composer-live   # your voice
+   python demo_video/record_demo.py --tts none --burn-subtitles --composer-live    # no voice
+   python demo_video/record_demo.py --tts files --burn-subtitles --composer-live   # your voice
    ```
 
 If Google blocks the sign-in ("This browser may not be secure"), use the default commands without login; the screenshots are used instead. `--clean-all` also deletes the saved sign-in.
@@ -303,7 +303,7 @@ You also need ffmpeg: `brew install ffmpeg` on macOS, `winget install Gyan.FFmpe
 python demo_video/record_demo.py --tts none --burn-subtitles
 ```
 
-This produces `demo_video/output/Group49_AIMLCZG549_Assignment1_Demo_NoVoice.mp4`. On later runs, add `--skip-commands` to reuse the ingestion, test and pipeline output from the first run.
+This produces `demo_video/output/Group49_AIMLCZG549_Assignment1_Demo_NoVoice.mp4`. Each run refreshes the ingestion, tests, and pipeline output.
 
 **2. Record your own narration.** One person reads every scene, in order:
 
@@ -316,7 +316,7 @@ For each scene: press Enter to start, read the script shown, and press Enter to 
 **3. Build the video with your voice:**
 
 ```bash
-python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands
+python demo_video/record_demo.py --tts files --burn-subtitles
 ```
 
 This produces `demo_video/output/Group49_AIMLCZG549_Assignment1_Demo_TeamVoice.mp4`. The no-voice video from step 1 is kept as a separate file.
