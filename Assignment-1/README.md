@@ -234,7 +234,94 @@ Cloud Composer runs the scheduled DAG. Cloud Run hosts the API and dashboard. Th
 
 ## Demonstration Video
 
-The assessment requires one video demonstrating the complete project, uploaded to a shared Google Drive folder. It does not specify a duration; about 5-7 minutes is a practical target for covering the required work clearly.
+The assessment requires one video demonstrating the complete project, uploaded to a shared Google Drive folder. It does not specify a duration; about 5-6 minutes is a practical target for covering the required work clearly.
+
+### Automated recording (recommended)
+
+The `demo_video/` scripts record the whole walkthrough automatically, in about 5-6 minutes, with captions. They cover the dataset, ingestion and tests, the quality and preprocessing code, the two-minute Composer schedule, the execution log, the EDA charts, the live dashboard, and a live Swagger call on all four required routes. They work on Windows, macOS and Linux; setup details are in [demo_video/README.md](demo_video/README.md).
+
+Quick reference, in the order you run them:
+
+| Command | What it does |
+|---|---|
+| `pip install -r demo_video/requirements.txt` | One-time install of what the recorder needs: browser automation (Playwright), code highlighting, caption drawing, and microphone recording. |
+| `python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands` | Records the full video with **no voice** and captions drawn on screen. |
+| `python demo_video/record_voice.py` | Shows each scene's script and **records your voice** with the microphone, one scene at a time. Files are saved in `demo_video/voice/`. |
+| `python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands` | Records the full video again, using **your recorded voice** as the narration. |
+| `python demo_video/record_demo.py --clean` | **Cleans up** leftover temporary files and caches. Keeps the finished videos and your voice recordings. |
+| `python demo_video/record_demo.py --clean-all` | **Last step only**, after the videos are uploaded and submitted: deletes everything generated, including the videos and voice recordings. It asks you to type `yes` first. The scripts are kept. |
+
+The options mean:
+
+- `--tts none`: no narration voice; captions only.
+- `--tts files`: use your recordings from `demo_video/voice/`.
+- `--burn-subtitles`: draw the captions on the picture, so they show everywhere, including Google Drive.
+- `--skip-commands`: reuse the ingestion, test and pipeline output from an earlier run, which saves about 5 minutes. On the very first run on a computer, leave it out.
+
+#### Cloud Composer: with or without Google login
+
+Cloud Composer can appear in the video in two ways.
+
+**Without login (default).** The Cloud Composer part shows the run-history screenshots from the report. Live Composer data still appears through the live dashboard and the Swagger `/api/v1/workflow` and `/api/v1/schedule` calls. Nothing extra is needed:
+
+```bash
+python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands    # no voice
+python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands   # your voice
+```
+
+**With login (live Cloud Composer console).** The video opens the real Google Cloud console page, with its `console.cloud.google.com` address visible.
+
+1. Sign in once:
+
+   ```bash
+   python demo_video/record_demo.py --login-composer
+   ```
+
+   A browser window opens. Sign in to your Google account there yourself. When the Cloud Composer page shows `diabetes-risk-env`, press Enter in the terminal. The sign-in is saved in `demo_video/output/chrome-profile/`, which is git-ignored; don't share it.
+
+2. Record with `--composer-live` added:
+
+   ```bash
+   python demo_video/record_demo.py --tts none --burn-subtitles --skip-commands --composer-live    # no voice
+   python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands --composer-live   # your voice
+   ```
+
+If Google blocks the sign-in ("This browser may not be secure"), use the default commands without login; the screenshots are used instead. `--clean-all` also deletes the saved sign-in.
+
+One-time setup, after the project setup above:
+
+```bash
+pip install -r demo_video/requirements.txt
+python -m playwright install chromium
+```
+
+You also need ffmpeg: `brew install ffmpeg` on macOS, `winget install Gyan.FFmpeg` on Windows, or `sudo apt install ffmpeg libportaudio2` on Linux.
+
+**1. Video with captions, no voice:**
+
+```bash
+python demo_video/record_demo.py --tts none --burn-subtitles
+```
+
+This produces `demo_video/output/Group49_AIMLCZG549_Assignment1_Demo_NoVoice.mp4`. On later runs, add `--skip-commands` to reuse the ingestion, test and pipeline output from the first run.
+
+**2. Record your own narration.** One person reads every scene, in order:
+
+```bash
+python demo_video/record_voice.py
+```
+
+For each scene: press Enter to start, read the script shown, and press Enter to stop. Then press Enter to keep the take, `p` to play it back, or `r` to redo it. Ctrl+C stops; running the same command again continues where you left off.
+
+**3. Build the video with your voice:**
+
+```bash
+python demo_video/record_demo.py --tts files --burn-subtitles --skip-commands
+```
+
+This produces `demo_video/output/Group49_AIMLCZG549_Assignment1_Demo_TeamVoice.mp4`. The no-voice video from step 1 is kept as a separate file.
+
+The manual recording guide below is an alternative if you prefer to present live.
 
 ### Recording setup
 
