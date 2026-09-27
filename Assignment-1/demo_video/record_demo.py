@@ -44,6 +44,11 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 sys.path.insert(0, str(HERE))
 sys.dont_write_bytecode = True  # no __pycache__ folders left behind
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO / ".env")
+except ImportError:
+    pass
 import scenes as S  # noqa: E402
 
 VIEWPORT = {"width": 1600, "height": 900}

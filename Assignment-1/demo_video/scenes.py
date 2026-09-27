@@ -13,6 +13,9 @@ Edit any ``say`` text freely. Keep it in the third person: the narrator is a
 synthesized voice, not a team member.
 """
 
+import os
+from pathlib import Path
+
 # ---------------------------------------------------------------- live URLs
 DASHBOARD_URL = "https://diabetes-risk-dashboard-573458509120.us-central1.run.app/"
 API_URL = "https://diabetes-risk-api-573458509120.us-central1.run.app"
@@ -55,7 +58,11 @@ TERMINAL_COMMANDS = {
         "shown_as": "python -m diabetes_risk.pipeline run data/raw/diabetes_012_health_indicators_BRFSS2015.csv --target-column Diabetes_012",
     },
 }
-EXECUTION_LOG = "reports/generated/execution/latest_run.json"
+EXECUTION_LOG = str(
+    Path(os.environ.get("DIABETES_REPORT_DIR", "data/outputs"))
+    / "execution"
+    / "latest_run.json"
+)
 IMAGES_DIR = "docs/report/imgs"
 
 

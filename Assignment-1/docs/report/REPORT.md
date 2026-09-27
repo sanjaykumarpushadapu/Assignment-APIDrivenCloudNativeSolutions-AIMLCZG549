@@ -23,7 +23,7 @@ Each member is listed once below, with their contribution across the full projec
 | Person 1: Pushadapu Sanjay Kumar | `2025ae05898@wilp.bits-pilani.ac.in` | Developed the business understanding, verified and profiled the dataset, prepared the data dictionary, and completed raw-data ingestion and validation; also contributed to the data-quality review and report, final report compilation, citations, export and submission checklist, and overall report/evidence quality review. **10 pts** | 25% |
 | Person 2: Sathish Krishnan V | `2025ae05425@wilp.bits-pilani.ac.in` | Implemented data-quality checks, preprocessing and transformations, pipeline automation and automated EDA generation, execution logging, and the Cloud Composer DAG configured on a two-minute schedule. Section 2.9 records the configured schedule separately from the observed end-to-end task runtime. **10 pts** | 25% |
 | Person 3: Chezrla Raga Suma | `2025ae05828@wilp.bits-pilani.ac.in` | Completed EDA interpretation and visual analysis, charts and feature-importance analysis, the optional Random Forest vs. Logistic Regression model training and evaluation, and dashboard analytics handoff. **10 pts** | 25% |
-| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and the additional model endpoint, handled cloud integration and deployment, and captured live evidence; end-to-end demonstration production remains outstanding. **10 pts** | 25% |
+| Person 4: Bhuvnesh Mishra | `2025ae05391@wilp.bits-pilani.ac.in` | Implemented and deployed the dashboard and API, tested and documented the four required API details and the additional model endpoint, handled cloud integration and deployment, captured live evidence, and prepared the end-to-end demonstration video. **10 pts** | 25% |
 | **Total** | | **40 pts** | **100%** |
 
 ---
@@ -170,7 +170,7 @@ Credentials; they are not embedded in the DAG or committed to the repository.
 Composer schedule are implemented and evidenced in Section 2.9, which also
 documents the observed run history and end-to-end runtime. The API and dashboard are
 implemented, deployed, and tested; live API and dashboard evidence is recorded in
-Section 4. The demonstration video remains outstanding.
+Section 4. The demonstration video link is included in Section 4.2.
 
 ---
 
@@ -614,7 +614,7 @@ A selected Composer run completed successfully across all three tasks: `data_qua
 
 The deployed `/api/v1/schedule` endpoint also returns the Composer environment state. The Cloud Console page is available at https://console.cloud.google.com/managed-airflow/environments/detail/us-central1/diabetes-risk-env/dags?project=diabetes-risk-group49.
 
-**Schedule and runtime observations:** the DAG's configured schedule is `*/2 * * * *`. The displayed history includes run starts at 9:48, 9:50, 9:54, 9:58, 10:00, and 10:04. The selected run's three tasks took 17.7 s + 64.0 s + 79.1 s, or about 2 minutes 41 seconds end to end. These figures report the configured interval, observed run history, and measured task runtime separately. Most of the measured runtime came from Random Forest training and model evaluation; the required data-quality/preprocessing/EDA work alone completes locally in about 5–10 seconds (Section 2.6).
+**Schedule and runtime observations:** the DAG's configured schedule is `*/2 * * * *`, which defines a two-minute trigger interval. The times shown in the Composer job history (9:48, 9:50, 9:54, 9:58, 10:00, and 10:04) are job completion times, not scheduled trigger times; they therefore should not be used to infer the schedule interval. For the selected successful run, the three tasks took 17.7 s + 64.0 s + 79.1 s, or about 2 minutes 41 seconds end to end. This is the measured runtime of that job, separate from its configured trigger interval. Most of the runtime came from Random Forest training and model evaluation; the required data-quality/preprocessing/EDA work alone completes locally in about 5–10 seconds (Section 2.6).
 
 ### 2.10 Configuration and local execution
 
@@ -913,18 +913,17 @@ The dashboard screenshot shows the Composer DAG Run History table with an expand
 
 ![Deployed Cloud Run dashboard with activity metrics and Composer DAG run history](imgs/p4-cloud-run-dashboard.png)
 
-The assessment demonstration video remains to be recorded and linked from the team's shared Google Drive location before submission.
+**Demonstration video:** [Watch the Group 49 project demonstration](https://drive.google.com/file/d/1MH6l1vPogDjrW3tI1zAlT7uQH4_nRENu/view)
 
 ---
 
 ## 5. Conclusion and Limitations
 
-**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The deployed dashboard uses Composer DAG history with expandable task details and a completed-run summary, and retains GCS processing manifests through separate endpoints. Live API and dashboard responses and refreshed screenshots are included in Section 4.2. The optional model comparison is reported with its limitations. The demonstration video required by the assessment remains outstanding and will be added later.
+**Conclusion.** The repository implements the business understanding, ingestion, preprocessing, EDA (including binning, encoding, and feature importance), a DataOps workflow configured on a two-minute schedule, a cloud dashboard, and four documented API details. Section 2.9 reports the configured schedule, observed run history, and measured task runtime. The deployed dashboard uses Composer DAG history with expandable task details and a completed-run summary, and retains GCS processing manifests through separate endpoints. Live API and dashboard responses and refreshed screenshots are included in Section 4.2. The optional model comparison is reported with its limitations. The demonstration video link is included in Section 4.2.
 
 **Cross-cutting limitations**, consolidating the per-section notes in Sections 2.9, 3.9, and 4.1:
 
 - Neither comparison model is precise enough on the minority prediabetes class to be usable in a real screening tool (Section 3.8).
-- Each member's individual confirmation of their contribution entry remains outstanding at the time of this export.
 
 ---
 
