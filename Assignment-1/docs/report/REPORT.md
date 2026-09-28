@@ -864,7 +864,7 @@ The dashboard screenshot shows the Composer DAG Run History table with an expand
 
 ![Deployed Cloud Run dashboard with activity metrics and Composer DAG run history](imgs/p4-cloud-run-dashboard.png)
 
-**Demonstration video:** [Watch the Group 49 project demonstration](https://drive.google.com/file/d/1MH6l1vPogDjrW3tI1zAlT7uQH4_nRENu/view)
+**Demonstration video:** [Watch the Group 49 project demonstration](https://drive.google.com/file/d/138SpDpM99i8HVQx0NL52P7dADkSa9aE-/view?usp=drive_link)
 
 ---
 
