@@ -18,9 +18,9 @@ Run these in order from the `Assignment-1` folder:
 | Command | What it does |
 |---|---|
 | `pip install -r demo_video/requirements.txt` | One-time install of what the recorder needs: browser automation (Playwright), code highlighting, caption drawing, and microphone recording. |
-| `python demo_video/record_demo.py --tts none --burn-subtitles` | Records a **fresh** full video with no voice and captions drawn on screen. |
+| `python demo_video/record_demo.py --tts none --burn-subtitles` | **Recommended if you have not recorded narration.** Records a fresh full video with no voice and captions drawn on screen. |
 | `python demo_video/record_voice.py` | Shows each scene's script and **records your voice** with the microphone, one scene at a time. Files are saved in `demo_video/voice/`. |
-| `python demo_video/record_demo.py --tts files --burn-subtitles` | Records a fresh full video using **your recorded voice** as the narration. |
+| `python demo_video/record_demo.py --tts files --burn-subtitles` | Records a fresh full video using your voice recordings. **Run `record_voice.py` first and record every scene**, including `title`. |
 | `python demo_video/record_demo.py --clean` | Optional. Clean-up already happens automatically after every build; use this only after a run you stopped halfway. |
 | `python demo_video/record_demo.py --clean-all` | **Last step only**, after the videos are uploaded and submitted: deletes everything generated, including the videos and voice recordings. It asks you to type `yes` first. The scripts are kept. |
 

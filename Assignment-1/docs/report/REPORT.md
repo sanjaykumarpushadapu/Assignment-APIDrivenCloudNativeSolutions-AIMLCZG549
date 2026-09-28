@@ -79,56 +79,7 @@ Apache Airflow on Cloud Composer for scheduled execution. Pipeline outputs are
 written to local folders during development and to the corresponding Cloud Storage
 locations in the deployed environment.
 
-```mermaid
-flowchart TB
-  source[Raw BRFSS CSV]
-
-  subgraph local[Local development]
-    cli[Pipeline CLI]
-    ingest[Ingestion and SHA-256 manifest]
-    pipeline[Python pipeline modules]
-    localOutputs[Local processed and report folders]
-    cli --> ingest --> pipeline --> localOutputs
-  end
-
-  subgraph gcp[GCP scheduled deployment]
-    composer[Cloud Composer]
-    scheduler[Airflow scheduler<br/>*/2 * * * *]
-    dag[diabetes_risk_pipeline DAG<br/>max_active_runs=1]
-    task1[Task 1<br/>quality, preprocessing, EDA]
-    task2[Task 2<br/>Random Forest]
-    task3[Task 3<br/>model evaluation]
-    composer --> scheduler --> dag --> task1 --> task2 --> task3
-  end
-
-  subgraph storage[Cloud Storage hand-off]
-    rawBucket[(data/raw)]
-    processedBucket[(data/processed)]
-    outputBucket[(data/outputs)]
-  end
-
-  source --> cli
-  source --> rawBucket
-  rawBucket --> task1
-  task1 --> processedBucket
-  task1 --> outputBucket
-  processedBucket --> task2
-  processedBucket --> task3
-  task2 --> outputBucket
-  outputBucket --> task3
-  task3 --> outputBucket
-
-  api[FastAPI application<br/>OpenAPI endpoints]
-  dashboard[Dashboard<br/>activity and result views]
-  monitoring[Cloud Logging and Monitoring]
-
-  outputBucket --> api
-  processedBucket --> api
-  composer --> api
-  composer --> monitoring
-  monitoring --> api
-  api --> dashboard
-```
+![Architecture diagram showing the local pipeline, Cloud Composer workflow, Cloud Storage hand-off, API, and dashboard](imgs/architecture.png)
 
 ### Execution steps
 
