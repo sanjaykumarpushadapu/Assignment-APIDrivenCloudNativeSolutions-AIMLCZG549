@@ -1,0 +1,4 @@
+output/
+voice/
+__pycache__/
+.DS_Store

@@ -1,0 +1,7 @@
+playwright>=1.45
+pygments>=2.15
+pillow>=10.0
+sounddevice>=0.4.6
+numpy>=1.24
+# Optional, only for --tts edge (Microsoft neural voice, needs internet):
+# edge-tts>=6.1
