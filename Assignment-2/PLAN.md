@@ -179,7 +179,7 @@ Review conclusion: the proposed design covers every assessed component, but feas
 | Healthcare context raises output-quality stakes | Personalised clinical advice could be mistaken for supported information | Staff-facing education/admin scope and tested referral behaviour |
 | Workplace section carries five marks | Generic reflection could lose the largest component | Named cases, measured workflow evaluation and individual workplace material |
 | Submission wording is ambiguous | Members may submit the wrong version | Instructor clarification plus separate per-member Section IV drafts |
-| Existing CI targets Assignment 1 | CI runs on every push; production deployment is restricted to `main` | Keep the distinction clear and review path/workflow scoping before implementation is merged |
+| Existing CI targets Assignment 1 | CI runs on every push; GCP build/deploy is disabled unless `GCP_DEPLOY_ENABLED` is `true` | Review path/workflow scoping before Assignment 2 implementation is merged |
 
 If time is lost, defer optional cloud hosting, cosmetic UI work and unplanned features first. Preserve the planned dataset/scenario coverage, document coverage, all three NLP tasks, real fine-tuning, document retrieval with chat, independent evaluation, workplace evidence, report and video. Reassign work and use the 11 November contingency rather than weakening checks. If mandatory work or a quality gate still cannot be completed, escalate immediately, record the failed gate honestly and seek instructor guidance; do not claim readiness or assume the official deadline can move.
 
