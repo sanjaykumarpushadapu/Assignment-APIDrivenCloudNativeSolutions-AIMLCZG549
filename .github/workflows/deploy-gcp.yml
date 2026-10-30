@@ -50,9 +50,11 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q src dags tests
 
+  # GCP deployment is disabled because the Assignment 1 GCP environment has been shut down.
+  # To re-enable, set the repository variable GCP_DEPLOY_ENABLED to 'true'.
   build:
     needs: ci
-    if: ${{ github.ref == 'refs/heads/main' && needs.ci.result == 'success' }}
+    if: ${{ vars.GCP_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' && needs.ci.result == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       image_uri: ${{ steps.image.outputs.image_uri }}
@@ -83,7 +85,7 @@ jobs:
 
   deploy:
     needs: build
-    if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
+    if: ${{ vars.GCP_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     env:
       IMAGE_URI: ${{ needs.build.outputs.image_uri }}

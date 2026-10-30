@@ -228,6 +228,7 @@ Compose exposes the API on port `8082` and dashboard on port `8083`. Stop the se
 
 Cloud Composer runs the scheduled DAG. Cloud Run hosts the API and dashboard. The repository-root `.github/workflows/deploy-gcp.yml` contains the CI/CD workflow, using GitHub OIDC for deployment authentication.
 
+> **Status:** the GCP environment has been shut down, so the links below are no longer live. The workflow still runs tests on every push, but the `build` and `deploy` jobs are skipped unless the repository variable `GCP_DEPLOY_ENABLED` is set to `true`.
 - Dashboard: <https://diabetes-risk-dashboard-573458509120.us-central1.run.app/>
 - API health: <https://diabetes-risk-api-573458509120.us-central1.run.app/health>
 - Swagger/OpenAPI: <https://diabetes-risk-api-573458509120.us-central1.run.app/docs>
