@@ -1,0 +1,40 @@
+# Python environments and bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Test, lint, and type-check caches/reports
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.tox/
+.nox/
+.coverage*
+htmlcov/
+test-results/
+playwright-report/
+blob-report/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+node_modules/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local/private data and generated model artifacts
+data/private/
+artifacts/
+*.safetensors
+*.pt
+*.pth
+*.bin

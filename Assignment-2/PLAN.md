@@ -58,7 +58,7 @@ Repository finding: the current root deployment workflow triggers on pushes and 
 | Summarisation | Original message or short conversation | Brief factual handoff summary | Reduces reading effort while retaining the user's requests |
 | Question answering with RAG | Staff question plus retrieved passages | Answer with source references, or an explicit inability to answer | Helps staff find supported information without searching multiple documents |
 
-**Proposed starting stack:** a simple Streamlit interface calling FastAPI; Hugging Face Transformers for the language model; Sentence Transformers for embeddings; a small local similarity index for retrieval. This is a design recommendation, not a tested environment or a commitment to paid infrastructure.
+**Selected application stack:** a React + TypeScript frontend (Vite with Tailwind) calling a FastAPI backend; Hugging Face Transformers for the language model; Sentence Transformers for embeddings; a small local similarity index for retrieval. This is the chosen prototype design, not a commitment to paid infrastructure.
 
 **Language model candidate:** `google/flan-t5-base`. Use a fine-tuned copy for request classification and retain the original checkpoint for summarisation and context-based Q&A. Its instruction-oriented text-to-text design makes these candidate uses plausible, but it must pass a small quality and hardware pilot on 31 October. The model card does not establish healthcare reliability. See the [FLAN-T5 model card](https://huggingface.co/google/flan-t5-base).
 

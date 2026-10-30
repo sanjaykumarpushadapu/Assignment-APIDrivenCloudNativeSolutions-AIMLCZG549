@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  color: #1d2924;
+  color-scheme: light;
+  accent-color: #28684f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f4f6f2;
+  background-image:
+    linear-gradient(rgba(44, 82, 60, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 82, 60, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+::selection {
+  color: #1b3027;
+  background: #dcebe1;
+}
