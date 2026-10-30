@@ -68,7 +68,7 @@ Freeze model revisions, package versions, input limits, and the runtime after th
 
 If the initial generator fails the pilot, choose one better-fitting instruction model or a hosted generator on 31 October after checking access, cost and handling of synthetic inputs. Preserve the actual fine-tuned classifier in the workflow. If training memory is the blocker, evaluate a smaller FLAN-T5 checkpoint or parameter-efficient tuning and document the change. Do not substitute prompt changes for fine-tuning.
 
-Budget is unconfirmed: plan for local inference and an available training environment first; verify compute access on day one. No free GPU availability, training duration, or hosting cost is assumed.
+The course AWS Virtual Lab exposes SageMaker, Bedrock, EC2, and other services, but its SageMaker Studio setup failed because the service control policy denies `iam:CreateRole` for the SageMaker execution role. Treat SageMaker Studio/training as blocked unless the lab administrator provides an approved role or configuration. Do not retry role creation or launch AWS resources under the current permissions. The latest console screenshot shows $25.00 available and $0.00 used out of $25.00 at capture; this is a balance snapshot, not approval to spend the full amount or a guarantee that it will remain available. AWS services can continue running and consuming credits after the lab session stops. The lab also warns of a 15-minute idle timeout and says files outside `~/workspace` are deleted on shutdown. The separate `AIMLZG536-LLMForGenerativeAI-Assignment/Ass-2/Assignment2B.ipynb` has saved output reporting Kubeflow with an NVIDIA A100-SXM4-80GB, CUDA, and BF16; use Kubeflow as the preferred training candidate if the user can still access it, then verify the live GPU and persistent checkpoint/adapter paths. If Kubeflow is unavailable, ask the lab administrator about the SageMaker role or test a smaller LoRA run on the Dell RTX PRO 2000 (8 GB VRAM). Treat the M1 as optional development/inference and verify its supported runtime separately. Save the Assignment 2 Hugging Face model or adapter with its tokenizer, base-model ID/revision, and training configuration. Do not assume an Ollama conversion is interchangeable with the Hugging Face checkpoint.
 
 The 31 October feasibility pilot should use development examples only: ten short summary inputs, ten supported questions with known source passages, and a small training subset. Verify that training runs, the saved model reloads, summaries preserve the requests, and answers are supported by the supplied context. Measure end-to-end latency and peak memory on the intended demonstration machine with the classifier, generator and embeddings available together. If the pilot is unusable, resolve model/runtime selection that day before committing to the full run.
 
@@ -76,7 +76,7 @@ The 31 October feasibility pilot should use development examples only: ten short
 
 Maintain three separate assets:
 
-1. **Classification dataset:** proposed 400 short, synthetic diabetes-clinic support messages in total, including its training, validation and test partitions; approximately 80 per category: appointment support, education-resource request, portal/technical support, records/administrative request, and clinical-staff referral. These are operational routing categories, not diagnoses or urgency levels.
+1. **Classification dataset:** proposed 400 short, synthetic diabetes-clinic support messages in total, including its training, validation and test partitions; approximately 80 per category: appointment support, education-resource request, portal/technical support, records, insurance/billing and other administrative requests, and clinical-staff referral. These are operational routing categories, not diagnoses or urgency levels.
 2. **Knowledge collection:** approximately 8–12 short, reviewed documents or selected sections, combining public diabetes-education material with clearly marked synthetic clinic procedures.
 3. **Development and evaluation collections:** use the classifier's validation partition for model selection. Separately prepare ten development Q&A cases and ten development summary inputs for prompt/retrieval tuning. Reserve 30 additional Q&A scenarios and 20 additional messages with human-written summaries for final evaluation. Keep benchmark question/answer pairs and reference summaries out of training data and the retrieval index. The source documents needed to answer the questions belong in the index; the benchmark answers themselves do not.
 
@@ -103,7 +103,7 @@ The training artifact, training record and working integration together demonstr
 
 Candidate public sources include [NIDDK's diabetes overview](https://www.niddk.nih.gov/health-information/diabetes/overview) and [CDC's diabetes education and support overview](https://www.cdc.gov/diabetes/education-support-programs/index.html). These are candidate education sources, not an endorsement of an automated clinical application. Review exact sections before ingestion and retain publisher, URL, title, date accessed, document version and reuse conditions. Their US context must not be presented as local clinic policy.
 
-Prepare synthetic clinic documents for appointment changes, education-session registration, portal troubleshooting, record requests, and staff referral procedures. Clearly mark their fictional origin in both the app and report. Exclude individual treatment instructions and dosing from the supported Q&A scope.
+Prepare synthetic clinic documents for appointment changes, education-session registration, portal troubleshooting, record requests, insurance and billing procedures, and staff referral procedures. Clearly mark their fictional origin in both the app and report. Exclude individual treatment instructions and dosing from the supported Q&A scope.
 
 ### Retrieval and answering sequence
 
@@ -266,14 +266,15 @@ All members draft approximately 100 classification messages, review another memb
 
 **Defer unless the core is complete:** live hospital integration, patient database, multilingual support, voice/image features, automatic appointments or messaging, diabetes-risk prediction integration, complex cloud architecture and scheduled retraining.
 
-The project is ready to begin with scope/data preparation. The next unresolved decisions are the training runtime/budget, the portal cutoff and the instructor's meaning of the individual Situated Learning requirement. These do not prevent preparing the agreed healthcare scenario, labels and source inventory.
+The project is ready to begin with scope/data preparation. SageMaker Studio setup is currently blocked by an IAM service control policy; verify Kubeflow A100 access or request an approved SageMaker execution role. The other unresolved decisions are the portal cutoff and the instructor's meaning of the individual Situated Learning requirement. These do not prevent preparing the agreed healthcare scenario, labels and source inventory.
 
 ### 11.7. First-day checklist: 30 October
 
 - [ ] Confirm the four members' availability and the owners in Section 11.1.
 - [ ] Verify the 12 November portal cutoff, record the revised internal 10 November completion target and 11 November contingency, and request clarification of the individual Section IV requirement.
 - [ ] Agree the fictional clinic description, five category definitions, overlap rules and three demonstration cases.
-- [ ] Confirm a usable training environment, the intended demo machine and any spending limit.
+- [ ] Do not retry SageMaker Studio setup under the current AWS lab role; its service control policy denies `iam:CreateRole`. Ask the lab administrator for an approved SageMaker execution role only if SageMaker is still required.
+- [ ] Verify access to the reported Kubeflow A100; confirm the live GPU/runtime and locate persistent checkpoint/adapter paths. If unavailable, assess a small Dell LoRA pilot. AWS lab credits are limited ($25 available/$0 used at screenshot capture), and its services may keep consuming credits after the session stops; any permitted AWS resources must be cost-checked and terminated after use. Store AWS-lab files under `~/workspace` or S3 because files elsewhere are deleted on shutdown.
 - [ ] Select two public education sources and draft one short synthetic clinic procedure for the pilot.
 - [ ] Prepare a small reviewed training sample plus separate development questions and summary examples; assign the remaining data preparation across all four members.
 - [ ] Agree model/API/retrieval input-output contracts; record reviewed-data handoff on 1 November, model/RAG handoff on 2 November and integrated evaluation freeze on 3 November.
