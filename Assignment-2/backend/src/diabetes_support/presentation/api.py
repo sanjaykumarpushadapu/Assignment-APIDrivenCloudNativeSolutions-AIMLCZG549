@@ -4,12 +4,14 @@ from diabetes_support.application.use_cases import (
     AnalyzeSupportRequest,
     AnswerQuestion,
     GetServiceStatus,
+    RetrieveKnowledge,
 )
 from diabetes_support.domain.errors import ComponentNotConfiguredError
 from diabetes_support.domain.status import ComponentStatus
 from diabetes_support.presentation.schemas import (
     ChatRequest,
     ComponentMetadata,
+    RetrievalResponse,
     ServiceMetadata,
     SupportMessageRequest,
 )
@@ -22,6 +24,7 @@ def _component_metadata(status: ComponentStatus) -> ComponentMetadata:
 def create_api_app(
     analyze_support_request: AnalyzeSupportRequest,
     answer_question: AnswerQuestion,
+    retrieve_knowledge: RetrieveKnowledge,
     get_service_status: GetServiceStatus,
 ) -> FastAPI:
     app = FastAPI(
@@ -56,6 +59,14 @@ def create_api_app(
     def chat(request: ChatRequest) -> dict[str, object]:
         try:
             return answer_question.execute(request.question)
+        except ComponentNotConfiguredError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+
+    @app.post("/retrieve", response_model=RetrievalResponse)
+    def retrieve(request: ChatRequest) -> dict[str, object]:
+        """Return source passages so retrieval can be checked before chat generation."""
+        try:
+            return retrieve_knowledge.execute(request.question)
         except ComponentNotConfiguredError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
 

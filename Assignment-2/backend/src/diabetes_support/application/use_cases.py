@@ -1,4 +1,9 @@
-from diabetes_support.application.ports import Classifier, KnowledgeAnswerer, Summarizer
+from diabetes_support.application.ports import (
+    Classifier,
+    KnowledgeAnswerer,
+    KnowledgeRetriever,
+    Summarizer,
+)
 from diabetes_support.domain.status import ServiceStatus
 
 
@@ -25,20 +30,31 @@ class AnswerQuestion:
         return self._knowledge_answerer.answer(question)
 
 
+class RetrieveKnowledge:
+    def __init__(self, knowledge_retriever: KnowledgeRetriever) -> None:
+        self._knowledge_retriever = knowledge_retriever
+
+    def execute(self, question: str) -> dict[str, object]:
+        return {
+            "question": question,
+            "sources": self._knowledge_retriever.retrieve(question),
+        }
+
+
 class GetServiceStatus:
     def __init__(
         self,
         classifier: Classifier,
         summarizer: Summarizer,
-        knowledge_answerer: KnowledgeAnswerer,
+        knowledge_retriever: KnowledgeRetriever,
     ) -> None:
         self._classifier = classifier
         self._summarizer = summarizer
-        self._knowledge_answerer = knowledge_answerer
+        self._knowledge_retriever = knowledge_retriever
 
     def execute(self) -> ServiceStatus:
         return ServiceStatus(
             classifier=self._classifier.status,
             summarizer=self._summarizer.status,
-            knowledge_index=self._knowledge_answerer.status,
+            knowledge_index=self._knowledge_retriever.status,
         )

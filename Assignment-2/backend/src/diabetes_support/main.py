@@ -4,6 +4,11 @@ from diabetes_support.application.use_cases import (
     AnalyzeSupportRequest,
     AnswerQuestion,
     GetServiceStatus,
+    RetrieveKnowledge,
+)
+from diabetes_support.infrastructure.knowledge_retriever import (
+    RetrievalSettings,
+    TransformerKnowledgeRetriever,
 )
 from diabetes_support.infrastructure.model_settings import ModelSettings
 from diabetes_support.infrastructure.seq2seq_classifier import Seq2SeqClassifier
@@ -27,14 +32,16 @@ def create_application() -> FastAPI:
         summarizer_settings, runtime=Seq2SeqRuntime(summarizer_settings)
     )
     knowledge_answerer = UnconfiguredKnowledgeAnswerer()
+    knowledge_retriever = TransformerKnowledgeRetriever(RetrievalSettings.from_env())
 
     return create_api_app(
         analyze_support_request=AnalyzeSupportRequest(classifier, summarizer),
         answer_question=AnswerQuestion(knowledge_answerer),
+        retrieve_knowledge=RetrieveKnowledge(knowledge_retriever),
         get_service_status=GetServiceStatus(
             classifier,
             summarizer,
-            knowledge_answerer,
+            knowledge_retriever,
         ),
     )
 
