@@ -1,6 +1,6 @@
 # Classification Pilot Label Guide
 
-**Current status:** The 35 pilot and 280 training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. The newly drafted 60-message validation and 60-message test candidate files use `review_status: pending_review`, `reviewer: Sanjay`, and `reviewed_on: null` until their content is reviewed. All records are synthetic and AI-drafted; review metadata does not establish clinical validation. The 10 routing checks remain development examples rather than observed test results.
+**Current status:** The 35 pilot and 280 training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. At the user’s direction, the 60-message validation and 60-message test files now use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. All records are synthetic and AI-drafted; review metadata does not establish clinical validation. The 10 routing checks remain development examples rather than observed test results.
 
 ## Files and intended use
 
@@ -8,8 +8,8 @@
 |---|---|---|
 | `classification_pilot.jsonl` | 35 messages with one of the five category targets | Development/feasibility candidates with approved review metadata; historical content review recorded below |
 | `../training/classification_train.jsonl` | 280 training candidates, 56 per category | Approved training candidates |
-| `../validation/classification_validation.jsonl` | 60 validation candidates, 12 per category | Pending review; use for model selection only after review |
-| `../test/classification_test.jsonl` | 60 test candidates, 12 per category | Pending review; reserve for final evaluation after model selection |
+| `../validation/classification_validation.jsonl` | 60 validation candidates, 12 per category | Approved at the user’s direction; use for model selection |
+| `../test/classification_test.jsonl` | 60 test candidates, 12 per category | Approved at the user’s direction; reserve for final evaluation after model selection |
 | Routing checks in this guide | 10 messages with expected routing action, category where applicable and rationale | Manual development checks of routing behaviour, kept out of the JSONL training candidates |
 
 Treat the entire pilot as development material. It has been inspected and used to make design decisions; neither these examples nor their scenario variants should enter the final held-out benchmark. This is the classification/routing pilot only. The assessment still needs review of the validation/test candidates, summary inputs/reference summaries, knowledge documents and separate RAG questions with supporting passages.
@@ -37,7 +37,7 @@ Treat the entire pilot as development material. It has been inspected and used t
 
 Each classification JSONL record has `example_id`, `message`, `category`, `scenario_family_id`, `provenance`, `authoring_method`, `review_status`, `reviewer`, `reviewed_on`, and `approval_scope`. Use only `message` as model input and `category` as its target; the remaining fields are tracking metadata.
 
-Pilot and training records use `reviewer: Sanjay`, `review_status: approved`, and `reviewed_on: 2026-10-31`, as requested by the user. New validation/test candidates use `reviewer: Sanjay`, `review_status: pending_review`, and `reviewed_on: null`. Their approval scopes are `classification_validation_candidate` and `classification_test_candidate`. All records retain `provenance: synthetic` and `authoring_method: AI-drafted`. Approval does not turn the pilot into a held-out benchmark; the test file should not be used for prompt, threshold, or checkpoint selection.
+Pilot and training records use `reviewer: Sanjay`, `review_status: approved`, and `reviewed_on: 2026-10-31`, as requested by the user. New validation/test candidates use `reviewer: Sanjay`, `review_status: approved`, and `reviewed_on: 2026-10-31`, at the user’s direction. Their approval scopes are `classification_validation_candidate` and `classification_test_candidate`. All records retain `provenance: synthetic` and `authoring_method: AI-drafted`. Approval does not turn the pilot into a held-out benchmark; the test file should not be used for prompt, threshold, or checkpoint selection.
 
 The initial 50 training candidates received the AI-assisted content review described below. Another 230 candidates have since been added, bringing the training draft to 280 records. Validation and test candidate files now contain 60 new messages each and are awaiting review.
 
@@ -135,4 +135,4 @@ At the user's request, the training file now contains **280 synthetic candidates
 
 Known related scenarios reuse pilot/training family IDs. Exact duplicates are checked separately from semantic overlap: similar training messages are not independent evaluation cases. Keep validation/test scenarios and their variants outside these training families, and review semantic overlap before finalising those collections.
 
-At the user’s direction, the original 315 pilot/training records have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The new validation and test candidate files add 60 records each, 12 per category, and remain pending review. All examples are AI-drafted and synthetic. Exact message duplicates were checked against the existing pilot/training files; reviewers still need to check semantic overlap and labels. Keep the test file out of model selection. No model training has been run.
+At the user’s direction, the original 315 pilot/training records have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The new validation and test files add 60 records each, 12 per category, and have approved review metadata at the user’s direction. All examples are AI-drafted and synthetic. Exact message duplicates were checked against the existing pilot/training files. Their approved status records the user’s direction; synthetic examples still need human content checking before model use. Keep the test file out of model selection. No model training has been run.
