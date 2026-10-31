@@ -27,7 +27,7 @@ The roster below follows Assignment I. Assignment II contributions and percentag
 | Assessment component | Marks | Current status | Evidence still required |
 |---|---:|---|---|
 | I. API-based AI application | 4 | React/FastAPI skeleton; classifier and first summariser wired through existing interfaces | Summary quality review; chatbot; integrated screenshots and final API demonstrations |
-| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); one-step CPU smoke update completed; full training not run | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
+| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); one CPU epoch completed; checkpoint saved and reload verified | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
 | III. RAG model | 4 | Knowledge-answering interface exists; implementation pending | Document inventory, retrieval, grounded chatbot answers, sources and evaluation |
 | IV. Situated Learning - Workplace Application | 5 | Industry-analogue workflow proposed | Anchor, Apply, Analyse and Reflect supported by actual workflow evidence |
 | Report and video | Included above | This report is in progress; recording utilities exist | Final screenshots, complete-project video, accessible Google Drive link and member submissions |
@@ -108,7 +108,13 @@ The validation set contains 12 examples per category. The records/insurance/admi
 
 The run metadata and per-example predictions were saved locally to the ignored file `artifacts/evaluation/classification_baseline_validation.json`. It records the model revision, dataset SHA-256, predictions, invalid outputs and confusion matrix. The checked-in script can regenerate it with `.venv/bin/python scripts/evaluate_classifier.py` from the Assignment-2 directory.
 
-A one-step training feasibility run also completed on the Mac CPU using one training example (loss 1.2364). It loaded neither validation nor test data and saved no checkpoint. This confirms that a single optimizer update runs in this environment; it does not establish that a full training run will be fast or practical. `scripts/train_classifier.py` supports `auto`, `cpu`, `mps` and `cuda`; on this Mac, `auto` selected CPU. Full mode fits only on the training partition and evaluates validation at each epoch to select the checkpoint.
+The one-step smoke run completed on the Mac CPU using one training example (loss 1.2364); it loaded neither validation nor test data and saved no checkpoint. A separate one-epoch run then trained on all 280 training examples with batch size 1, gradient accumulation 8, learning rate 5e-5, and seed 42. It completed 35 optimizer updates with mean training loss 0.1699, evaluated the 60-message validation set, and saved the best checkpoint. `scripts/train_classifier.py` supports `auto`, `cpu`, `mps` and `cuda`; on this Mac, `auto` selected CPU. Training and validation were the only data partitions loaded; the test set was not used.
+
+#### One-epoch fine-tuning result
+
+After one epoch, validation accuracy was **98.33% (59/60)** and macro-F1 was **98.33%**, with **0 invalid outputs**. Per-class F1 was 95.65% for appointment support, 100% for education resources, portal technical support and records/insurance/admin, and 96.00% for clinical referral. The sole error was an appointment request predicted as clinical referral. The original checkpoint scored 71.67% accuracy and 71.81% macro-F1 on the same validation set. Because the validation set selected the checkpoint, this difference is a development result, not a final unbiased estimate. The test set remains untouched.
+
+The checkpoint and tokenizer were saved to the ignored local directory `artifacts/models/clinic-support`. A fresh process loaded that directory through the application classifier and correctly classified “Please move my appointment to Friday.” as `appointment_support`. The selected checkpoint was trained for one epoch; the planned three-epoch run has not been completed. These results use small synthetic datasets and do not establish clinical performance.
 
 ### 1.4 Pilot data and review
 
@@ -164,7 +170,7 @@ Evidence still to add: readable terminal screenshots of both selected examples, 
 
 ## 2. Fine-Tuning
 
-**Status: pending.** Only a one-step CPU feasibility update has run; no full fine-tuning run or reusable checkpoint exists yet. The intended experiment trains a compatible language model on labelled support messages, retains an untouched test partition, and compares original and tuned models using identical test cases. Record actual dataset provenance, review, scenario-grouped splits, hyperparameters, hardware, loss history, saved checkpoint/tokenizer, reload verification, macro-F1, accuracy, per-class results and failures when completed.
+**Status: partially complete.** One CPU epoch was trained and its checkpoint/tokenizer were saved and reload-verified. Validation metrics are recorded above; the test set has not been evaluated. The remaining work is to decide whether to train more epochs using validation only, freeze the checkpoint and settings, then compare base and tuned models on the untouched test set. Record the final test metrics and failures without tuning against test results.
 
 The 35-message pilot can verify the mechanics of a small training/save/reload run. It does not replace the planned reviewed dataset or justify an overall quality claim.
 
