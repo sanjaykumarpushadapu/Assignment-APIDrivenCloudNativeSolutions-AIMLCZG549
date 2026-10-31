@@ -5,8 +5,8 @@ from diabetes_support.application.use_cases import (
     AnswerQuestion,
     GetServiceStatus,
 )
+from diabetes_support.infrastructure.flan_t5_classifier import FlanT5Classifier
 from diabetes_support.infrastructure.unconfigured_components import (
-    UnconfiguredClassifier,
     UnconfiguredKnowledgeAnswerer,
     UnconfiguredSummarizer,
 )
@@ -14,7 +14,8 @@ from diabetes_support.presentation.api import create_api_app
 
 
 def create_application() -> FastAPI:
-    classifier = UnconfiguredClassifier()
+    # The adapter loads its model on first use, then reuses it for later requests.
+    classifier = FlanT5Classifier()
     summarizer = UnconfiguredSummarizer()
     knowledge_answerer = UnconfiguredKnowledgeAnswerer()
 

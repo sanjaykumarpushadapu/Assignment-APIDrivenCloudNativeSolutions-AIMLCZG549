@@ -2,6 +2,10 @@
 
 A staff-facing prototype for routing diabetes support requests, preparing handoff summaries, and answering general questions from an approved document collection. It is not a clinical decision system, and staff must review outputs.
 
+The evolving assessment report is [docs/report/report.md](docs/report/report.md).
+Update it with verified results and screenshots as each step is completed; export
+the reviewed report to PDF at the end, following Assignment I's workflow.
+
 ## Install development tools
 
 Use Python 3.10 or newer. Choose one package manager for this checkout; `uv` and Poetry use separate lockfiles, so avoid switching between them during the same work.
@@ -16,12 +20,119 @@ Poetry 2.x can use the same PEP 621 project metadata:
 poetry install -E dev
 ```
 
+## Part I: classifier in the application skeleton
+
+The `FlanT5Classifier` adapter implements the existing `Classifier` interface
+and is wired into `main.py`. It uses the original `google/flan-t5-base` model
+without training on the pilot dataset. The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
+
+From `Assignment-2`, using uv and an isolated Python 3.11 environment:
+
+```bash
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -e ".[inference,dev]"
+.venv/bin/python -m diabetes_support.infrastructure.flan_t5_classifier
+```
+
+On Windows, use `.venv\Scripts\python.exe` in place of `.venv/bin/python`.
+If you already use Poetry, keep that environment and install the `inference`
+extra there instead of creating a second environment.
+
+The first run downloads the tokenizer and model to the git-ignored
+`artifacts/huggingface/` folder by default. Inference runs locally on CPU by default; it makes no paid
+inference API call. The model download requires internet access.
+
+The adapter has three main prediction steps: **tokenize** (convert text to numerical tokens),
+**generate** (run the original model without changing its weights), and **decode**
+(convert its output tokens back to text). The terminal command prints the actual
+output, category validity and model revision. An unrecognised output produces a
+null category and a nonzero exit status; it is never replaced with an expected label.
+
+The default message is “Please move my appointment to Friday.” The expected label
+is `appointment_support`. Compare that expectation with the actual output:
+`valid_category` only confirms the output is one of our labels, not its accuracy.
+A single successful example is a feasibility check, not an evaluation score.
+
+Verified locally on 31 October 2026: the default message returned
+`appointment_support` on CPU using Python 3.11.5, PyTorch 2.15.0 and Transformers
+5.22.1. The adapter pins model/tokenizer revision
+`7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. These are observed runtime versions;
+the optional dependency ranges do not lock every future installation to them.
+
+## Configure the classifier
+
+Create your local settings file once, from `Assignment-2`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` to choose the model and runtime. The API and terminal command use the
+same settings; restart the process after editing. Environment variables override
+the file. The `.env` file and downloaded model artifacts are excluded from Git.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `CLASSIFIER_MODEL` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
+| `CLASSIFIER_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
+| `CLASSIFIER_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
+| `CLASSIFIER_CACHE_DIR` | `artifacts/huggingface` | Download/cache folder relative to Assignment-2 |
+| `CLASSIFIER_MAX_INPUT_TOKENS` | `512` | Full prompt limit, including category instructions |
+| `CLASSIFIER_MAX_NEW_TOKENS` | `32` | Generated answer length limit |
+| `CLASSIFIER_LOCAL_FILES_ONLY` | `false` | Set `true` to require cached/local files without downloading |
+
+For example, changing `CLASSIFIER_MODEL=google/flan-t5-small` and leaving the
+revision blank selects that model without inheriting FLAN-T5 Base's revision.
+This model switch is supported by configuration; its output quality still needs
+evaluation. The classifier supports compatible Hugging Face seq2seq models. Chat
+models, hosted API providers and adapter-only LoRA checkpoints need their own
+loading implementation behind the existing `Classifier` interface.
+
+For a future fine-tuned model, use `CLASSIFIER_MODEL=./artifacts/models/classifier`
+after saving a complete compatible model and tokenizer there. Relative paths
+resolve from Assignment-2. Selecting a checkpoint does not verify its training
+history; output reports `weights_updated_during_inference: false` because this
+operation only predicts. The previous hard-coded `fine_tuned_by_us` field has
+been removed to avoid mislabelling a selected checkpoint.
+
+`auto` selects CUDA when available, then Apple MPS, then CPU. An explicitly
+requested unavailable device fails with an explanation. Choose the device before
+loading: both input tensors and model weights are placed on that device.
+
+Configuration parsing and validation live in
+`backend/src/diabetes_support/infrastructure/classifier_settings.py`; inference
+logic stays in the existing classifier adapter. The constructor also accepts a
+`ClassifierSettings` object for tests or programmatic configuration.
+
+To try a different synthetic message:
+
+```bash
+.venv/bin/python -m diabetes_support.infrastructure.flan_t5_classifier --message "The clinic portal will not let me sign in."
+```
+
+The adapter loads lazily on its first prediction and reuses that model object
+for later predictions in the same process. Each separate terminal invocation
+starts a new process and loads its own copy. A new application process initially
+reports the classifier as not ready until its model is loaded.
+
+`/analyze` still requires the summarizer, which is the next implementation step.
+It reports HTTP 503 with the missing-summarizer message before attempting
+classification. The standalone `scripts/check_classifier.py` experiment has been
+removed; the module command above exercises the actual application adapter.
+
 ## Start locally
 
-Start the API from the project root using the package manager you chose:
+Start the API from `Assignment-2` with the inference extra installed. With the
+virtual environment above, run:
+
+```bash
+.venv/bin/python -m uvicorn diabetes_support.main:app --reload --port 8001
+```
+
+Or use your selected package manager (include the inference extra in that environment):
 
 ```powershell
-uv run uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
+uv run --extra inference uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
 ```
 
 Or with Poetry:
@@ -52,11 +163,11 @@ Run static checks with `uv run ruff check .` and `uv run black --check .`, or pr
 
 - `backend/src/diabetes_support/domain`: application-independent errors and status types.
 - `backend/src/diabetes_support/application`: use cases and ports for model/retrieval capabilities.
-- `backend/src/diabetes_support/infrastructure`: replaceable adapters; currently reports unconfigured components.
+- `backend/src/diabetes_support/infrastructure`: FLAN-T5 classifier adapter and placeholders for summarization and document-grounded answers.
 - `backend/src/diabetes_support/presentation`: FastAPI routes and HTTP schemas.
 - `backend/src/diabetes_support/main.py`: composition root that wires the layers.
 - `backend/tests`: backend API tests. `frontend` contains the React + TypeScript client, and `tests/e2e` checks the browser workflow.
 
 ## Current status
 
-The API and React UI are wired, but classifier, summarizer, and document-grounded answer generation are intentionally unconfigured. Analysis and chat requests return HTTP 503 until those components and artifacts are implemented. A synthetic classification/routing pilot is included under `data/pilot/`: 35 labelled messages in `classification_pilot.jsonl`, AI-reviewed and approved by Codex on 30 October 2026 for training/reload feasibility, plus 10 development-only routing checks in the existing label guide. This is pilot-content approval, not team-member review or measured model performance. See [the pilot label guide](data/pilot/label_guide.md) for the review record and permitted use. The full training/evaluation datasets, model weights and knowledge documents are not yet included.
+The API and React UI are wired. The original FLAN-T5 classifier is implemented and connected through the existing classifier interface; its two-message regression check passed and reused one loaded model. Summarization and document-grounded answer generation remain unconfigured. Analysis returns HTTP 503 for the missing summarizer; chat returns HTTP 503 for the missing knowledge component. A synthetic classification/routing pilot is included under `data/pilot/`: 35 labelled messages in `classification_pilot.jsonl`, AI-reviewed and approved by Codex on 30 October 2026 for training/reload feasibility, plus 10 development-only routing checks in the existing label guide. This is pilot-content approval, not team-member review or measured model performance. See [the pilot label guide](data/pilot/label_guide.md) for the review record and permitted use. The full training/evaluation datasets, fine-tuned weights and knowledge documents are not yet included. Downloaded original-model weights stay in the ignored artifacts directory.

@@ -8,9 +8,12 @@ class AnalyzeSupportRequest:
         self._summarizer = summarizer
 
     def execute(self, message: str) -> dict[str, object]:
+        # Produce the summary first so its unconfigured placeholder fails before
+        # we spend time loading/running the classifier for an incomplete response.
+        summary = self._summarizer.summarize(message)
         return {
             "classification": self._classifier.classify(message),
-            "summary": self._summarizer.summarize(message),
+            "summary": summary,
         }
 
 
