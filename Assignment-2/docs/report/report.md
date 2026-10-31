@@ -208,7 +208,7 @@ The tuned model’s three remaining errors were TEST-041 (authorised-contact pap
 
 ## 3. Retrieval-Augmented Generation
 
-The local retrieval step is implemented as `POST /retrieve`: it ranks curated chunks from the WHO [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes) page, updated 1 September 2026, using transformer embeddings, and returns matching passages with source metadata and similarity scores. Retrieval quality has not yet been evaluated with the configured embedding model. The local source snapshot was used to prepare paraphrased notes and source-attributed chunks; the snapshot is excluded from the submission, while the notes and chunks are included. Answer generation is not yet connected, so `/chat` remains unavailable. The completed chatbot should not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests should be routed to staff. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
+The local retrieval step is implemented as `POST /retrieve`: it ranks curated chunks from the WHO [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes) page, updated 1 September 2026, using transformer embeddings, and returns matching passages with source metadata and similarity scores. In one manual smoke check, the question “What is diabetes?” ranked chunk WHO01-001 (“What diabetes is”) first with a cosine similarity score of 0.7357; WHO01-004 scored 0.5368 and WHO01-006 scored 0.5345. These scores are similarity measures, not probabilities, and this single query does not establish retrieval quality. The local source snapshot was used to prepare paraphrased notes and source-attributed chunks; the snapshot is excluded from the submission, while the notes and chunks are included. Answer generation is not yet connected, so `/chat` remains unavailable. The completed chatbot should not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests should be routed to staff. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
 
 ## 4. Situated Learning - Workplace Application
 
@@ -218,7 +218,7 @@ Proposed industry analogue: a fictional diabetes clinic support desk. Staff manu
 
 ### 4.2 Apply - Adaptation and representative outputs
 
-**Demonstration evidence pending.** The selected baseline classifications in Section 1.5 provide limited technical evidence. A complete workplace case should show the summary, fine-tuned classifier, retrieved sources and chatbot answer together, with an appropriate referral or abstention case.
+**Full workflow demonstration pending.** A retrieval-only smoke check is recorded in Section 3. A complete workplace case should show the summary, fine-tuned classifier, retrieved sources and chatbot answer together, with an appropriate referral or abstention case.
 
 ### 4.3 Analyse - Workplace relevance
 
