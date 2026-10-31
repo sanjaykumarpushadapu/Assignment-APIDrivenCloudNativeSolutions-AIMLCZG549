@@ -4,45 +4,45 @@ from unittest.mock import Mock
 
 import pytest
 
-from diabetes_support.infrastructure.classifier_settings import (
-    BASELINE_MODEL,
-    BASELINE_REVISION,
+from diabetes_support.infrastructure.model_settings import (
+    DEFAULT_MODEL_NAME,
+    DEFAULT_MODEL_REVISION,
     PROJECT_ROOT,
-    ClassifierSettings,
+    ModelSettings,
 )
 
 
 @pytest.fixture(autouse=True)
-def isolate_classifier_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def isolate_model_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     import os
 
     for name in list(os.environ):
-        if name.startswith("CLASSIFIER_"):
+        if name.startswith(("MODEL_", "CLASSIFICATION_", "SUMMARY_")):
             monkeypatch.delenv(name)
 
 
 def test_default_model_keeps_verified_revision(tmp_path: Path) -> None:
-    settings = ClassifierSettings.from_env(tmp_path / "missing.env")
-    assert settings.model == BASELINE_MODEL
-    assert settings.resolved_revision == BASELINE_REVISION
+    settings = ModelSettings.from_env(tmp_path / "missing.env")
+    assert settings.model_name == DEFAULT_MODEL_NAME
+    assert settings.resolved_revision == DEFAULT_MODEL_REVISION
     assert settings.device == "cpu"
 
 
 def test_changed_model_does_not_inherit_baseline_revision(tmp_path: Path) -> None:
     env = tmp_path / ".env"
-    env.write_text("CLASSIFIER_MODEL=google/flan-t5-small\n")
-    assert ClassifierSettings.from_env(env).resolved_revision is None
+    env.write_text("MODEL_NAME=google/flan-t5-small\n")
+    assert ModelSettings.from_env(env).resolved_revision is None
 
 
 def test_environment_overrides_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env = tmp_path / ".env"
-    env.write_text("CLASSIFIER_DEVICE=cpu\nCLASSIFIER_MAX_NEW_TOKENS=16\n")
-    monkeypatch.setenv("CLASSIFIER_DEVICE", "auto")
-    settings = ClassifierSettings.from_env(env)
+    env.write_text("MODEL_DEVICE=cpu\nCLASSIFICATION_MAX_NEW_TOKENS=16\n")
+    monkeypatch.setenv("MODEL_DEVICE", "auto")
+    settings = ModelSettings.from_env(env)
     assert settings.device == "auto"
-    assert settings.max_new_tokens == 16
+    assert settings.classification_max_new_tokens == 16
 
 
 def test_local_checkpoint_and_cache_paths(tmp_path: Path) -> None:
@@ -50,12 +50,12 @@ def test_local_checkpoint_and_cache_paths(tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint"
     checkpoint.mkdir()
     env.write_text(
-        f"CLASSIFIER_MODEL={checkpoint}\n"
-        "CLASSIFIER_CACHE_DIR=artifacts/custom-cache\n"
-        "CLASSIFIER_LOCAL_FILES_ONLY=true\n"
+        f"MODEL_NAME={checkpoint}\n"
+        "MODEL_CACHE_DIR=artifacts/custom-cache\n"
+        "MODEL_LOCAL_FILES_ONLY=true\n"
     )
-    settings = ClassifierSettings.from_env(env)
-    assert settings.model == str(checkpoint)
+    settings = ModelSettings.from_env(env)
+    assert settings.model_name == str(checkpoint)
     assert settings.resolved_revision is None
     assert settings.cache_dir == PROJECT_ROOT / "artifacts/custom-cache"
     assert settings.local_files_only is True
@@ -64,19 +64,19 @@ def test_local_checkpoint_and_cache_paths(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "entry",
     [
-        "CLASSIFIER_MODEL=",
-        "CLASSIFIER_MODEL=./missing-checkpoint-directory",
-        "CLASSIFIER_DEVICE=typo",
-        "CLASSIFIER_MAX_INPUT_TOKENS=0",
-        "CLASSIFIER_MAX_NEW_TOKENS=abc",
-        "CLASSIFIER_LOCAL_FILES_ONLY=maybe",
+        "MODEL_NAME=",
+        "MODEL_NAME=./missing-checkpoint-directory",
+        "MODEL_DEVICE=typo",
+        "MODEL_MAX_INPUT_TOKENS=0",
+        "CLASSIFICATION_MAX_NEW_TOKENS=abc",
+        "MODEL_LOCAL_FILES_ONLY=maybe",
     ],
 )
 def test_invalid_settings_fail_early(tmp_path: Path, entry: str) -> None:
     env = tmp_path / ".env"
     env.write_text(entry + "\n")
     with pytest.raises(ValueError):
-        ClassifierSettings.from_env(env)
+        ModelSettings.from_env(env)
 
 
 def test_classifier_passes_settings_to_loader_and_reuses_model(
@@ -84,7 +84,7 @@ def test_classifier_passes_settings_to_loader_and_reuses_model(
 ) -> None:
     import sys
 
-    from diabetes_support.infrastructure.flan_t5_classifier import FlanT5Classifier
+    from diabetes_support.infrastructure.seq2seq_classifier import Seq2SeqClassifier
 
     tokenizer = Mock()
     model = Mock()
@@ -101,13 +101,13 @@ def test_classifier_passes_settings_to_loader_and_reuses_model(
             AutoModelForSeq2SeqLM=SimpleNamespace(from_pretrained=model_loader),
         ),
     )
-    settings = ClassifierSettings(
-        model="example/custom-t5",
-        revision="custom-revision",
+    settings = ModelSettings(
+        model_name="example/custom-t5",
+        model_revision="custom-revision",
         cache_dir=tmp_path,
         local_files_only=True,
     )
-    classifier = FlanT5Classifier(settings)
+    classifier = Seq2SeqClassifier(settings)
     assert not classifier.status.ready
     classifier.load()
     classifier.load()

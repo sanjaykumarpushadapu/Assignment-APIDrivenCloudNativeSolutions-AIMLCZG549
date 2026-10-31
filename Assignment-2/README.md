@@ -22,16 +22,17 @@ poetry install -E dev
 
 ## Part I: classifier in the application skeleton
 
-The `FlanT5Classifier` adapter implements the existing `Classifier` interface
-and is wired into `main.py`. It uses the original `google/flan-t5-base` model
-without training on the pilot dataset. The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
+The `Seq2SeqClassifier` adapter implements the existing `Classifier` interface
+and is wired into `main.py`. The same configurable sequence-to-sequence model
+serves classification and summarisation. By default it uses the original
+`google/flan-t5-base` weights without training on the pilot dataset. The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
 
 From `Assignment-2`, using uv and an isolated Python 3.11 environment:
 
 ```bash
 uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python -e ".[inference,dev]"
-.venv/bin/python -m diabetes_support.infrastructure.flan_t5_classifier
+.venv/bin/python -m diabetes_support.infrastructure.seq2seq_classifier
 ```
 
 On Windows, use `.venv\Scripts\python.exe` in place of `.venv/bin/python`.
@@ -67,28 +68,31 @@ Create your local settings file once, from `Assignment-2`:
 cp .env.example .env
 ```
 
-Edit `.env` to choose the model and runtime. The API and terminal command use the
+Edit `.env` to choose the shared model and runtime. One compatible model is used for both classification and summarisation. The API and terminal command use the
 same settings; restart the process after editing. Environment variables override
 the file. The `.env` file and downloaded model artifacts are excluded from Git.
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `CLASSIFIER_MODEL` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
-| `CLASSIFIER_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
-| `CLASSIFIER_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
-| `CLASSIFIER_CACHE_DIR` | `artifacts/huggingface` | Download/cache folder relative to Assignment-2 |
-| `CLASSIFIER_MAX_INPUT_TOKENS` | `512` | Full prompt limit, including category instructions |
-| `CLASSIFIER_MAX_NEW_TOKENS` | `32` | Generated answer length limit |
-| `CLASSIFIER_LOCAL_FILES_ONLY` | `false` | Set `true` to require cached/local files without downloading |
+| `MODEL_NAME` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
+| `MODEL_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
+| `MODEL_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
+| `MODEL_CACHE_DIR` | `artifacts/huggingface` | Download/cache folder relative to Assignment-2 |
+| `MODEL_MAX_INPUT_TOKENS` | `512` | Full prompt limit, including task instructions |
+| `CLASSIFICATION_MAX_NEW_TOKENS` | `32` | Category generation limit |
+| `SUMMARY_MAX_NEW_TOKENS` | `128` | Summary generation limit |
+| `MODEL_LOCAL_FILES_ONLY` | `false` | Set `true` to require cached/local files without downloading |
 
-For example, changing `CLASSIFIER_MODEL=google/flan-t5-small` and leaving the
-revision blank selects that model without inheriting FLAN-T5 Base's revision.
+For example, changing `MODEL_NAME=google/flan-t5-small` and leaving the
+revision blank selects that model without inheriting the default checkpoint's revision.
 This model switch is supported by configuration; its output quality still needs
-evaluation. The classifier supports compatible Hugging Face seq2seq models. Chat
-models, hosted API providers and adapter-only LoRA checkpoints need their own
-loading implementation behind the existing `Classifier` interface.
+evaluation. The shared runtime supports compatible Hugging Face encoder-decoder models
+that work with `AutoModelForSeq2SeqLM`, safetensors weights and the matching
+tokenizer.
+It does not support every model family: decoder-only chat models, hosted API
+providers and adapter-only LoRA checkpoints need a different loading implementation.
 
-For a future fine-tuned model, use `CLASSIFIER_MODEL=./artifacts/models/classifier`
+For a future fine-tuned model, use `MODEL_NAME=./artifacts/models/clinic-support`
 after saving a complete compatible model and tokenizer there. Relative paths
 resolve from Assignment-2. Selecting a checkpoint does not verify its training
 history; output reports `weights_updated_during_inference: false` because this
@@ -100,25 +104,37 @@ requested unavailable device fails with an explanation. Choose the device before
 loading: both input tensors and model weights are placed on that device.
 
 Configuration parsing and validation live in
-`backend/src/diabetes_support/infrastructure/classifier_settings.py`; inference
+`backend/src/diabetes_support/infrastructure/model_settings.py`; inference
 logic stays in the existing classifier adapter. The constructor also accepts a
-`ClassifierSettings` object for tests or programmatic configuration.
+`ModelSettings` object for tests or programmatic configuration.
 
 To try a different synthetic message:
 
 ```bash
-.venv/bin/python -m diabetes_support.infrastructure.flan_t5_classifier --message "The clinic portal will not let me sign in."
+.venv/bin/python -m diabetes_support.infrastructure.seq2seq_classifier --message "The clinic portal will not let me sign in."
 ```
 
 The adapter loads lazily on its first prediction and reuses that model object
 for later predictions in the same process. Each separate terminal invocation
 starts a new process and loads its own copy. A new application process initially
-reports the classifier as not ready until its model is loaded.
+reports both model tasks as not ready until the shared model is loaded.
 
-`/analyze` still requires the summarizer, which is the next implementation step.
-It reports HTTP 503 with the missing-summarizer message before attempting
-classification. The standalone `scripts/check_classifier.py` experiment has been
-removed; the module command above exercises the actual application adapter.
+To exercise the integrated route after starting the API, use the same request you tested:
+
+```bash
+curl -X POST http://127.0.0.1:8001/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Please move my appointment to Friday. I also cannot download the education leaflet from the portal."}'
+```
+
+`/analyze` now returns both a generated handoff summary and the main-request
+category. The classifier and summarizer share one lazily loaded FLAN-T5 model
+and tokenizer. A source-coverage check now appends any original sentence whose meaningful words
+are missing from the generated summary. This prevents the tested second request
+from disappearing, though it can produce repetition when the model paraphrases.
+Review summaries for accuracy and unsupported additions. The standalone `scripts/check_classifier.py`
+experiment has been removed; the module command above exercises the actual
+application classifier adapter.
 
 ## Start locally
 
@@ -163,11 +179,11 @@ Run static checks with `uv run ruff check .` and `uv run black --check .`, or pr
 
 - `backend/src/diabetes_support/domain`: application-independent errors and status types.
 - `backend/src/diabetes_support/application`: use cases and ports for model/retrieval capabilities.
-- `backend/src/diabetes_support/infrastructure`: FLAN-T5 classifier adapter and placeholders for summarization and document-grounded answers.
+- `backend/src/diabetes_support/infrastructure`: shared sequence-to-sequence classifier/summarizer adapters and a placeholder for document-grounded answers.
 - `backend/src/diabetes_support/presentation`: FastAPI routes and HTTP schemas.
 - `backend/src/diabetes_support/main.py`: composition root that wires the layers.
 - `backend/tests`: backend API tests. `frontend` contains the React + TypeScript client, and `tests/e2e` checks the browser workflow.
 
 ## Current status
 
-The API and React UI are wired. The original FLAN-T5 classifier is implemented and connected through the existing classifier interface; its two-message regression check passed and reused one loaded model. Summarization and document-grounded answer generation remain unconfigured. Analysis returns HTTP 503 for the missing summarizer; chat returns HTTP 503 for the missing knowledge component. A synthetic classification/routing pilot is included under `data/pilot/`: 35 labelled messages in `classification_pilot.jsonl`, AI-reviewed and approved by Codex on 30 October 2026 for training/reload feasibility, plus 10 development-only routing checks in the existing label guide. This is pilot-content approval, not team-member review or measured model performance. See [the pilot label guide](data/pilot/label_guide.md) for the review record and permitted use. The full training/evaluation datasets, fine-tuned weights and knowledge documents are not yet included. Downloaded original-model weights stay in the ignored artifacts directory.
+The API and React UI are wired. The original FLAN-T5 classifier and message summarizer are connected through the existing interfaces and share one lazy model runtime. Document-grounded answer generation remains unconfigured, so chat returns HTTP 503 for the missing knowledge component. Summaries and categories are model outputs and require staff review. A synthetic classification/routing pilot is included under `data/pilot/`: 35 labelled messages in `classification_pilot.jsonl`, AI-reviewed and approved by Codex on 30 October 2026 for training/reload feasibility, plus 10 development-only routing checks in the existing label guide. This is pilot-content approval, not team-member review or measured model performance. See [the pilot label guide](data/pilot/label_guide.md) for the review record and permitted use. The full training/evaluation datasets, fine-tuned weights and knowledge documents are not yet included. Downloaded original-model weights stay in the ignored artifacts directory.
