@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Record your own narration for the demo video, one scene at a time.
 
-Ported from Assignment-1/demo_video. Works on Windows, macOS and Linux.
+Works on Windows, macOS and Linux.
 One person reads every scene, in order:
 
     python demo_video/record_voice.py

@@ -1,7 +1,7 @@
 # Demo video: automated recording
 
-These scripts record the Group 49 Assignment II demonstration video, using the same
-approach as `Assignment-1/demo_video`: Playwright records each scene in Chromium, and
+These scripts record the Group 49 Assignment II demonstration video: Playwright
+records each scene in Chromium, and
 ffmpeg joins the clips with narration and captions. The video covers the workplace
 problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
 React app (analysis, source-backed chat and a clinical referral), Swagger "Try it out →

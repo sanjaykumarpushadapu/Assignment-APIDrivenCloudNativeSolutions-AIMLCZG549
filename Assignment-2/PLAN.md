@@ -10,7 +10,7 @@ Planning date: 30 October 2026. Official submission date supplied by the team: *
 
 **Diabetes Care Support Assistant: request routing, staff summaries, and document-grounded Q&A.**
 
-Continue Assignment 1's diabetes domain with a new NLP application for a diabetes clinic's support desk. A staff member enters a patient support message. The assistant identifies the request type, produces a factual handoff summary, and helps staff answer general education or administrative questions using approved documents and visible sources. Staff review the output before communicating it to a patient.
+Build an NLP application for a diabetes clinic's support desk. A staff member enters a patient support message. The assistant identifies the request type, produces a factual handoff summary, and helps staff answer general education or administrative questions using approved documents and visible sources. Staff review the output before communicating it to a patient.
 
 Use a clearly labelled fictional clinic as an industry analogue unless suitable workplace material is available. The assessment explicitly permits anonymised or synthetic workplace data. Do not describe a simulated workflow as an actual clinic deployment.
 
@@ -40,15 +40,13 @@ Source: [Assignment 2.pdf](./Assignment%202.pdf), reviewed across all three page
 - The supplied brief contains no actual due date or time. Use the team's corrected 12 November submission date, and verify the portal cutoff on 30 October. Finish internally by 10 November and retain 11 November as contingency. The brief states a one-mark-per-day late penalty and no extension/makeup.
 - These two submission details cannot be settled from the brief or this plan alone. Until the instructor/portal confirms them, treat the upload wording and exact cutoff as open decisions; do not represent either as verified.
 - The brief does not specify a minimum training-set size, a target accuracy, cloud hosting, number of endpoints, report length, or video duration. Any such numbers in this plan are internal targets, not assessment rules.
-- Group 49 and the four names in the roadmap are carried over from the existing Assignment 1 report. Confirm the same membership before preparing final contribution declarations.
+- Confirm the Group 49 roster before preparing final contribution declarations.
 
-## 3. Connection to Assignment 1
+## 3. Project and repository boundaries
 
-Assignment 1 provides the healthcare context, experience with FastAPI and Swagger, cloud/container patterns, and report/video conventions. Its existing Random Forest and Logistic Regression models operate on tabular survey features. They do not satisfy this assessment's language-model fine-tuning, three NLP tasks, or RAG chatbot requirements.
+The application uses language-model fine-tuning, three connected NLP tasks, and a RAG chatbot. Tabular survey data and numerical risk-prediction models are outside this project's data and model scope; do not present them as patient conversations or a clinical knowledge base.
 
-Reuse the project narrative and engineering patterns after review. Build the Assessment 2 application separately under `Assignment-2`; retain Assignment 1 as historical work. No numerical risk-prediction integration is needed for the minimum submission, and the prior survey data must not be presented as patient conversations or a clinical knowledge base.
-
-Repository finding: the current root deployment workflow triggers on pushes and targets Assignment 1. Before future implementation is pushed, plan path/branch scoping and separate Assessment 2 service names so documentation or application changes do not unexpectedly redeploy the earlier project. No workflow changes have been made in this planning task.
+The current root deployment workflow targets a different application. Before deployment changes, review path/branch scoping and use separate service names so this project's changes do not unexpectedly redeploy that application. No workflow changes have been made in this planning task.
 
 ## 4. Three NLP tasks and the model strategy
 
@@ -179,7 +177,7 @@ Review conclusion: the proposed design covers every assessed component, but feas
 | Healthcare context raises output-quality stakes | Personalised clinical advice could be mistaken for supported information | Staff-facing education/admin scope and tested referral behaviour |
 | Workplace section carries five marks | Generic reflection could lose the largest component | Named cases, measured workflow evaluation and individual workplace material |
 | Submission wording is ambiguous | Members may submit the wrong version | Instructor clarification plus separate per-member Section IV drafts |
-| Existing CI targets Assignment 1 | CI runs on every push; GCP build/deploy is disabled unless `GCP_DEPLOY_ENABLED` is `true` | Review path/workflow scoping before Assignment 2 implementation is merged |
+| Root CI targets a different application | CI runs on every push; GCP build/deploy is disabled unless `GCP_DEPLOY_ENABLED` is `true` | Review path/workflow scoping before this project is deployed |
 
 If time is lost, defer optional cloud hosting, cosmetic UI work and unplanned features first. Preserve the planned dataset/scenario coverage, document coverage, all three NLP tasks, real fine-tuning, document retrieval with chat, independent evaluation, workplace evidence, report and video. Reassign work and use the 11 November contingency rather than weakening checks. If mandatory work or a quality gate still cannot be completed, escalate immediately, record the failed gate honestly and seek instructor guidance; do not claim readiness or assume the official deadline can move.
 
@@ -195,7 +193,7 @@ Name the report `49.pdf` or `49.docx` if Group 49 continues. Capture actual cont
 
 ## 11. Roadmap: quality-checked completion by 10 November; submit by 12 November 2026
 
-Finish and verify the complete submission package by **the end of 10 November**, including the working app, evaluated models, report(s), contribution statements and accessible demonstration video. Submit early if the portal permits. **11 November is contingency time only**, not planned development; **12 November is the official submission date supplied by the team**, subject to confirming the portal cutoff. This replaces the earlier 8 November internal target; it does not extend the official deadline. The allocation below uses the four-member roster from Assignment 1 and records planned work, not completed contributions.
+Finish and verify the complete submission package by **the end of 10 November**, including the working app, evaluated models, report(s), contribution statements and accessible demonstration video. Submit early if the portal permits. **11 November is contingency time only**, not planned development; **12 November is the official submission date supplied by the team**, subject to confirming the portal cutoff. This replaces the earlier 8 November internal target; it does not extend the official deadline. The allocation below uses the current four-member project roster and records planned work, not completed contributions.
 
 ### 11.1. Ownership and handoffs
 

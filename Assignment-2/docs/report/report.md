@@ -2,18 +2,18 @@
 
 **Course:** AIMLCZG549 - API-Driven Cloud-Native Solutions  
 **Assignment:** Assignment II  
-**Group:** 49 (carried over from Assignment I; confirm before submission)  
+**Group:** 49\
 **Institution:** BITS Pilani, Work Integrated Learning Programmes  
 **Last updated:** 31 October 2026  
 **Document status:** Working draft; updated as implementation and verification progress.
 
-This report records the design, implementation and evidence for a staff-facing diabetes-clinic support assistant. The project covers three connected NLP tasks: request classification, message summarisation and document-grounded question answering. The current implementation covers baseline classification and a configurable sequence-to-sequence summariser. A source-coverage guard retains original sentences omitted by generated summaries. Fine-tuning, retrieval and the complete workplace evaluation remain pending; summary accuracy still requires staff review.
+This report records the design, implementation and evidence for a staff-facing diabetes-clinic support assistant. The project covers three connected NLP tasks: request classification, message summarisation and document-grounded question answering. The classifier has been fine-tuned from `google/flan-t5-base`; the summariser continues to use the original base model. A source-coverage guard retains original sentences omitted by generated summaries. Retrieval and the complete workplace evaluation remain pending; summary accuracy still requires staff review.
 
 The Markdown report is the editable source. Screenshots, completed results, references and confirmed contributions will be added here before final PDF export. This is not the final submission.
 
 ## Team Contributions
 
-The roster below follows Assignment I. Assignment II contributions and percentages must be confirmed from actual completed work before submission; the previous assignment's contributions are not reused as evidence.
+Assignment II contributions and percentages must be confirmed from actual completed work before submission.
 
 | Team member | BITS ID | Assignment II contribution | Confirmed share |
 |---|---|---|---|
@@ -26,8 +26,8 @@ The roster below follows Assignment I. Assignment II contributions and percentag
 
 | Assessment component | Marks | Current status | Evidence still required |
 |---|---:|---|---|
-| I. API-based AI application | 4 | React/FastAPI skeleton; classifier and first summariser wired through existing interfaces | Summary quality review; chatbot; integrated screenshots and final API demonstrations |
-| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); one CPU epoch completed; checkpoint saved and reload verified | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
+| I. API-based AI application | 4 | React/FastAPI skeleton; classifier and summariser wired through existing interfaces and separate model settings | Summary quality review; chatbot; integrated screenshots and final API demonstrations |
+| II. Fine-tuning | 2 | 280 synthetic training examples (56/class); one CPU epoch completed; checkpoint saved and reload verified; validation and held-out comparison recorded | Final training records and reproducible run evidence; screenshots; no further tuning against the test set |
 | III. RAG model | 4 | Knowledge-answering interface exists; implementation pending | Document inventory, retrieval, grounded chatbot answers, sources and evaluation |
 | IV. Situated Learning - Workplace Application | 5 | Industry-analogue workflow proposed | Anchor, Apply, Analyse and Reflect supported by actual workflow evidence |
 | Report and video | Included above | This report is in progress; recording utilities exist | Final screenshots, complete-project video, accessible Google Drive link and member submissions |
@@ -42,17 +42,17 @@ The existing application separates the interface, HTTP routes, workflow logic an
 | FastAPI presentation layer | Validate HTTP requests and expose `/health`, `/metadata`, `/analyze` and `/chat` | Implemented routes |
 | Application layer | Coordinate classification, summarisation and knowledge answering | Existing use cases |
 | Classifier interface | Define `classify(message)` and readiness status | Existing protocol |
-| Model infrastructure | Load tokenizer/weights and generate predictions/summaries | `Seq2SeqRuntime` shared by configurable `Seq2SeqClassifier` and `Seq2SeqSummarizer` |
-| Configuration | Select model, revision, device, paths and generation limits | `ModelSettings` reads `.env` and environment variables |
+| Model infrastructure | Load tokenizer/weights and generate predictions/summaries | Separate lazy `Seq2SeqRuntime` instances for `Seq2SeqClassifier` and `Seq2SeqSummarizer` |
+| Configuration | Select model, revision, device, paths and generation limits | `ModelSettings` reads shared defaults and task-specific `.env`/environment overrides |
 | Summariser and knowledge answerer | Generate summaries and document-grounded answers | Configurable sequence-to-sequence summariser with a source-coverage guard; knowledge answerer remains unconfigured |
 
-The classifier and summariser use one lazy runtime and reuse its model weights in the same process. Each new process loads its own model copy. Both components report ready after the first model load. `/analyze` returns a generated summary and a primary category; `/chat` returns HTTP 503 until the knowledge component is configured. The user confirmed through Swagger that the first model summary omitted the leaflet download issue. A conservative source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
+The classifier and summariser each have a separate lazy runtime and can load different model checkpoints. Each model is loaded on its first request and remains in memory for that application process; if both tasks are used, both model copies may occupy memory. `/analyze` returns a generated summary and a primary category; `/chat` returns HTTP 503 until the knowledge component is configured. The user confirmed through Swagger that the first model summary omitted the leaflet download issue. A conservative source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
 
 ## 1. API-Based AI Application
 
 ### 1.1 Domain, problem and users
 
-The selected domain is healthcare support, continuing Assignment I's diabetes theme. The application addresses routine support messages that clinic staff must read, route and answer using education resources and administrative procedures. The proposed organisation is a fictional diabetes clinic used as an industry analogue; no real clinic deployment or access to patient records is claimed.
+The selected domain is healthcare support for a fictional diabetes clinic. The application addresses routine support messages that clinic staff must read, route and answer using education resources and administrative procedures. The clinic is an industry analogue; no real clinic deployment or access to patient records is claimed.
 
 The intended user is a clinic support worker. Staff review outputs before communicating with patients. The assistant supports education and administrative workflows; personal clinical decisions are referred to qualified staff.
 
@@ -69,6 +69,17 @@ All three tasks support one objective: reduce staff effort in understanding and 
 ### 1.3 Model choice and baseline inference
 
 The initial language model is `google/flan-t5-base`, loaded with Hugging Face Transformers using `AutoTokenizer` and `AutoModelForSeq2SeqLM`. The verified baseline uses revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2` for both tokenizer and weights.
+
+#### Base model and fine-tuned model roles
+
+The **base model** is the original pretrained `google/flan-t5-base` checkpoint at revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. It provides the starting weights and tokenizer for classification and remains the model used for message summarisation. The **fine-tuned model** is not a different model family: it is a complete FLAN-T5 checkpoint produced by updating the base model's weights for the clinic-support classification task. Training used AdamW over the model parameters; this was full fine-tuning, not LoRA or another adapter-only method.
+
+| Application task | Configured model | Role |
+|---|---|---|
+| Classification | `./artifacts/models/clinic-support` (`CLASSIFIER_MODEL_NAME`) | Locally saved, one-epoch fine-tuned checkpoint derived from the pinned base model |
+| Summarisation | `google/flan-t5-base` (`SUMMARIZER_MODEL_NAME`) | Original pinned base checkpoint; it is not fine-tuned for summarisation |
+
+The app loads the two task models through separate lazy runtimes. `CLASSIFIER_MODEL_NAME` and `SUMMARIZER_MODEL_NAME` override the shared `MODEL_NAME` fallback. The base model identifier and revision remain the training/evaluation source settings. This arrangement lets each task change independently, but the two model copies can both occupy memory after both tasks have run. The local classifier checkpoint is ignored by Git and must be present on the machine running the app.
 
 The classification instruction lists five categories and their meanings:
 
@@ -136,7 +147,7 @@ After freezing the one-epoch checkpoint, the base and tuned models were run once
 | Records, insurance and administration | 6 records, 2 appointment, 4 invalid | 9 records, 1 appointment, 1 education, 1 portal |
 | Clinical staff referral | 11 clinical, 1 appointment | 12 clinical |
 
-The tuned model’s three remaining errors were TEST-041 (authorised-contact paperwork), TEST-045 (preferred language for clinic letters), and TEST-047 (insurance coverage for an appointment fee); all were predicted as another supported category rather than invalid text. The higher result is evidence only for this small synthetic test set. It is not clinical-performance evidence, and test results must not be used to choose further tuning changes.
+The tuned model’s three remaining errors were TEST-041 (authorised-contact paperwork), TEST-045 (preferred language for clinic letters), and TEST-047 (insurance coverage for an appointment fee); all were predicted as another supported category rather than invalid text. The higher result is evidence only for this small synthetic test set. It is not clinical-performance evidence. The test set remains held out and must not be used to choose further tuning changes.
 
 ### 1.4 Pilot data and review
 
@@ -144,7 +155,7 @@ The classification pilot contains 35 synthetic, AI-drafted messages, seven per c
 
 Ten additional routing checks are documented in the existing label guide. They cover mixed clinical/administrative messages, educational versus personal-result questions, technical failures, ambiguous requests and unrelated requests. These are expected behaviours, not observed test passes, and remain outside classifier training.
 
-The pilot has valid JSON, balanced class counts, unique IDs and no exact duplicate messages. Related scenarios are grouped to support leakage-aware dataset preparation. The pilot is development material and must not be presented as a final held-out benchmark. The validation and test candidates have received label and overlap review; 15 test messages were revised and one ambiguous category was clarified. Model training remains pending.
+The pilot has valid JSON, balanced class counts, unique IDs and no exact duplicate messages. Related scenarios are grouped to support leakage-aware dataset preparation. The pilot is development material and must not be presented as a final held-out benchmark. The validation and test candidates have received label and overlap review; 15 test messages were revised and one ambiguous category was clarified. The training run and evaluation results are reported in Sections 1.3 and 2.
 
 The training draft is in `data/training/classification_train.jsonl`: **280 synthetic messages, 56 per category**, with tracking metadata and scenario-family IDs. The initial 50 examples received an AI-assisted content review, during which five messages were clarified and scenario groupings corrected. A further 230 examples add spelling variation, informal requests, longer inputs and mixed requests with clinical overrides. All records retain AI-drafted provenance.
 
@@ -152,12 +163,17 @@ At the user’s direction, all pilot and training records use `review_status: ap
 
 ### 1.5 Configurable model and runtime
 
-The active `.env` file was created from `.env.example` on 31 October 2026. `ModelSettings.from_env()` reads the file from Assignment-2 regardless of the terminal's working directory. Environment variables take precedence. Both terminal adapters and the application read the same configuration; `MODEL_NAME` selects the model shared by classification and summarisation. Changes apply after restarting the process. The active `.env` is excluded from Git.
+The active `.env` file was created from `.env.example` on 31 October 2026. `ModelSettings.from_env()` reads the file from Assignment-2 regardless of the terminal's working directory. Environment variables take precedence. The training/evaluation scripts use `MODEL_NAME` and `MODEL_REVISION` for the base model; the application uses task-specific model names and revisions when supplied, falling back to the shared settings otherwise. Changes apply after restarting the process. The active `.env` is excluded from Git.
+
+The local configuration points `CLASSIFIER_MODEL_NAME` to `./artifacts/models/clinic-support` and `SUMMARIZER_MODEL_NAME` to `google/flan-t5-base`. The classifier checkpoint directory exists on the development Mac and was reload-verified there. Task-specific runtime wiring has been added to the application; an integrated API recheck with both selected models remains to be recorded.
 
 | Setting | Verified/default value | Purpose |
 |---|---|---|
-| `MODEL_NAME` | `google/flan-t5-base` | Hub model ID or complete compatible checkpoint directory |
-| `MODEL_REVISION` | Blank resolves to the pinned baseline revision | Select a reproducible Hub revision |
+| `MODEL_NAME` | `google/flan-t5-base` | Shared fallback and base model used by training/evaluation |
+| `MODEL_REVISION` | Blank resolves to `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2` for the base | Select a reproducible Hub revision |
+| `CLASSIFIER_MODEL_NAME` | `./artifacts/models/clinic-support` | Fine-tuned classifier checkpoint; overrides `MODEL_NAME` in the app |
+| `SUMMARIZER_MODEL_NAME` | `google/flan-t5-base` | Original model for summaries; overrides `MODEL_NAME` in the app |
+| `CLASSIFIER_MODEL_REVISION` / `SUMMARIZER_MODEL_REVISION` | Blank; inherit `MODEL_REVISION` | Optional task-specific Hub revisions |
 | `MODEL_DEVICE` | `cpu` | Choose CPU, CUDA, MPS or automatic device selection |
 | `MODEL_CACHE_DIR` | `artifacts/huggingface` | Keep model downloads outside source control |
 | `MODEL_MAX_INPUT_TOKENS` | `512` | Reject oversized full prompts rather than silently truncating them |
@@ -165,7 +181,7 @@ The active `.env` file was created from `.env.example` on 31 October 2026. `Mode
 | `SUMMARY_MAX_NEW_TOKENS` | `128` | Bound summary output length |
 | `MODEL_LOCAL_FILES_ONLY` | `false` | Optionally require cached/local weights without downloads |
 
-Changing the Hub model without specifying a revision does not inherit the baseline's commit SHA. Relative checkpoint/cache paths resolve from Assignment-2. The current loader supports compatible Hugging Face sequence-to-sequence models with safetensors weights and a matching tokenizer. Chat-model architectures, hosted providers and adapter-only LoRA checkpoints need an appropriate implementation behind the classifier interface. Alternative model quality, GPU inference and fine-tuned checkpoint loading have not yet been demonstrated.
+Changing a Hub model without specifying a revision does not inherit the baseline's commit SHA. Relative checkpoint/cache paths resolve from Assignment-2. The current loader supports compatible Hugging Face sequence-to-sequence models with safetensors weights and a matching tokenizer. Chat-model architectures, hosted providers and adapter-only LoRA checkpoints need an appropriate implementation behind the classifier interface. The fine-tuned classifier checkpoint has been loaded and reload-verified on CPU; alternative model quality and GPU inference have not been demonstrated.
 
 ### 1.6 Verified baseline results
 
@@ -180,7 +196,7 @@ These are selected development examples. They are not a held-out accuracy estima
 
 Observed environment: Python 3.11.5, PyTorch 2.15.0, Transformers 5.22.1, macOS and CPU inference. Dependency ranges do not lock future installations to these exact versions. Model loading logged a macOS redirection note and a tied-weights warning; prediction completed successfully, and the configuration was not changed merely to suppress those messages.
 
-Verified engineering checks include two successive predictions reusing one model object, rejection of blank and oversized inputs, and a mocked API check that `/analyze` returns both fields, and unit checks for the summary coverage guard. The automated backend/configuration suite completed with **17 tests passed**. A real offline inference run loaded the cached baseline model and produced `appointment_support`; after the guard was added, the returned summary retained both original sentences. The user also exercised `/analyze` through Swagger before this guard was added and observed the omission. The configuration tests include file/environment precedence, revision selection, local paths, invalid settings and passing configured loader options. Mocked loader tests establish configuration behaviour, not actual alternative-model or GPU performance. Formatting and lint checks passed.
+Verified engineering checks include two successive predictions reusing one model object, rejection of blank and oversized inputs, and a mocked API check that `/analyze` returns both fields, and unit checks for the summary coverage guard. The automated backend/configuration suite completed with **17 tests passed**. A real offline inference run loaded the cached baseline model and produced `appointment_support`; after the guard was added, the returned summary retained both original sentences. The user also exercised `/analyze` through Swagger before this guard was added and observed the omission. The configuration tests include file/environment precedence, revision selection, local paths, invalid settings and passing configured loader options. Mocked loader tests establish configuration behaviour, not actual alternative-model or GPU performance. Formatting and lint checks passed before the task-specific runtime wiring was added; the backend suite and integrated API configuration still need rechecking after that change.
 
 Reproduction command from Assignment-2, after installing the inference dependencies:
 
@@ -192,9 +208,9 @@ Evidence still to add: readable terminal screenshots of both selected examples, 
 
 ## 2. Fine-Tuning
 
-**Status: partially complete.** One CPU epoch was trained; its checkpoint and tokenizer were saved and reload-verified. Base-versus-tuned final test results are recorded above, and no test result was used for tuning. Remaining work is application/API integration, final workplace evaluation and demo evidence. The test set must stay closed to further model selection.
+**Status: training and model comparison complete; assessment evidence remains in progress.** One CPU epoch was trained; its checkpoint and tokenizer were saved and reload-verified. Base-versus-tuned final test results are recorded above, and no test result was used for tuning. Remaining work is an integrated API demonstration with the task-specific configuration, final workplace evaluation and demo evidence. The test set must stay closed to further model selection.
 
-The 35-message pilot can verify the mechanics of a small training/save/reload run. It does not replace the planned reviewed dataset or justify an overall quality claim.
+The 35-message pilot is development material. The one-epoch training run used the separate 280-message training partition, with the 60-message validation partition for checkpoint selection. Neither pilot examples nor the held-out test partition were used as training inputs.
 
 ## 3. Retrieval-Augmented Generation
 
@@ -222,7 +238,7 @@ The brief's exception for individual Situated Learning submissions needs instruc
 
 ## 5. Demonstration, Limitations and Submission
 
-The current prototype has a functioning baseline classifier, a sequence-to-sequence summariser with an omission guard, and configurable model loading. Fine-tuning and RAG remain unfinished; the summaries and full workplace evaluation still require human review. The recorded examples and automated engineering checks have different purposes and must not be combined into an AI accuracy claim.
+The current prototype has a fine-tuned classifier, a sequence-to-sequence summariser with an omission guard, and configurable task-specific model loading. RAG remains unfinished; the summaries and full workplace evaluation still require human review. The recorded examples and automated engineering checks have different purposes and must not be combined into an AI accuracy claim.
 
 The final demonstration video must cover the complete project and be uploaded to Google Drive with verified viewer access. **Final video link: pending.** Screenshots, measured outcomes, member-approved contributions and the complete separate workplace section are also pending. After final review, export this report as `49.pdf` or `49.docx` if Group 49 continues, and verify every member's required portal submission. The team has supplied 12 November 2026 as the official date; the portal's exact cutoff still needs verification.
 
@@ -231,4 +247,3 @@ The final demonstration video must cover the complete project and be uploaded to
 1. Course Assignment II brief, supplied locally as `Assignment-2/Assignment 2.pdf`; assessed requirements and submission instructions.
 2. Google / Hugging Face. [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base). Model identity and loading reference; the verified revision is recorded in Section 1.3.
 3. Hugging Face. [Transformers T5 documentation](https://huggingface.co/docs/transformers/en/model_doc/t5). Tokenizer and sequence-to-sequence model API reference.
-4. Group 49. Assignment I report, `Assignment-1/docs/report/REPORT.md`. Structure and team roster reference; Assignment I results are not Assignment II evidence.

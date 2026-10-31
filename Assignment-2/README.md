@@ -4,7 +4,7 @@ A staff-facing prototype for routing diabetes support requests, preparing handof
 
 The evolving assessment report is [docs/report/report.md](docs/report/report.md).
 Update it with verified results and screenshots as each step is completed; export
-the reviewed report to PDF at the end, following Assignment I's workflow.
+the reviewed report to PDF at the end.
 
 ## Install development tools
 

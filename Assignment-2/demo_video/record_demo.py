@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Automated demonstration-video recorder for Group 49 (AIMLCZG549 Assignment II).
 
-Ported from Assignment-1/demo_video. One command produces the finished MP4:
+One command produces the finished MP4:
 
     python demo_video/record_demo.py --tts none --burn-subtitles
 
