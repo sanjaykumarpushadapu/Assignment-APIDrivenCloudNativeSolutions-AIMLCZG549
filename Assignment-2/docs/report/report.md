@@ -4,8 +4,7 @@
 **Assignment:** Assignment II  
 **Group:** 49\
 **Institution:** BITS Pilani, Work Integrated Learning Programmes  
-**Last updated:** 31 October 2026  
-**Document status:** Working draft; updated as implementation and verification progress.
+**Document status:** Working draft.
 
 This report records the design, implementation and evidence for a staff-facing diabetes-clinic support assistant. The project covers three connected NLP tasks: request classification, message summarisation and document-grounded question answering. The classifier has been fine-tuned from `google/flan-t5-base`; the summariser continues to use the original base model. A source-coverage guard retains original sentences omitted by generated summaries. Retrieval and the complete workplace evaluation remain pending; summary accuracy still requires staff review.
 
@@ -38,15 +37,15 @@ The existing application separates the interface, HTTP routes, workflow logic an
 
 | Component | Responsibility | Current implementation |
 |---|---|---|
-| React + TypeScript frontend | Collect support messages and questions; show API results | Application skeleton |
+| React + TypeScript frontend | Collect support messages and questions; show API results | React client for the support workflow |
 | FastAPI presentation layer | Validate HTTP requests and expose `/health`, `/metadata`, `/analyze` and `/chat` | Implemented routes |
-| Application layer | Coordinate classification, summarisation and knowledge answering | Existing use cases |
-| Classifier interface | Define `classify(message)` and readiness status | Existing protocol |
+| Application layer | Coordinate classification, summarisation and knowledge answering | Use cases coordinate the three task interfaces |
+| Classifier interface | Define `classify(message)` and readiness status | Protocol implemented by the sequence-to-sequence classifier |
 | Model infrastructure | Load tokenizer/weights and generate predictions/summaries | Separate lazy `Seq2SeqRuntime` instances for `Seq2SeqClassifier` and `Seq2SeqSummarizer` |
 | Configuration | Select model, revision, device, paths and generation limits | `ModelSettings` reads shared defaults and task-specific `.env`/environment overrides |
 | Summariser and knowledge answerer | Generate summaries and document-grounded answers | Configurable sequence-to-sequence summariser with a source-coverage guard; knowledge answerer remains unconfigured |
 
-The classifier and summariser each have a separate lazy runtime and can load different model checkpoints. Each model is loaded on its first request and remains in memory for that application process; if both tasks are used, both model copies may occupy memory. `/analyze` returns a generated summary and a primary category; `/chat` returns HTTP 503 until the knowledge component is configured. The user confirmed through Swagger that the first model summary omitted the leaflet download issue. A conservative source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
+The classifier and summariser each have a separate lazy runtime and can load different model checkpoints. Each model is loaded on its first request and remains in memory for that application process; if both tasks are used, both model copies may occupy memory. `/analyze` returns a generated summary and a primary category; `/chat` returns HTTP 503 until the knowledge component is configured. An initial summary omitted the leaflet download request. A source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
 
 ## 1. API-Based AI Application
 
@@ -58,11 +57,11 @@ The intended user is a clinic support worker. Staff review outputs before commun
 
 ### 1.2 Three cohesive NLP tasks
 
-| Task | Intended input and output | Progress |
+| Task | Intended input and output | Role in the workflow |
 |---|---|---|
-| Request classification | Support message to a primary support category | Baseline prediction verified |
-| Summarisation | Message/conversation to a factual staff handoff summary | Adapter and source-coverage guard implemented; human quality review pending |
-| Question answering | Staff question and retrieved documents to an answer with sources | Pending; covered by the RAG implementation |
+| Request classification | Support message to a primary support category | Route the request to a support queue or staff review |
+| Summarisation | Message/conversation to a factual staff handoff summary | Preserve the requests for staff handoff |
+| Question answering | Staff question and retrieved documents to an answer with sources | Answer routine questions from approved documents |
 
 All three tasks support one objective: reduce staff effort in understanding and responding to diabetes support enquiries. A representative case is an appointment-change request combined with a missing education leaflet. Classification identifies the main request, the summary retains both needs, and document-grounded Q&A supplies the relevant procedure once implemented.
 
@@ -72,7 +71,7 @@ The initial language model is `google/flan-t5-base`, loaded with Hugging Face Tr
 
 #### Base model and fine-tuned model roles
 
-The **base model** is the original pretrained `google/flan-t5-base` checkpoint at revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. It provides the starting weights and tokenizer for classification and remains the model used for message summarisation. The **fine-tuned model** is not a different model family: it is a complete FLAN-T5 checkpoint produced by updating the base model's weights for the clinic-support classification task. Training used AdamW over the model parameters; this was full fine-tuning, not LoRA or another adapter-only method.
+The **base model** is the original pretrained `google/flan-t5-base` checkpoint at revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. It provides the starting weights and tokenizer for classification and remains the model used for message summarisation. The **fine-tuned model** is a complete FLAN-T5 checkpoint adapted for clinic-support classification. Part II describes the training method and saved checkpoint.
 
 | Application task | Configured model | Role |
 |---|---|---|
@@ -95,7 +94,7 @@ The tokenizer converts the complete instruction and message into numerical tenso
 
 No optimizer, training loop or weight update is used in these baseline runs. The current output records `weights_updated_during_inference: false`.
 
-#### Full validation baseline — 31 October 2026
+#### Full validation baseline
 
 The original `google/flan-t5-base` checkpoint was run on all 60 validation messages before fine-tuning. The evaluation uses the application classifier's fixed prompt and greedy decoding (`do_sample=false`, 32 maximum new tokens) on CPU. The script loads only `data/validation/classification_validation.jsonl`; it does not open the test partition. The test set has not been used for model selection.
 
@@ -115,7 +114,7 @@ The original `google/flan-t5-base` checkpoint was run on all 60 validation messa
 | Records, insurance and administration | 100.00% | 16.67% | 28.57% |
 | Clinical staff referral | 88.89% | 66.67% | 76.19% |
 
-The validation set contains 12 examples per category. The records/insurance/admin category had the largest gap: only 2 of 12 examples were classified correctly, and five outputs were not valid category names. This makes it a clear area to investigate using training and validation data. Do not edit the held-out test set or tune against it. These results are a small synthetic-data baseline, not evidence of clinical performance.
+The validation set contains 12 examples per category. Records/insurance/administration was the weakest baseline category: 2 of 12 examples were correct, and five outputs were invalid category names. The results are a synthetic-data baseline and do not establish clinical performance.
 
 The run metadata and per-example predictions were saved locally to the ignored file `artifacts/evaluation/classification_baseline_validation.json`. It records the model revision, dataset SHA-256, predictions, invalid outputs and confusion matrix. The checked-in script can regenerate it with `.venv/bin/python scripts/evaluate_classifier.py` from the Assignment-2 directory.
 
@@ -123,9 +122,9 @@ The run metadata and per-example predictions were saved locally to the ignored f
 
 ### 1.4 Configurable model and runtime
 
-The active `.env` file was created from `.env.example` on 31 October 2026. `ModelSettings.from_env()` reads the file from Assignment-2 regardless of the terminal's working directory. Environment variables take precedence. The training/evaluation scripts use `MODEL_NAME` and `MODEL_REVISION` for the base model; the application uses task-specific model names and revisions when supplied, falling back to the shared settings otherwise. Changes apply after restarting the process. The active `.env` is excluded from Git.
+`ModelSettings.from_env()` reads the project `.env` file and applies environment-variable overrides. Training and evaluation use `MODEL_NAME` and `MODEL_REVISION` for the base model; the application uses task-specific model names and revisions when supplied. The local `.env` file is excluded from version control.
 
-The local configuration points `CLASSIFIER_MODEL_NAME` to `./artifacts/models/clinic-support` and `SUMMARIZER_MODEL_NAME` to `google/flan-t5-base`. The classifier checkpoint directory exists on the development Mac and was reload-verified there. On 31 October 2026, a Swagger `POST /analyze` request returned HTTP 200, `model: clinic-support`, category `appointment_support`, and the expected one-sentence summary. `model_revision: null` is expected because this is a local checkpoint without a Hub revision. A subsequent `GET /metadata` confirmed both model runtimes ready: classifier `clinic-support@local`, summarizer `google/flan-t5-base@7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The knowledge index remained not ready because RAG is not configured yet.
+The local configuration points `CLASSIFIER_MODEL_NAME` to `./artifacts/models/clinic-support` and `SUMMARIZER_MODEL_NAME` to `google/flan-t5-base`. The classifier checkpoint directory exists on the development Mac and was reload-verified there. A Swagger `POST /analyze` request returned HTTP 200, `model: clinic-support`, category `appointment_support`, and the expected one-sentence summary. `model_revision: null` is expected because this is a local checkpoint without a Hub revision. A subsequent `GET /metadata` confirmed both model runtimes ready: classifier `clinic-support@local`, summarizer `google/flan-t5-base@7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The knowledge index remained not ready because RAG is not configured yet.
 
 | Setting | Verified/default value | Purpose |
 |---|---|---|
@@ -143,20 +142,16 @@ The local configuration points `CLASSIFIER_MODEL_NAME` to `./artifacts/models/cl
 
 Changing a Hub model without specifying a revision does not inherit the baseline's commit SHA. Relative checkpoint/cache paths resolve from Assignment-2. The current loader supports compatible Hugging Face sequence-to-sequence models with safetensors weights and a matching tokenizer. Chat-model architectures, hosted providers and adapter-only LoRA checkpoints need an appropriate implementation behind the classifier interface. The fine-tuned classifier checkpoint has been loaded and reload-verified on CPU; alternative model quality and GPU inference have not been demonstrated.
 
-### 1.5 Verified baseline examples
+### 1.5 Selected baseline examples
 
-The following two messages were run by the user from the terminal on 31 October 2026 and returned the expected categories. The same messages also passed after moving the implementation into the application skeleton. The configurable adapter subsequently returned the portal category using the cached baseline model.
+The pinned base model returned the expected categories for these selected development examples. They are sanity checks, not an accuracy estimate.
 
 | Input | Expected category | Observed output | Outcome |
 |---|---|---|---|
 | Please move my appointment to Friday. | `appointment_support` | `appointment_support` | Matches |
 | The clinic portal will not let me sign in. | `portal_technical_support` | `portal_technical_support` | Matches |
 
-These are selected development examples. They are not a held-out accuracy estimate and do not establish performance across all five categories or reliable clinical referral.
-
-Observed environment: Python 3.11.5, PyTorch 2.15.0, Transformers 5.22.1, macOS and CPU inference. Dependency ranges do not lock future installations to these exact versions. Model loading logged a macOS redirection note and a tied-weights warning; prediction completed successfully, and the configuration was not changed merely to suppress those messages.
-
-Verified engineering checks include two successive predictions reusing one model object, rejection of blank and oversized inputs, a mocked API check that `/analyze` returns both fields, and unit checks for the summary coverage guard. After the task-specific runtime and display-name changes, the backend/configuration suite was rerun on macOS with Python 3.11.5 and pytest 8.4.2: **17 tests passed in 0.28 seconds**. A real offline inference run loaded the cached baseline model and produced `appointment_support`; after the guard was added, the returned summary retained both original sentences. The user also exercised `/analyze` through Swagger before this guard was added and observed the omission. The configuration tests include file/environment precedence, revision selection, local paths, invalid settings and passing configured loader options. Mocked loader tests establish configuration behaviour, not actual alternative-model or GPU performance. The new model display name and both ready model versions have also been confirmed through Swagger.
+These selected checks do not establish performance across all five categories or reliable clinical referral. On macOS with Python 3.11.5, PyTorch 2.15.0 and Transformers 5.22.1, the backend suite passed **17 tests** after the model-configuration and display-name changes. The test suite includes configuration and mocked-loader checks; it does not establish alternative-model or GPU performance. Swagger confirmed that `/analyze` returns both outputs and that the classifier and summariser report their separate model identities.
 
 Reproduction command from Assignment-2, after installing the inference dependencies:
 
@@ -164,13 +159,11 @@ Reproduction command from Assignment-2, after installing the inference dependenc
 .venv/bin/python -m diabetes_support.infrastructure.seq2seq_classifier --message "The clinic portal will not let me sign in."
 ```
 
-The two selected classifier examples and the model-specific API configuration have been verified. Screenshots of the terminal and final integrated UI remain to be added as submission evidence.
-
 ## 2. Fine-Tuning
 
 ### 2.1 Dataset development and review
 
-The classification pilot contains 35 synthetic, AI-drafted messages, seven per category. Each record tracks its example ID, message, category, scenario family, provenance, authoring method and review metadata. The pilot records have `review_status: approved`, reviewer `Sanjay`, and review date 31 October 2026, scoped to classification feasibility. Historical AI-assisted content review is recorded in the label guide; it is not independent clinical validation.
+The classification pilot contains 35 synthetic, AI-drafted messages, seven per category. Each record tracks its example ID, message, category, scenario family, provenance, authoring method and review metadata. The pilot records have `review_status: approved` and reviewer `Sanjay`, scoped to classification feasibility. Historical AI-assisted content review is recorded in the label guide; it is not independent clinical validation.
 
 Ten additional routing checks are documented in the existing label guide. They cover mixed clinical/administrative messages, educational versus personal-result questions, technical failures, ambiguous requests and unrelated requests. These are expected behaviours, not observed test passes, and remain outside classifier training.
 
@@ -178,25 +171,21 @@ The pilot has valid JSON, balanced class counts, unique IDs and no exact duplica
 
 The training draft is in `data/training/classification_train.jsonl`: **280 synthetic messages, 56 per category**, with tracking metadata and scenario-family IDs. The initial 50 examples received an AI-assisted content review, during which five messages were clarified and scenario groupings corrected. A further 230 examples add spelling variation, informal requests, longer inputs and mixed requests with clinical overrides. All records retain AI-drafted provenance.
 
-Pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted; approval covers the recorded review scope and is not clinical validation. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files now contain 60 synthetic messages each (12 per category), with the same review metadata. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. The one-epoch validation and final test results are reported in Sections 2.3 and 2.4; the synthetic test set remains too small to support a clinical-performance claim.
+Pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and a recorded `reviewed_on` date. The examples remain synthetic and AI-drafted; approval covers the recorded review scope and is not clinical validation. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files contain 60 synthetic messages each (12 per category), with the same review metadata. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. The one-epoch validation and final test results are reported in Sections 2.3 and 2.4; the synthetic test set remains too small to support a clinical-performance claim.
 
 ### 2.2 Training procedure and checkpoint
 
-The one-step smoke run completed on the Mac CPU using one training example (loss 1.2364); it loaded neither validation nor test data and saved no checkpoint. A separate one-epoch run then trained on all 280 training examples with batch size 1, gradient accumulation 8, learning rate 5e-5, and seed 42. It completed 35 optimizer updates with mean training loss 0.1699, evaluated the 60-message validation set, and saved the best checkpoint. `scripts/train_classifier.py` supports `auto`, `cpu`, `mps` and `cuda`; on this Mac, `auto` selected CPU. Training and validation were the only data partitions loaded; the test set was not used.
+This was full fine-tuning: AdamW updated the FLAN-T5 model parameters rather than training an adapter. The one-epoch run used all 280 training examples, batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. It completed 35 optimizer updates with mean training loss 0.1699, evaluated the 60-message validation set, and saved the best checkpoint. On the development Mac, automatic device selection chose CPU. Training and validation were the only data partitions loaded; the test set was not used.
 
 ### 2.3 Validation result
 
-#### One-epoch fine-tuning result
-
 After one epoch, validation accuracy was **98.33% (59/60)** and macro-F1 was **98.33%**, with **0 invalid outputs**. Per-class F1 was 95.65% for appointment support, 100% for education resources, portal technical support and records/insurance/admin, and 96.00% for clinical referral. The sole error was an appointment request predicted as clinical referral. The original checkpoint scored 71.67% accuracy and 71.81% macro-F1 on the same validation set. Because the validation set selected the checkpoint, this difference is a development result, not a final unbiased estimate. The test set was reserved for final scoring and has not been used for training or model selection.
 
-The checkpoint and tokenizer were saved to the ignored local directory `artifacts/models/clinic-support`. A fresh process loaded that directory through the application classifier and correctly classified “Please move my appointment to Friday.” as `appointment_support`. The selected checkpoint was trained for one epoch; the planned three-epoch run has not been completed. These results use small synthetic datasets and do not establish clinical performance.
+The checkpoint and tokenizer were saved to `artifacts/models/clinic-support`. A fresh process loaded that directory through the application classifier and correctly classified “Please move my appointment to Friday.” as `appointment_support`. These results use small synthetic datasets and do not establish clinical performance.
 
 ### 2.4 Final held-out test evaluation
 
-#### Final held-out test evaluation — 31 October 2026
-
-After freezing the one-epoch checkpoint, the base and tuned models were run once each on the same 60-message test file with the same application prompt and greedy decoding. The two result files record the same test-file SHA-256. No training, prompt selection or checkpoint choice used these test results.
+The base and fine-tuned models were evaluated on the same 60-message test file with the same application prompt and greedy decoding. The result files record the same test-file SHA-256. No training, prompt selection or checkpoint choice used these test results.
 
 | Measure | Base FLAN-T5 | Fine-tuned checkpoint |
 |---|---:|---:|
@@ -216,11 +205,10 @@ After freezing the one-epoch checkpoint, the base and tuned models were run once
 
 The tuned model’s three remaining errors were TEST-041 (authorised-contact paperwork), TEST-045 (preferred language for clinic letters), and TEST-047 (insurance coverage for an appointment fee); all were predicted as another supported category rather than invalid text. The higher result is evidence only for this small synthetic test set. It is not clinical-performance evidence. The test set remains held out and must not be used to choose further tuning changes.
 
-The task-specific model configuration was then verified through Swagger. A `POST /analyze` request returned the `clinic-support` classifier and the expected appointment category; `GET /metadata` reported both the classifier and summarizer ready with distinct model identities. The local checkpoint has no Hub revision. The held-out test set remains closed to further tuning.
 
 ## 3. Retrieval-Augmented Generation
 
-The RAG component is designed to retrieve passages from approved diabetes-education materials and the fictional clinic's administrative procedures. Chat answers will cite supporting sources, while personal clinical questions will be referred to qualified staff. The section will document the approved corpus, indexing and retrieval approach, chatbot integration, and evaluation after implementation.
+The RAG component is not yet implemented. Its design is to retrieve passages from approved diabetes-education materials and the fictional clinic's administrative procedures. Chat answers will cite supporting sources, while personal clinical questions will be referred to qualified staff. The RAG workflow requires an approved corpus, indexed passages, source citations, and retrieval/answer evaluation.
 
 ## 4. Situated Learning - Workplace Application
 
@@ -230,23 +218,21 @@ Proposed industry analogue: a fictional diabetes clinic support desk. Staff manu
 
 ### 4.2 Apply - Adaptation and representative outputs
 
-**Pending full demonstration.** The two baseline classifications in Section 1.6 provide limited technical evidence. Complete workplace cases must additionally show the summary, the fine-tuned classifier, retrieved sources and chatbot answers together. Include an appropriate referral or abstention case and retain representative inputs and actual outputs.
+**Demonstration evidence pending.** The selected baseline classifications in Section 1.5 provide limited technical evidence. A complete workplace case should show the summary, fine-tuned classifier, retrieved sources and chatbot answer together, with an appropriate referral or abstention case.
 
 ### 4.3 Analyse - Workplace relevance
 
-**Pending measurement.** Evaluate quality, source support, completeness, response time, corrections required and representative manual-versus-assisted handling times. Report failures, sample sizes and the gap between this synthetic prototype and practical organisational use. No efficiency improvement, clinical readiness or scalability result is claimed at this stage.
+**Evaluation pending.** The workplace evaluation will measure answer quality, source support, completeness, response time, corrections required and representative manual-versus-assisted handling times. It will report failures, sample sizes and the gap between this synthetic prototype and practical organisational use. No efficiency improvement, clinical readiness or scalability result is claimed at this stage.
 
 ### 4.4 Reflect - Constraints and priority improvement
 
-**Pending final reflection.** Address privacy, security, applicable regulation, infrastructure, cost and integration, using the final implementation and observed failures. Justify one most important improvement before workplace deployment. The current candidate is clinician-led validation of answer correctness and referral behaviour before patient-facing use; confirm that priority against the final evidence.
-
-The brief's exception for individual Situated Learning submissions needs instructor clarification. Keep this section ready for member-specific adaptation before final submission.
+**Reflection pending.** The final reflection will address privacy, security, applicable regulation, infrastructure, cost and integration using the implementation and observed failures. A priority improvement for consideration is clinician-led validation of answer correctness and referral behaviour before patient-facing use.
 
 ## 5. Demonstration, Limitations and Submission
 
 The current prototype has a fine-tuned classifier, a sequence-to-sequence summariser with an omission guard, and configurable task-specific model loading. RAG remains unfinished; the summaries and full workplace evaluation still require human review. The recorded examples and automated engineering checks have different purposes and must not be combined into an AI accuracy claim.
 
-The final demonstration video must cover the complete project and be uploaded to Google Drive with verified viewer access. **Final video link: pending.** Screenshots, measured outcomes, member-approved contributions and the complete separate workplace section are also pending. After final review, export this report as `49.pdf` or `49.docx` if Group 49 continues, and verify every member's required portal submission. The team has supplied 12 November 2026 as the official date; the portal's exact cutoff still needs verification.
+The final demonstration video will cover the complete project and be uploaded to Google Drive with verified viewer access. **Final video link: pending.** The completed submission will include screenshots, measured outcomes, confirmed member contributions and the required workplace material. The report will be exported to the format specified in the course brief.
 
 ## References
 
