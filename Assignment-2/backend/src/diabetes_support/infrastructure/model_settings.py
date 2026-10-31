@@ -41,6 +41,20 @@ class ModelSettings:
             DEFAULT_MODEL_REVISION if self.model_name == DEFAULT_MODEL_NAME else None
         )
 
+    @property
+    def is_local_checkpoint(self) -> bool:
+        """Identify resolved local folders without exposing their absolute paths."""
+        return Path(self.model_name).is_absolute()
+
+    @property
+    def display_name(self) -> str:
+        """Return a portable model ID or just the folder name for local checkpoints."""
+        return (
+            Path(self.model_name).name
+            if self.is_local_checkpoint
+            else self.model_name
+        )
+
     @classmethod
     def from_env(
         cls, env_file: Path | None = None, *, component: str | None = None

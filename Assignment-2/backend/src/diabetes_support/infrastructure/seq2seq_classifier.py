@@ -67,7 +67,7 @@ class Seq2SeqClassifier:
         # Never coerce unexpected text into a supported category.
         category = raw_output if raw_output in LABELS else None
         return {
-            "model": self.settings.model_name,
+            "model": self.settings.display_name,
             "model_revision": self.settings.resolved_revision,
             "device": self.runtime.device,
             "raw_output": raw_output,

@@ -24,11 +24,15 @@ class Seq2SeqRuntime:
     @property
     def status(self) -> ComponentStatus:
         ready = self._model is not None
-        version = (
-            f"{self.settings.model_name}@{self.settings.resolved_revision or 'default'}"
-            if ready
-            else None
-        )
+        if not ready:
+            version = None
+        elif self.settings.is_local_checkpoint:
+            version = f"{self.settings.display_name}@local"
+        else:
+            version = (
+                f"{self.settings.display_name}@"
+                f"{self.settings.resolved_revision or 'default'}"
+            )
         return ComponentStatus(ready=ready, version=version)
 
     def load(self) -> None:
