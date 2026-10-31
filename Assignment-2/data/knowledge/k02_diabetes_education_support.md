@@ -1,35 +1,27 @@
-# K02 — Diabetes Self-Management Education and Support
+# K02 — Diabetes Education and Support
 
-**Publisher:** Centers for Disease Control and Prevention (CDC)  
-**Source page:** https://www.cdc.gov/diabetes/education-support-programs/index.html  
-**Page date:** 15 May 2024  
-**Content type:** Curated paraphrased notes; not a full-text copy
+- **Source ID:** WHO01
+- **Source title:** Diabetes: Questions and Answers
+- **Publisher:** World Health Organization
+- **Source page:** https://www.who.int/news-room/questions-and-answers/item/diabetes
+- **Page date:** 1 September 2026
+- **Content type:** Curated paraphrased notes; not a full-text copy
 
-## What the service covers
+## General diabetes care
 
-Diabetes self-management education and support (DSMES) helps people build
-practical skills for managing diabetes in everyday life. The CDC page describes
-work with a diabetes care and education specialist and covers healthy eating,
-physical activity, medication use as prescribed, monitoring, risk reduction,
-emotional well-being, and problem solving.
+WHO says diabetes management depends on the type of diabetes and may include
+healthy eating, regular physical activity, blood glucose monitoring,
+medication, support for self-management, management of other risk factors, and
+screening and treatment for complications.
 
-## Finding or starting a service
+## Education and follow-up
 
-The page advises people to ask their doctor about a referral or use the CDC's
-program finder to locate a service. It describes common points when a person may
-consider DSMES, including a recent diagnosis, a routine appointment, new
-complications, or life changes that make management harder.
+Support for self-management can include education and psychosocial support.
+WHO describes effective diabetes care as long-term follow-up within primary
+health care, with referral to specialized services when needed.
 
-## Coverage questions
+## Supporting someone
 
-Coverage varies by insurance plan. The CDC directs people to contact their
-insurance provider for information about their own benefits. The page also
-includes United States Medicare information; do not generalize those details to
-other insurers, countries, or an individual's coverage.
-
-## Scope and routing
-
-This source supports general questions about DSMES services and how to find
-them. It does not support individual medical advice, diagnosis, treatment
-changes, or fictional clinic policies. Refer those questions to qualified staff
-or the appropriate clinic team.
+WHO recommends asking a person living with diabetes what support would be
+helpful, listening without judgement, and avoiding comments about their
+lifestyle or diabetes management.

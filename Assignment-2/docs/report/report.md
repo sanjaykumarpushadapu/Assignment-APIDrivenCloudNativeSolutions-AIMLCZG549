@@ -61,9 +61,9 @@ The intended user is a clinic support worker. Staff review outputs before commun
 |---|---|---|
 | Request classification | Support message to a primary support category | Route the request to a support queue or staff review |
 | Summarisation | Message/conversation to a factual staff handoff summary | Preserve the requests for staff handoff |
-| Question answering | Staff question and retrieved passages to an answer with citations | Answer general questions using the selected CDC sources |
+| Question answering | Staff question and retrieved passages to an answer with citations | Answer general questions using the selected WHO source |
 
-All three tasks support one objective: reduce staff effort in understanding and responding to diabetes support enquiries. A representative case is an appointment-change request combined with a missing education leaflet. Classification identifies the main request and the summary retains both needs. The RAG component is scoped to general diabetes information and education support from the selected CDC sources; clinic-specific appointment and portal procedures are routed to staff because they are outside the source corpus.
+All three tasks support one objective: reduce staff effort in understanding and responding to diabetes support enquiries. A representative case is an appointment-change request combined with a missing education leaflet. Classification identifies the main request and the summary retains both needs. The RAG component is scoped to general diabetes information and education support from the selected WHO source; clinic-specific appointment and portal procedures are routed to staff because they are outside the source corpus.
 
 ### 1.3 Model choice and baseline inference
 
@@ -208,7 +208,7 @@ The tuned model’s three remaining errors were TEST-041 (authorised-contact pap
 
 ## 3. Retrieval-Augmented Generation
 
-The RAG component is not yet implemented. Its initial corpus will contain two CDC pages: [Diabetes Basics](https://www.cdc.gov/diabetes/about/) for general background and [About Diabetes Self-Management Education and Support](https://www.cdc.gov/diabetes/education-support-programs/index.html) for education/support questions. The chatbot will retrieve and cite passages from the relevant source. It will not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests will be routed to staff. US insurance/Medicare details will not be generalized to individual coverage. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
+The RAG component is not yet implemented. Its initial corpus will use the WHO [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes) page, updated 1 September 2026, for general diabetes background and education/support information. A local source snapshot was used to prepare curated paraphrased notes and source-attributed chunks; the original page snapshot is excluded from the submission, while the notes and chunks are included. The chatbot will retrieve and cite supporting passages. It will not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests will be routed to staff. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
 
 ## 4. Situated Learning - Workplace Application
 
@@ -239,5 +239,4 @@ The final demonstration video will cover the complete project and be uploaded to
 1. Course Assignment II brief, supplied locally as `Assignment-2/Assignment 2.pdf`; assessed requirements and submission instructions.
 2. Google / Hugging Face. [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base). Model identity and loading reference; the verified revision is recorded in Section 1.3.
 3. Hugging Face. [Transformers T5 documentation](https://huggingface.co/docs/transformers/en/model_doc/t5). Tokenizer and sequence-to-sequence model API reference.
-4. Centers for Disease Control and Prevention. [Diabetes Basics](https://www.cdc.gov/diabetes/about/). Selected public source for the planned RAG component.
-5. Centers for Disease Control and Prevention. [About Diabetes Self-Management Education and Support](https://www.cdc.gov/diabetes/education-support-programs/index.html). Selected public source for general diabetes education/support information.
+4. World Health Organization. [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes). Updated 1 September 2026; selected public source for general diabetes information and self-management education/support.

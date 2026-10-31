@@ -1,30 +1,40 @@
 # K01 — Diabetes Basics
 
-**Publisher:** Centers for Disease Control and Prevention (CDC)  
-**Source page:** https://www.cdc.gov/diabetes/about/  
-**Page date:** 2 January 2026  
-**Content type:** Curated paraphrased notes; not a full-text copy
+- **Source ID:** WHO01
+- **Source title:** Diabetes: Questions and Answers
+- **Publisher:** World Health Organization
+- **Source page:** https://www.who.int/news-room/questions-and-answers/item/diabetes
+- **Page date:** 1 September 2026
+- **Content type:** Curated paraphrased notes; not a full-text copy
 
-## Overview
+## What diabetes is
 
-Diabetes is a chronic condition affecting how the body uses food for energy.
-The CDC describes three main types: type 1, type 2, and gestational diabetes.
+Diabetes occurs when the body cannot regulate blood glucose properly. This can
+happen when the body does not produce enough insulin or cannot use insulin
+effectively. Insulin helps move glucose from the bloodstream into cells for
+energy.
 
-## General background
+## Main types
 
-Insulin helps glucose move from the bloodstream into the body's cells. Diabetes
-can involve the body not producing enough insulin or not using insulin
-effectively. As a result, blood glucose can remain too high.
+The WHO describes type 1, type 2, and gestational diabetes. Type 1 involves the
+body no longer producing insulin. Type 2 involves the body not using insulin
+properly and gradually not producing enough. Gestational diabetes is elevated
+blood glucose during pregnancy that is above normal but below the criteria for
+diabetes outside pregnancy.
 
-## Education and support
+## Common symptoms
 
-The CDC lists diabetes self-management education and support (DSMES) as a
-resource. For details about DSMES services, use source K02 and cite that source
-separately.
+Possible symptoms include feeling very thirsty or hungry, frequent urination,
+extreme fatigue, blurred vision, and unexplained weight loss. Type 2 diabetes
+may have mild symptoms or no noticeable symptoms for years.
 
-## Scope and routing
+## Possible long-term effects
 
-These notes support general background questions only. They do not support
-diagnosis, individual treatment decisions, medication changes, or fictional
-clinic appointment and portal procedures. Refer those questions to qualified
-staff or the appropriate clinic team.
+Persistently high blood glucose can damage the heart, kidneys, eyes, nerves,
+and blood vessels over time.
+
+## Type 2 prevention
+
+WHO says type 2 diabetes can often be prevented or delayed. Measures include
+regular physical activity, a healthy diet, maintaining a healthy body weight,
+and avoiding tobacco use.

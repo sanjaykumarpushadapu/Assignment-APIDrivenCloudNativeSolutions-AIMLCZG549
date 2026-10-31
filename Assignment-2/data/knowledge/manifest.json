@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "WHO01",
+      "title": "Diabetes: Questions and Answers",
+      "publisher": "World Health Organization",
+      "url": "https://www.who.int/news-room/questions-and-answers/item/diabetes",
+      "page_date": "2026-09-01",
+      "retrieved_on": "2026-10-31",
+      "local_snapshot": "source_documents/who/WHO01_diabetes_qa.html",
+      "content_sha256": "4d1c678e34b0a90a8922103ba3eef9532a4a26dfe7c08138a9a70b080a8ac440",
+      "note_files": [
+        "k01_diabetes_basics.md",
+        "k02_diabetes_education_support.md"
+      ]
+    }
+  ]
+}

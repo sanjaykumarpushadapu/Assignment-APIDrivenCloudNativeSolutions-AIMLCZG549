@@ -1,2 +1,4 @@
 .DS_Store
 /Assignment-2/.vscode
+# Full WHO webpage snapshot is kept locally for source processing, not committed.
+/Assignment-2/data/knowledge/source_documents/who/WHO01_diabetes_qa.html
