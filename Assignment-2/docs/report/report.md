@@ -112,9 +112,31 @@ The one-step smoke run completed on the Mac CPU using one training example (loss
 
 #### One-epoch fine-tuning result
 
-After one epoch, validation accuracy was **98.33% (59/60)** and macro-F1 was **98.33%**, with **0 invalid outputs**. Per-class F1 was 95.65% for appointment support, 100% for education resources, portal technical support and records/insurance/admin, and 96.00% for clinical referral. The sole error was an appointment request predicted as clinical referral. The original checkpoint scored 71.67% accuracy and 71.81% macro-F1 on the same validation set. Because the validation set selected the checkpoint, this difference is a development result, not a final unbiased estimate. The test set remains untouched.
+After one epoch, validation accuracy was **98.33% (59/60)** and macro-F1 was **98.33%**, with **0 invalid outputs**. Per-class F1 was 95.65% for appointment support, 100% for education resources, portal technical support and records/insurance/admin, and 96.00% for clinical referral. The sole error was an appointment request predicted as clinical referral. The original checkpoint scored 71.67% accuracy and 71.81% macro-F1 on the same validation set. Because the validation set selected the checkpoint, this difference is a development result, not a final unbiased estimate. The test set was reserved for final scoring and has not been used for training or model selection.
 
 The checkpoint and tokenizer were saved to the ignored local directory `artifacts/models/clinic-support`. A fresh process loaded that directory through the application classifier and correctly classified “Please move my appointment to Friday.” as `appointment_support`. The selected checkpoint was trained for one epoch; the planned three-epoch run has not been completed. These results use small synthetic datasets and do not establish clinical performance.
+
+#### Final held-out test evaluation — 31 October 2026
+
+After freezing the one-epoch checkpoint, the base and tuned models were run once each on the same 60-message test file with the same application prompt and greedy decoding. The two result files record the same test-file SHA-256. No training, prompt selection or checkpoint choice used these test results.
+
+| Measure | Base FLAN-T5 | Fine-tuned checkpoint |
+|---|---:|---:|
+| Accuracy | 86.67% (52/60) | 95.00% (57/60) |
+| Macro precision | 95.00% | 95.39% |
+| Macro recall | 86.67% | 95.00% |
+| Macro F1 | 88.74% | 94.74% |
+| Invalid category outputs | 4/60 (6.67%) | 0/60 (0%) |
+
+| Actual category | Base predictions | Fine-tuned predictions |
+|---|---|---|
+| Appointment support | 12 appointment | 12 appointment |
+| Education resource request | 11 education, 1 appointment | 12 education |
+| Portal technical support | 12 portal | 12 portal |
+| Records, insurance and administration | 6 records, 2 appointment, 4 invalid | 9 records, 1 appointment, 1 education, 1 portal |
+| Clinical staff referral | 11 clinical, 1 appointment | 12 clinical |
+
+The tuned model’s three remaining errors were TEST-041 (authorised-contact paperwork), TEST-045 (preferred language for clinic letters), and TEST-047 (insurance coverage for an appointment fee); all were predicted as another supported category rather than invalid text. The higher result is evidence only for this small synthetic test set. It is not clinical-performance evidence, and test results must not be used to choose further tuning changes.
 
 ### 1.4 Pilot data and review
 
@@ -126,7 +148,7 @@ The pilot has valid JSON, balanced class counts, unique IDs and no exact duplica
 
 The training draft is in `data/training/classification_train.jsonl`: **280 synthetic messages, 56 per category**, with tracking metadata and scenario-family IDs. The initial 50 examples received an AI-assisted content review, during which five messages were clarified and scenario groupings corrected. A further 230 examples add spelling variation, informal requests, longer inputs and mixed requests with clinical overrides. All records retain AI-drafted provenance.
 
-At the user’s direction, all pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted, and their approval scope is unchanged. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files now contain 60 synthetic messages each (12 per category), with approved review metadata at the user’s direction. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. No full training run or measured model improvement is claimed.
+At the user’s direction, all pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted, and their approval scope is unchanged. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files now contain 60 synthetic messages each (12 per category), with approved review metadata at the user’s direction. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. The one-epoch validation and final test results are reported above; the synthetic test set remains too small to support a clinical-performance claim.
 
 ### 1.5 Configurable model and runtime
 
@@ -170,7 +192,7 @@ Evidence still to add: readable terminal screenshots of both selected examples, 
 
 ## 2. Fine-Tuning
 
-**Status: partially complete.** One CPU epoch was trained and its checkpoint/tokenizer were saved and reload-verified. Validation metrics are recorded above; the test set has not been evaluated. The remaining work is to decide whether to train more epochs using validation only, freeze the checkpoint and settings, then compare base and tuned models on the untouched test set. Record the final test metrics and failures without tuning against test results.
+**Status: partially complete.** One CPU epoch was trained; its checkpoint and tokenizer were saved and reload-verified. Base-versus-tuned final test results are recorded above, and no test result was used for tuning. Remaining work is application/API integration, final workplace evaluation and demo evidence. The test set must stay closed to further model selection.
 
 The 35-message pilot can verify the mechanics of a small training/save/reload run. It does not replace the planned reviewed dataset or justify an overall quality claim.
 

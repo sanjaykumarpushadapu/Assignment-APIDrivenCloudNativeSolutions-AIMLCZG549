@@ -1,8 +1,8 @@
-"""Run a fixed baseline evaluation on the classification validation set.
+"""Evaluate a classifier on validation, or explicitly run final test scoring.
 
-This script reads only the validation partition. It does not train, tune, or
-load the final test set. The configured model and generation settings come from
-the Assignment-2 .env file, just like the application classifier.
+The default mode reads only validation data. ``--final-test`` enables one final
+test-set evaluation after the model and prompt are frozen. The script never
+trains or tunes the model.
 """
 
 from __future__ import annotations
@@ -19,11 +19,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 VALIDATION_FILE = (
     PROJECT_ROOT / "data" / "validation" / "classification_validation.jsonl"
 )
+TEST_FILE = PROJECT_ROOT / "data" / "test" / "classification_test.jsonl"
 DEFAULT_OUTPUT = (
     PROJECT_ROOT
     / "artifacts"
     / "evaluation"
     / "classification_baseline_validation.json"
+)
+DEFAULT_TEST_OUTPUT = (
+    PROJECT_ROOT / "artifacts" / "evaluation" / "classification_final_test.json"
 )
 
 # Allow running this script directly without installing the package first.
@@ -36,9 +40,9 @@ from diabetes_support.infrastructure.seq2seq_classifier import (  # noqa: E402
 )
 
 
-def read_validation_rows(path: Path) -> list[dict[str, str]]:
-    """Read and check the fixed validation partition before inference."""
-    # The caller passes the fixed validation path; this script has no test-set option.
+def read_classification_rows(path: Path) -> list[dict[str, str]]:
+    """Read a classification partition and check its IDs, messages and labels."""
+    # Parse each nonblank JSONL row as one model input and expected category.
     rows = [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -122,21 +126,28 @@ def calculate_metrics(
 
 
 def main() -> int:
-    """Run the original model on validation examples and save its baseline evidence."""
+    """Run validation scoring or an explicitly requested final test evaluation."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--final-test",
+        action="store_true",
+        help=(
+            "Load the final test partition for one final score after model and "
+            "prompt choices are frozen. Do not use its results for tuning."
+        ),
+    )
     parser.add_argument(
         "--output",
         type=Path,
-        default=DEFAULT_OUTPUT,
-        help=(
-            "Where to save results "
-            f"(default: {DEFAULT_OUTPUT.relative_to(PROJECT_ROOT)})."
-        ),
+        help="Where to save results; defaults depend on the selected partition.",
     )
     args = parser.parse_args()
 
-    # Keep the baseline data fixed so it can be reproduced and compared later.
-    rows = read_validation_rows(VALIDATION_FILE)
+    # Only the explicit final-test flag permits opening the held-out test file.
+    dataset_path = TEST_FILE if args.final_test else VALIDATION_FILE
+    default_output = DEFAULT_TEST_OUTPUT if args.final_test else DEFAULT_OUTPUT
+    output_path = args.output or default_output
+    rows = read_classification_rows(dataset_path)
     settings = ModelSettings.from_env(PROJECT_ROOT / ".env")
     classifier = Seq2SeqClassifier(settings)
 
@@ -157,13 +168,13 @@ def main() -> int:
         category = result["category"] or "INVALID"
         print(f"[{index}/{len(rows)}] {row['example_id']}: {category}")
 
-    # Hash the input data so later changes cannot silently change what this score means.
-    dataset_hash = hashlib.sha256(VALIDATION_FILE.read_bytes()).hexdigest()
+    # Hash the selected partition so the score can be tied to its exact contents.
+    dataset_hash = hashlib.sha256(dataset_path.read_bytes()).hexdigest()
     categories = list(LABELS)
     output = {
-        "evaluation_type": "untuned_base_model_validation_baseline",
+        "evaluation_type": "final_test" if args.final_test else "validation_evaluation",
         "evaluated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "dataset": str(VALIDATION_FILE.relative_to(PROJECT_ROOT)),
+        "dataset": str(dataset_path.relative_to(PROJECT_ROOT)),
         "dataset_sha256": dataset_hash,
         "prompt_source": "Seq2SeqClassifier.classify",
         "generation": {
@@ -178,16 +189,16 @@ def main() -> int:
         },
         "metrics": calculate_metrics(predictions, categories),
         "predictions": predictions,
-        "test_set_loaded": False,
+        "test_set_loaded": args.final_test,
         "weights_updated_during_inference": False,
     }
 
     # Keep machine-readable predictions and metrics for the report and later comparison.
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
     print(
         json.dumps(
-            {"metrics": output["metrics"], "saved_to": str(args.output)}, indent=2
+            {"metrics": output["metrics"], "saved_to": str(output_path)}, indent=2
         )
     )
     return 0
