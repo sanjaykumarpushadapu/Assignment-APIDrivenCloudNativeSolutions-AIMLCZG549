@@ -18,6 +18,18 @@ LABELS = {
 }
 
 
+def build_classification_prompt(message: str) -> str:
+    """Build the shared instruction used for both training and prediction."""
+    choices = "\n".join(f"- {name}: {meaning}" for name, meaning in LABELS.items())
+    return (
+        "Classify this clinic support message. Return exactly one category name.\n"
+        f"Categories:\n{choices}\n"
+        "If the message also asks for personal medical advice, choose "
+        "clinical_staff_referral. Otherwise choose the main request.\n"
+        f"Message: {message}\nCategory:"
+    )
+
+
 class Seq2SeqClassifier:
     """Reuse a configured seq2seq runtime for support-message predictions."""
 
@@ -27,11 +39,13 @@ class Seq2SeqClassifier:
         *,
         runtime: Seq2SeqRuntime | None = None,
     ) -> None:
+        """Use supplied settings/runtime or create them from shared configuration."""
         self.settings = settings or ModelSettings.from_env()
         self.runtime = runtime or Seq2SeqRuntime(self.settings)
 
     @property
     def status(self) -> ComponentStatus:
+        """Expose whether the shared model runtime has loaded its weights."""
         # Readiness means the shared weights are loaded, not that accuracy is known.
         return self.runtime.status
 
@@ -40,21 +54,17 @@ class Seq2SeqClassifier:
         self.runtime.load()
 
     def classify(self, message: str, /) -> dict[str, object]:
+        """Classify one support message and flag outputs outside the allowed labels."""
         message = message.strip()
         if not message:
             raise ValueError("The message must not be empty.")
 
-        choices = "\n".join(f"- {name}: {meaning}" for name, meaning in LABELS.items())
-        prompt = (
-            "Classify this clinic support message. Return exactly one category name.\n"
-            f"Categories:\n{choices}\n"
-            "If the message also asks for personal medical advice, choose "
-            "clinical_staff_referral. Otherwise choose the main request.\n"
-            f"Message: {message}\nCategory:"
-        )
+        # Keep inference aligned with the instruction used to train the checkpoint.
+        prompt = build_classification_prompt(message)
         raw_output = self.runtime.generate(
             prompt, max_new_tokens=self.settings.classification_max_new_tokens
         )
+        # Never coerce unexpected text into a supported category.
         category = raw_output if raw_output in LABELS else None
         return {
             "model": self.settings.model_name,

@@ -27,7 +27,7 @@ The roster below follows Assignment I. Assignment II contributions and percentag
 | Assessment component | Marks | Current status | Evidence still required |
 |---|---:|---|---|
 | I. API-based AI application | 4 | React/FastAPI skeleton; classifier and first summariser wired through existing interfaces | Summary quality review; chatbot; integrated screenshots and final API demonstrations |
-| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); approved review metadata recorded; no model training performed | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
+| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); one-step CPU smoke update completed; full training not run | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
 | III. RAG model | 4 | Knowledge-answering interface exists; implementation pending | Document inventory, retrieval, grounded chatbot answers, sources and evaluation |
 | IV. Situated Learning - Workplace Application | 5 | Industry-analogue workflow proposed | Anchor, Apply, Analyse and Reflect supported by actual workflow evidence |
 | Report and video | Included above | This report is in progress; recording utilities exist | Final screenshots, complete-project video, accessible Google Drive link and member submissions |
@@ -84,9 +84,35 @@ The tokenizer converts the complete instruction and message into numerical tenso
 
 No optimizer, training loop or weight update is used in these baseline runs. The current output records `weights_updated_during_inference: false`.
 
+#### Full validation baseline — 31 October 2026
+
+The original `google/flan-t5-base` checkpoint was run on all 60 validation messages before fine-tuning. The evaluation uses the application classifier's fixed prompt and greedy decoding (`do_sample=false`, 32 maximum new tokens) on CPU. The script loads only `data/validation/classification_validation.jsonl`; it does not open the test partition. The test set has not been used for model selection.
+
+| Measure | Baseline result |
+|---|---:|
+| Accuracy | 71.67% (43/60) |
+| Macro precision | 86.02% |
+| Macro recall | 71.67% |
+| Macro F1 | 71.81% |
+| Invalid category outputs | 6/60 (10.00%) |
+
+| Category | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Appointment support | 57.89% | 91.67% | 70.97% |
+| Education resource request | 91.67% | 91.67% | 91.67% |
+| Portal technical support | 91.67% | 91.67% | 91.67% |
+| Records, insurance and administration | 100.00% | 16.67% | 28.57% |
+| Clinical staff referral | 88.89% | 66.67% | 76.19% |
+
+The validation set contains 12 examples per category. The records/insurance/admin category had the largest gap: only 2 of 12 examples were classified correctly, and five outputs were not valid category names. This makes it a clear area to investigate using training and validation data. Do not edit the held-out test set or tune against it. These results are a small synthetic-data baseline, not evidence of clinical performance.
+
+The run metadata and per-example predictions were saved locally to the ignored file `artifacts/evaluation/classification_baseline_validation.json`. It records the model revision, dataset SHA-256, predictions, invalid outputs and confusion matrix. The checked-in script can regenerate it with `.venv/bin/python scripts/evaluate_classifier.py` from the Assignment-2 directory.
+
+A one-step training feasibility run also completed on the Mac CPU using one training example (loss 1.2364). It loaded neither validation nor test data and saved no checkpoint. This confirms that a single optimizer update runs in this environment; it does not establish that a full training run will be fast or practical. `scripts/train_classifier.py` supports `auto`, `cpu`, `mps` and `cuda`; on this Mac, `auto` selected CPU. Full mode fits only on the training partition and evaluates validation at each epoch to select the checkpoint.
+
 ### 1.4 Pilot data and review
 
-The classification pilot contains 35 synthetic, AI-drafted messages, seven per category. Each record tracks its example ID, message, category, scenario family, provenance, authoring method and review metadata. Codex reviewed the labels on 30 October 2026 at the user's request and marked the examples `ai_approved_for_pilot`, scoped to classification feasibility. This is AI review by the same assistant that drafted the examples; it is not independent team-member or clinical review.
+The classification pilot contains 35 synthetic, AI-drafted messages, seven per category. Each record tracks its example ID, message, category, scenario family, provenance, authoring method and review metadata. At the user's direction, the records have `review_status: approved`, reviewer `Sanjay`, and review date 31 October 2026, scoped to classification feasibility. Historical AI-assisted content review is recorded in the label guide; it is not independent clinical validation.
 
 Ten additional routing checks are documented in the existing label guide. They cover mixed clinical/administrative messages, educational versus personal-result questions, technical failures, ambiguous requests and unrelated requests. These are expected behaviours, not observed test passes, and remain outside classifier training.
 
@@ -94,7 +120,7 @@ The pilot has valid JSON, balanced class counts, unique IDs and no exact duplica
 
 The training draft is in `data/training/classification_train.jsonl`: **280 synthetic messages, 56 per category**, with tracking metadata and scenario-family IDs. The initial 50 examples received an AI-assisted content review, during which five messages were clarified and scenario groupings corrected. A further 230 examples add spelling variation, informal requests, longer inputs and mixed requests with clinical overrides. All records retain AI-drafted provenance.
 
-At the user’s direction, all pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted, and their approval scope is unchanged. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files now contain 60 synthetic messages each (12 per category), with approved review metadata at the user’s direction. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. No training run or measured model improvement is claimed.
+At the user’s direction, all pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted, and their approval scope is unchanged. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation and test candidate files now contain 60 synthetic messages each (12 per category), with approved review metadata at the user’s direction. Review of the test set revised 15 messages that were too close to examples in other partitions and clarified TEST-020. Final checks found no exact duplicates or high lexical matches across the four files; text-similarity checks do not prove complete semantic independence. No full training run or measured model improvement is claimed.
 
 ### 1.5 Configurable model and runtime
 
@@ -138,7 +164,7 @@ Evidence still to add: readable terminal screenshots of both selected examples, 
 
 ## 2. Fine-Tuning
 
-**Status: pending.** No model has been fine-tuned in the work documented above. The intended experiment trains a compatible language model on labelled support messages, retains an untouched test partition, and compares original and tuned models using identical test cases. Record actual dataset provenance, review, scenario-grouped splits, hyperparameters, hardware, loss history, saved checkpoint/tokenizer, reload verification, macro-F1, accuracy, per-class results and failures when completed.
+**Status: pending.** Only a one-step CPU feasibility update has run; no full fine-tuning run or reusable checkpoint exists yet. The intended experiment trains a compatible language model on labelled support messages, retains an untouched test partition, and compares original and tuned models using identical test cases. Record actual dataset provenance, review, scenario-grouped splits, hyperparameters, hardware, loss history, saved checkpoint/tokenizer, reload verification, macro-F1, accuracy, per-class results and failures when completed.
 
 The 35-message pilot can verify the mechanics of a small training/save/reload run. It does not replace the planned reviewed dataset or justify an overall quality claim.
 
