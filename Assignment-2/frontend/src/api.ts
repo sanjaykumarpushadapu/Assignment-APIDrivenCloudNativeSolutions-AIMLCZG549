@@ -15,18 +15,18 @@ export interface AnalysisResponse {
 }
 
 export interface KnowledgeSource {
-  id?: string;
-  source_id?: string;
-  title?: string;
-  section?: string;
-  excerpt?: string;
-  text?: string;
-  url?: string;
+  chunk_id: string;
+  source_title: string;
+  source_url: string;
+  section: string;
+  text: string;
+  score: number;
 }
 
 export interface ChatResponse {
-  answer?: string;
-  sources?: KnowledgeSource[];
+  answer: string;
+  abstained: boolean;
+  sources: KnowledgeSource[];
 }
 
 export class ApiError extends Error {

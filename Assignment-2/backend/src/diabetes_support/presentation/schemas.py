@@ -23,6 +23,12 @@ class RetrievalResponse(BaseModel):
     sources: list[RetrievedSource]
 
 
+class ChatResponse(BaseModel):
+    answer: str
+    abstained: bool
+    sources: list[RetrievedSource]
+
+
 class ComponentMetadata(BaseModel):
     ready: bool
     version: str | None = None

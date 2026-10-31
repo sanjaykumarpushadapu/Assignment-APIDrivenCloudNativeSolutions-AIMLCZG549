@@ -28,6 +28,7 @@ interface ChatEntry {
   role: "staff" | "assistant";
   text: string;
   sources?: KnowledgeSource[];
+  abstained?: boolean;
   isError?: boolean;
 }
 
@@ -104,23 +105,28 @@ function SourceList({ sources }: { sources: KnowledgeSource[] }) {
   return (
     <div className="mt-4 border-t border-[#e6ebe7] pt-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#718078]">
-        Sources
+        Retrieved passages
       </p>
       <ul className="space-y-2">
-        {sources.map((source, index) => {
-          const title = source.title ?? source.source_id ?? source.id ?? `Source ${index + 1}`;
-          const excerpt = source.excerpt ?? source.text;
-
+        {sources.map((source) => {
           return (
             <li
               className="flex gap-2 text-sm text-[#52645b]"
-              key={source.source_id ?? source.id ?? `${title}-${index}`}
+              key={source.chunk_id}
             >
               <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-[#497461]" />
               <div className="min-w-0">
-                <p className="font-medium text-[#263a31]">{title}</p>
+                <a
+                  className="font-medium text-[#263a31] underline decoration-[#a7b9ad] underline-offset-2 hover:text-[#174737]"
+                  href={source.source_url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {source.source_title}
+                </a>
+                <p className="text-xs text-[#718078]">{source.chunk_id}</p>
                 {source.section && <p className="text-xs">{source.section}</p>}
-                {excerpt && <p className="mt-1 line-clamp-3 text-xs">{excerpt}</p>}
+                <p className="mt-1 line-clamp-3 text-xs">{source.text}</p>
               </div>
             </li>
           );
@@ -196,7 +202,8 @@ export default function App() {
         {
           role: "assistant",
           text: result.answer ?? "The service did not return an answer.",
-          sources: result.sources ?? [],
+          sources: result.sources,
+          abstained: result.abstained,
         },
       ]);
     } catch (error: unknown) {
@@ -450,6 +457,11 @@ export default function App() {
                       role={entry.isError ? "alert" : undefined}
                     >
                       <p className="whitespace-pre-wrap">{entry.text}</p>
+                      {entry.abstained && (
+                        <p className="mt-2 text-xs font-semibold text-[#805a36]">
+                          Staff referral
+                        </p>
+                      )}
                       {entry.sources && <SourceList sources={entry.sources} />}
                     </div>
                   ))

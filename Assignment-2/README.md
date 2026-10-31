@@ -201,10 +201,13 @@ the human-reviewed notes; it does not generate or approve medical content.
 `POST /retrieve` in Swagger ranks those local chunks with the configured
 embedding model and returns matching passages, source details and cosine
 scores. Set `RETRIEVAL_MODEL_NAME`, `RETRIEVAL_MODEL_REVISION`,
-`RETRIEVAL_DEVICE`, `RETRIEVAL_TOP_K` and `KNOWLEDGE_CHUNKS_PATH` in `.env` to
-change retrieval settings. The embedding model loads on the first retrieval
-request. This endpoint checks retrieval only; `/chat` still needs an answer
-model and is not ready to answer questions.
+`RETRIEVAL_DEVICE`, `RETRIEVAL_TOP_K`, `RETRIEVAL_MIN_SCORE` and
+`KNOWLEDGE_CHUNKS_PATH` in `.env` to change retrieval settings. The minimum
+score is a provisional /chat abstention floor, not a probability; `/retrieve`
+still returns low-scoring matches for inspection. The embedding model loads on the first retrieval
+request. `/chat` passes retrieved passages to the base sequence-to-sequence
+runtime and returns their source details alongside generated answers. It has a
+fixed refusal for common personal medical requests. Swagger smoke checks returned a source-backed definition and the fixed medication-refusal response. Broader answer quality and refusal coverage still need evaluation; staff must review generated outputs.
 
 ## Tests and checks
 
@@ -218,11 +221,11 @@ Run static checks with `uv run ruff check .` and `uv run black --check .`, or pr
 
 - `backend/src/diabetes_support/domain`: application-independent errors and status types.
 - `backend/src/diabetes_support/application`: use cases and ports for model/retrieval capabilities.
-- `backend/src/diabetes_support/infrastructure`: classifier/summarizer adapters, transformer-based knowledge retrieval, and a placeholder for document-grounded answers.
+- `backend/src/diabetes_support/infrastructure`: classifier and generation adapters, transformer-based knowledge retrieval, and source-grounded answer generation.
 - `backend/src/diabetes_support/presentation`: FastAPI routes and HTTP schemas.
 - `backend/src/diabetes_support/main.py`: composition root that wires the layers.
 - `backend/tests`: backend API tests. `frontend` contains the React + TypeScript client, and `tests/e2e` checks the browser workflow.
 
 ## Current status
 
-The API and React UI are wired. The sequence-to-sequence classifier and message summarizer use separate lazy model runtimes. Document-grounded answer generation remains unconfigured, so chat returns HTTP 503 for the missing knowledge component. The initial RAG corpus uses one WHO Diabetes Q&A page on general diabetes information and self-management education/support; retrieved answers will be limited to claims supported by its curated notes and chunks. Summaries and categories are model outputs and require staff review. The 35-message pilot in `data/pilot/` and the 280-message training draft in `data/training/classification_train.jsonl` (56 per category) have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. Their AI-drafted provenance and historical AI-assisted review notes are retained; approval metadata does not make these datasets clinical guidance or a held-out benchmark. The 10 routing checks remain development-only. Separate validation/test candidate files contain 60 synthetic examples each (12 per category); their review metadata is approved at the user’s direction. A one-epoch fine-tuned checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; curated WHO source notes and chunks are in `data/knowledge/`; one manual retrieval smoke check returned the expected WHO section as its top match; broader retrieval quality evaluation remains pending, and answer generation is unconfigured. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.
+The API and React UI are wired. The sequence-to-sequence classifier and base-model generation use separate lazy runtimes; summarisation and question answering share the base-model runtime. `/chat` sends retrieved passages to the base runtime and returns source details with the answer; the React chat displays linked WHO sources and marks fixed staff-referral responses. A definition chat returned an answer with its top source, a paraphrased symptoms question returned an answer from WHO01-003, and a personal medication question produced the fixed abstention response. A clinic-leaflet query initially produced an invalid citation-only answer; after adding the provisional /chat retrieval score floor, it returned the fixed abstention response. The floor still needs broader evaluation. Broader evaluation remains pending. The initial RAG corpus uses one WHO Diabetes Q&A page on general diabetes information and self-management education/support. Summaries, categories and generated answers require staff review. The 35-message pilot in `data/pilot/` and the 280-message training draft in `data/training/classification_train.jsonl` (56 per category) have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. Their AI-drafted provenance and historical AI-assisted review notes are retained; approval metadata does not make these datasets clinical guidance or a held-out benchmark. The 10 routing checks remain development-only. Separate validation/test candidate files contain 60 synthetic examples each (12 per category); their review metadata is approved at the user’s direction. A one-epoch fine-tuned checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; curated WHO source notes and chunks are in `data/knowledge/`; three in-scope retrieval smoke checks returned the expected WHO section first, while an out-of-scope medication query returned only indirect passages. Broader retrieval and answer evaluation remain pending. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.

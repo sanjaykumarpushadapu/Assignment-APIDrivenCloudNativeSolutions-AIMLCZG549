@@ -43,9 +43,9 @@ The existing application separates the interface, HTTP routes, workflow logic an
 | Classifier interface | Define `classify(message)` and readiness status | Protocol implemented by the sequence-to-sequence classifier |
 | Model infrastructure | Load tokenizer/weights and generate predictions/summaries | Separate lazy `Seq2SeqRuntime` instances for `Seq2SeqClassifier` and `Seq2SeqSummarizer` |
 | Configuration | Select model, revision, device, paths and generation limits | `ModelSettings` reads shared defaults and task-specific `.env`/environment overrides |
-| Summariser and knowledge answerer | Generate summaries and document-grounded answers | Configurable sequence-to-sequence summariser with a source-coverage guard; knowledge answerer remains unconfigured |
+| Summariser and knowledge answerer | Generate summaries and document-grounded answers | Configurable sequence-to-sequence runtime for summaries and retrieved-context answers; answer quality and refusal behavior await evaluation |
 
-The classifier and summariser each have a separate lazy runtime and can load different model checkpoints. Each model is loaded on its first request and remains in memory for that application process; if both tasks are used, both model copies may occupy memory. `/analyze` returns a generated summary and a primary category; `/chat` returns HTTP 503 until the knowledge component is configured. An initial summary omitted the leaflet download request. A source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
+The classifier and base-model generation tasks use separate lazy runtimes; summarisation and question answering share the configured base-model runtime to avoid a duplicate model copy. Each runtime loads on first use and remains in memory for the process. `/analyze` returns a generated summary and primary category. `/chat` retrieves source passages, asks the base model to answer only from them, returns their source details alongside the answer, and refuses common personal medical requests before generation. This is an initial safeguard, not a clinical safety guarantee; runtime behavior and answer quality require evaluation. An initial summary omitted the leaflet download request. A source-coverage guard now appends an original sentence when its meaningful words are absent from the generated summary. This can create repetition for paraphrases, and it does not detect unsupported additions; staff review remains necessary.
 
 ## 1. API-Based AI Application
 
@@ -208,7 +208,18 @@ The tuned model’s three remaining errors were TEST-041 (authorised-contact pap
 
 ## 3. Retrieval-Augmented Generation
 
-The local retrieval step is implemented as `POST /retrieve`: it ranks curated chunks from the WHO [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes) page, updated 1 September 2026, using transformer embeddings, and returns matching passages with source metadata and similarity scores. In one manual smoke check, the question “What is diabetes?” ranked chunk WHO01-001 (“What diabetes is”) first with a cosine similarity score of 0.7357; WHO01-004 scored 0.5368 and WHO01-006 scored 0.5345. These scores are similarity measures, not probabilities, and this single query does not establish retrieval quality. The local source snapshot was used to prepare paraphrased notes and source-attributed chunks; the snapshot is excluded from the submission, while the notes and chunks are included. Answer generation is not yet connected, so `/chat` remains unavailable. The completed chatbot should not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests should be routed to staff. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
+The local retrieval step is implemented as `POST /retrieve`: it ranks curated chunks from the WHO [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes) page, updated 1 September 2026, using transformer embeddings, and returns matching passages with source metadata and similarity scores. In three manual in-scope smoke checks, the expected chunk ranked first each time. One out-of-scope check shows that retrieval still returns passages even when they do not support a safe answer:
+
+| Question | Expected and top-ranked chunk | Cosine similarity |
+|---|---|---:|
+| What is diabetes? | WHO01-001 — What diabetes is | 0.7357 |
+| What are common symptoms of diabetes? | WHO01-003 — Common symptoms | 0.6913 |
+| What symptoms might someone with diabetes experience? | WHO01-003 — Common symptoms | 0.7393 |
+| How can type 2 diabetes be prevented or delayed? | WHO01-005 — Type 2 prevention | 0.8670 |
+| Should I change my diabetes medication? | No passage should advise a personal medication change; chatbot should abstain | WHO01-008 — Supporting someone (indirect), followed by WHO01-006 — General diabetes care (mentions medication generally); top score 0.4704 |
+| Where can I download the clinic leaflet? | No clinic procedure is covered; chatbot should abstain | WHO01-008 — Supporting someone (indirect); top score 0.1048. The initial `/chat` response was citation-only; after adding the provisional score floor, it abstained. |
+
+Manual `/chat` checks now include a definition question answered from WHO01-001 and a paraphrased symptoms question answered from WHO01-003. The paraphrased question, “What symptoms might someone with diabetes experience?”, returned a concise source-supported response, `abstained: false`, and WHO01-003 as its top source. The answer matched the retrieved text. A personal medication-change question returned the fixed clinic-referral response, `abstained: true`, and no sources. A clinic-leaflet question initially returned a citation-only answer despite the weak retrieval score. After adding a configurable `/chat` score floor of 0.20, repeating that query returned the fixed refusal response, `abstained: true`, and no sources. This confirms handling of these specific cases only; the floor is provisional and is not a calibrated confidence threshold. Similarity scores are not probabilities. These manual checks do not establish retrieval quality, answer quality, or broad refusal coverage. The retrieval endpoint returns top matches; the answerer has a rule for common personal medical requests and prompts the generator to abstain when passages do not answer the question. These initial safeguards remain to be evaluated. The local source snapshot was used to prepare paraphrased notes and source-attributed chunks; the snapshot is excluded from the submission, while the notes and chunks are included. The chatbot should not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests should be routed to staff. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
 
 ## 4. Situated Learning - Workplace Application
 
@@ -218,7 +229,7 @@ Proposed industry analogue: a fictional diabetes clinic support desk. Staff manu
 
 ### 4.2 Apply - Adaptation and representative outputs
 
-**Full workflow demonstration pending.** A retrieval-only smoke check is recorded in Section 3. A complete workplace case should show the summary, fine-tuned classifier, retrieved sources and chatbot answer together, with an appropriate referral or abstention case.
+**Full workflow demonstration pending.** Retrieval checks and general-information and medication-referral `/chat` smoke checks are recorded in Section 3. A complete workplace case should show the summary, fine-tuned classifier, retrieved sources and chatbot answer together.
 
 ### 4.3 Analyse - Workplace relevance
 

@@ -10,6 +10,7 @@ from diabetes_support.domain.errors import ComponentNotConfiguredError
 from diabetes_support.domain.status import ComponentStatus
 from diabetes_support.presentation.schemas import (
     ChatRequest,
+    ChatResponse,
     ComponentMetadata,
     RetrievalResponse,
     ServiceMetadata,
@@ -55,7 +56,7 @@ def create_api_app(
         except ComponentNotConfiguredError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
 
-    @app.post("/chat")
+    @app.post("/chat", response_model=ChatResponse)
     def chat(request: ChatRequest) -> dict[str, object]:
         try:
             return answer_question.execute(request.question)

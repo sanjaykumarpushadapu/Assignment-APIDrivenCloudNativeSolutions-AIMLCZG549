@@ -28,6 +28,7 @@ class RetrievalSettings:
     cache_dir: Path = PROJECT_ROOT / "artifacts" / "huggingface"
     max_input_tokens: int = 256
     top_k: int = 3
+    min_score: float = 0.20
     local_files_only: bool = False
 
     def __post_init__(self) -> None:
@@ -37,6 +38,8 @@ class RetrievalSettings:
             raise ValueError("RETRIEVAL_DEVICE must be auto, cpu, cuda or mps.")
         if self.max_input_tokens < 1 or self.top_k < 1:
             raise ValueError("Retrieval token and result limits must be positive.")
+        if not -1.0 <= self.min_score <= 1.0:
+            raise ValueError("RETRIEVAL_MIN_SCORE must be between -1 and 1.")
 
     @classmethod
     def from_env(cls) -> "RetrievalSettings":
@@ -61,8 +64,11 @@ class RetrievalSettings:
         try:
             max_input_tokens = int(text("RETRIEVAL_MAX_INPUT_TOKENS", "256"))
             top_k = int(text("RETRIEVAL_TOP_K", "3"))
+            min_score = float(text("RETRIEVAL_MIN_SCORE", "0.20"))
         except ValueError as error:
-            raise ValueError("Retrieval limits must be positive integers.") from error
+            raise ValueError(
+                "Retrieval limits and minimum score must be numeric."
+            ) from error
 
         revision = text("RETRIEVAL_MODEL_REVISION", "") or None
         return cls(
@@ -75,6 +81,7 @@ class RetrievalSettings:
             cache_dir=project_path("MODEL_CACHE_DIR", "artifacts/huggingface"),
             max_input_tokens=max_input_tokens,
             top_k=top_k,
+            min_score=min_score,
             local_files_only=offline == "true",
         )
 

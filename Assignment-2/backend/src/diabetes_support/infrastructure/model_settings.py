@@ -20,6 +20,7 @@ class ModelSettings:
     max_input_tokens: int = 512
     classification_max_new_tokens: int = 32
     summary_max_new_tokens: int = 128
+    answer_max_new_tokens: int = 160
     local_files_only: bool = False
 
     def __post_init__(self) -> None:
@@ -31,6 +32,7 @@ class ModelSettings:
             self.max_input_tokens < 1
             or self.classification_max_new_tokens < 1
             or self.summary_max_new_tokens < 1
+            or self.answer_max_new_tokens < 1
         ):
             raise ValueError("Model token limits must be positive integers.")
 
@@ -115,5 +117,6 @@ class ModelSettings:
                 "CLASSIFICATION_MAX_NEW_TOKENS", 32
             ),
             summary_max_new_tokens=positive_int("SUMMARY_MAX_NEW_TOKENS", 128),
+            answer_max_new_tokens=positive_int("ANSWER_MAX_NEW_TOKENS", 160),
             local_files_only=offline == "true",
         )

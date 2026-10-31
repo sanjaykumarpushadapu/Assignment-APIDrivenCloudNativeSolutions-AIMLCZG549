@@ -48,11 +48,13 @@ def test_analysis_returns_summary_and_category(monkeypatch) -> None:
     assert response.json()["classification"]["category"] == "appointment_support"
 
 
-def test_chat_reports_missing_knowledge_configuration() -> None:
+def test_chat_abstains_for_personal_medication_advice() -> None:
     response = client.post(
         "/chat",
-        json={"question": "Where can I find the clinic leaflet?"},
+        json={"question": "Should I change my diabetes medication?"},
     )
 
-    assert response.status_code == 503
-    assert "not been configured" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["abstained"] is True
+    assert response.json()["sources"] == []
+    assert "contact your clinic team" in response.json()["answer"]
