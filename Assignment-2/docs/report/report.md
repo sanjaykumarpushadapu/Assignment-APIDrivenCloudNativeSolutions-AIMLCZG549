@@ -61,9 +61,9 @@ The intended user is a clinic support worker. Staff review outputs before commun
 |---|---|---|
 | Request classification | Support message to a primary support category | Route the request to a support queue or staff review |
 | Summarisation | Message/conversation to a factual staff handoff summary | Preserve the requests for staff handoff |
-| Question answering | Staff question and retrieved documents to an answer with sources | Answer routine questions from approved documents |
+| Question answering | Staff question and retrieved passages to an answer with citations | Answer general questions using the selected CDC sources |
 
-All three tasks support one objective: reduce staff effort in understanding and responding to diabetes support enquiries. A representative case is an appointment-change request combined with a missing education leaflet. Classification identifies the main request, the summary retains both needs, and document-grounded Q&A supplies the relevant procedure once implemented.
+All three tasks support one objective: reduce staff effort in understanding and responding to diabetes support enquiries. A representative case is an appointment-change request combined with a missing education leaflet. Classification identifies the main request and the summary retains both needs. The RAG component is scoped to general diabetes information and education support from the selected CDC sources; clinic-specific appointment and portal procedures are routed to staff because they are outside the source corpus.
 
 ### 1.3 Model choice and baseline inference
 
@@ -208,7 +208,7 @@ The tuned model’s three remaining errors were TEST-041 (authorised-contact pap
 
 ## 3. Retrieval-Augmented Generation
 
-The RAG component is not yet implemented. Its design is to retrieve passages from approved diabetes-education materials and the fictional clinic's administrative procedures. Chat answers will cite supporting sources, while personal clinical questions will be referred to qualified staff. The RAG workflow requires an approved corpus, indexed passages, source citations, and retrieval/answer evaluation.
+The RAG component is not yet implemented. Its initial corpus will contain two CDC pages: [Diabetes Basics](https://www.cdc.gov/diabetes/about/) for general background and [About Diabetes Self-Management Education and Support](https://www.cdc.gov/diabetes/education-support-programs/index.html) for education/support questions. The chatbot will retrieve and cite passages from the relevant source. It will not answer questions about clinic procedures or individual diagnosis and treatment; unsupported requests will be routed to staff. US insurance/Medicare details will not be generalized to individual coverage. Evaluation will assess retrieval relevance, answer support, source citations, and appropriate handling of unsupported questions.
 
 ## 4. Situated Learning - Workplace Application
 
@@ -239,3 +239,5 @@ The final demonstration video will cover the complete project and be uploaded to
 1. Course Assignment II brief, supplied locally as `Assignment-2/Assignment 2.pdf`; assessed requirements and submission instructions.
 2. Google / Hugging Face. [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base). Model identity and loading reference; the verified revision is recorded in Section 1.3.
 3. Hugging Face. [Transformers T5 documentation](https://huggingface.co/docs/transformers/en/model_doc/t5). Tokenizer and sequence-to-sequence model API reference.
+4. Centers for Disease Control and Prevention. [Diabetes Basics](https://www.cdc.gov/diabetes/about/). Selected public source for the planned RAG component.
+5. Centers for Disease Control and Prevention. [About Diabetes Self-Management Education and Support](https://www.cdc.gov/diabetes/education-support-programs/index.html). Selected public source for general diabetes education/support information.
