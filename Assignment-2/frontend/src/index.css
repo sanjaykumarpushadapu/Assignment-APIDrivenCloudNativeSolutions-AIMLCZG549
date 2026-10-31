@@ -88,6 +88,8 @@ textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent
 .source-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-muted); color: var(--ink); padding: 6px 8px; font-size: 11px; }
 .source-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .source-chip:hover { border-color: var(--accent); color: var(--accent); }
+/* Keep keyboard focus inside the button so the result panel cannot clip it. */
+.source-chip:focus-visible { outline-offset: -3px; }
 .searching { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
 .question-form { flex-shrink: 0; padding: 16px 24px 22px; border-top: 1px solid var(--line); }
 .question-form > label { display: block; margin-bottom: 9px; }

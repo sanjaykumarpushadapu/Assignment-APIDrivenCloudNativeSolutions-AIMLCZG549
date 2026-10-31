@@ -26,9 +26,14 @@ def test_metadata_marks_unloaded_components_not_ready() -> None:
 def test_analysis_returns_summary_and_category(monkeypatch) -> None:
     from diabetes_support.infrastructure.seq2seq_runtime import Seq2SeqRuntime
 
-    def fake_generate(self, prompt: str, *, max_new_tokens: int) -> str:
+    def fake_generate(
+        self, prompt: str, *, max_new_tokens: int, **_decoding: int
+    ) -> str:
         if "Create a concise staff handoff summary" in prompt:
-            return "Patient wants an appointment change and help with the leaflet."
+            return (
+                "Patient requests an appointment change to Friday and help "
+                "downloading the leaflet from the portal."
+            )
         return "appointment_support"
 
     monkeypatch.setattr(Seq2SeqRuntime, "generate", fake_generate)
@@ -42,9 +47,10 @@ def test_analysis_returns_summary_and_category(monkeypatch) -> None:
 
     assert response.status_code == 200
     summary = response.json()["summary"]
-    assert summary.startswith("Patient wants an appointment change")
-    assert "Please move my appointment to Friday." in summary
-    assert "I also cannot download the education leaflet from the portal." in summary
+    assert summary == (
+        "Patient requests an appointment change to Friday and help downloading "
+        "the leaflet from the portal."
+    )
     assert response.json()["classification"]["category"] == "appointment_support"
 
 

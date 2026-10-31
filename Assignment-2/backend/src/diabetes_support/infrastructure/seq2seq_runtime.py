@@ -78,7 +78,15 @@ class Seq2SeqRuntime:
             self._tokenizer = tokenizer
             self._model = model
 
-    def generate(self, prompt: str, *, max_new_tokens: int) -> str:
+    def generate(
+        self,
+        prompt: str,
+        *,
+        max_new_tokens: int,
+        num_beams: int = 1,
+        no_repeat_ngram_size: int = 0,
+    ) -> str:
+        """Generate text with optional task-specific decoding settings."""
         self.load()
         import torch
 
@@ -91,6 +99,10 @@ class Seq2SeqRuntime:
         inputs = {name: tensor.to(self._device) for name, tensor in inputs.items()}
         with torch.inference_mode():
             output = self._model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                num_beams=num_beams,
+                no_repeat_ngram_size=no_repeat_ngram_size,
             )
         return self._tokenizer.decode(output[0], skip_special_tokens=True).strip()
