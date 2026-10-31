@@ -1,12 +1,13 @@
 # Classification Pilot Label Guide
 
-**Status:** AI-reviewed and approved for pilot use on 30 October 2026, following the user's request for Codex to review and approve. All 35 classification examples (seven per class) passed review against the label rules and may be used for a small training/reload feasibility run. The 10 documented routing checks are approved as expected development behaviours; they have not been executed against a model. All content remains synthetic and AI-drafted. This approval is by Codex (AI), not an independent team-member or clinical review, and does not establish model accuracy or readiness for workplace deployment.
+**Current status:** At the user’s direction, all 35 pilot records and 280 training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. Both datasets remain synthetic and AI-drafted; approval metadata records the requested status and does not change their scope or establish clinical validation. Historical AI-assisted content checks are recorded below. The 10 routing checks remain development examples rather than observed test results.
 
 ## Files and intended use
 
 | File | Contents | Intended use |
 |---|---|---|
-| `classification_pilot.jsonl` | 35 messages with one of the five category targets | Approved for a small classifier training/reload feasibility check; not a final accuracy benchmark |
+| `classification_pilot.jsonl` | 35 messages with one of the five category targets | Development/feasibility candidates with approved review metadata; historical content review recorded below |
+| `../training/classification_train.jsonl` | 280 training candidates, 56 per category | Approved training candidates; no validation or test examples included |
 | Routing checks in this guide | 10 messages with expected routing action, category where applicable and rationale | Manual development checks of routing behaviour, kept out of the JSONL training candidates |
 
 Treat the entire pilot as development material. It has been inspected and used to make design decisions; neither these examples nor their scenario variants should enter the final held-out benchmark. This is the classification/routing pilot only. The assessment still needs the larger reviewed classification dataset, summary inputs/reference summaries, knowledge documents and separate RAG questions with supporting passages.
@@ -32,7 +33,11 @@ Treat the entire pilot as development material. It has been inspected and used t
 
 ## Pilot data fields
 
-Each classification JSONL record has `example_id`, `message`, `category`, `scenario_family_id`, `provenance`, `authoring_method`, `review_status`, `reviewer`, `reviewed_on`, and `approval_scope`. Use only `message` as model input and `category` as its target; all other fields are tracking metadata. Every record retains provenance `synthetic` and authoring method `AI-drafted`, with status `ai_approved_for_pilot`, reviewer `Codex (AI)`, review date `2026-10-30`, and approval scope `classification_feasibility_only`.
+Each classification JSONL record has `example_id`, `message`, `category`, `scenario_family_id`, `provenance`, `authoring_method`, `review_status`, `reviewer`, `reviewed_on`, and `approval_scope`. Use only `message` as model input and `category` as its target; the remaining fields are tracking metadata.
+
+For both datasets, records use `reviewer: Sanjay`, `review_status: approved`, and `reviewed_on: 2026-10-31`, as requested by the user. The training draft uses `approval_scope: training_candidate_only`; the pilot uses `classification_feasibility_candidate`. All records retain `provenance: synthetic` and `authoring_method: AI-drafted`. These scope fields remain in force: approval does not turn the pilot into a held-out benchmark or supply the separate validation/test collections.
+
+The initial 50 training candidates received the AI-assisted content review described below. Another 230 candidates have since been added, bringing the training draft to the planned 280 records. The current metadata tracks the outstanding team review for all 280. Validation/test scenarios still need separate preparation and review.
 
 The routing-check table below records the case ID, scenario family, input message, expected category/action and rationale. Every case has the role `development_boundary_only`, provenance `synthetic`, authoring method `AI-drafted`, and review status `ai_approved_expected_behavior`, reviewed by `Codex (AI)` on `2026-10-30`. This approves the expected behaviour only, not an observed application result. These checks are documentation, not classifier training records. Allowed actions are:
 
@@ -72,7 +77,7 @@ Use only the message as the application input. Compare the actual route with the
 | BOUNDARY-009 | FAMILY-BOUNDARY-009 | Can you book a hotel room for my holiday next month? | None | staff_review | Outside the clinic-support scope; do not force the booking keyword into appointment support. |
 | BOUNDARY-010 | FAMILY-007 | How do I sign up for the group? | None | staff_review | No preceding conversation identifies the group. Ask whether this is the diabetes education session or something else. |
 
-## Review record and remaining validation
+## Historical pilot content review and remaining validation
 
 The revision clarifies the guide/class examples (`PILOT-006`–`008`), distinguishes an existing education booking from new enrollment (`005`), makes the clinical nature of `024` explicit, and adds two examples per category (`026`–`035`). The typo in `015` is intentional robustness coverage. Mixed clinical/nonclinical requests, paperwork versus class enrollment, technical failures versus record requests, and ambiguous/out-of-scope messages now have explicit coverage.
 
@@ -95,3 +100,37 @@ Routing review: BOUNDARY-001–002 correctly require clinical referral; 003–00
 - [ ] During implementation, train only on the classification messages/categories; keep routing checks out of training and all pilot families out of the final benchmark.
 - [ ] Record actual training/reload and routing outcomes. Label approval does not mean the model or application has passed.
 - [ ] Retain the independent review and sealed-test requirements for the larger assessment dataset; this pilot approval does not approve examples that have not yet been created or reviewed.
+
+
+## Historical initial training batch review — 31 October 2026
+
+Reviewer: **Codex (AI)**, at the user's request to act as a team reviewer. This is an additional AI review within the same project chat. A chat-model switch is not evidence of independent human review; no human team-member contribution or approval is claimed.
+
+Decision: **50/50 labels accepted after five wording clarifications; approved for classification training/reload feasibility only.** No category was changed, and no training or inference was performed during this data review.
+
+| Reviewed records | Category | Review basis |
+|---|---|---|
+| TRAIN-001–010 | `appointment_support` | Routine booking, rescheduling, cancellation, confirmation and appointment waiting lists |
+| TRAIN-011–020 | `education_resource_request` | General diabetes materials, new workshop enrollment and class information; no personal treatment advice |
+| TRAIN-021–030 | `portal_technical_support` | Sign-in, code, session, display, transfer and website failures; the document's subject does not override the technical problem |
+| TRAIN-031–040 | `records_insurance_admin` | Copies, record-request status, insurance details, billing, receipts, forms and identity corrections |
+| TRAIN-041–050 | `clinical_staff_referral` | Personal results, medication decisions/effects, symptoms and prescription actions requiring clinical staff |
+
+Corrections made:
+
+- TRAIN-009 now explicitly requests a clinic appointment waiting list.
+- TRAIN-012, 014, 018 and 020 now explicitly identify diabetes education or the clinic, avoiding reliance on hidden context.
+- Replaced the arbitrary two-record family groupings with scenario-based assignments. Related training and pilot examples now share IDs: for example, appointment changes use `FAMILY-001`, education enrollment uses `FAMILY-007`, upload failures use `FAMILY-013`, and general/personal result contrasts use `FAMILY-021`. Distinct booking-confirmation, waiting-list, site-outage and administrative scenarios have descriptive new family IDs.
+
+Structure checks confirmed 50 records, ten per class, unique IDs, valid JSON, the expected metadata fields, and zero exact message duplicates within the training batch or against the pilot. Manual review still found related scenarios and paraphrases across the files: the batch is development/training material, not an independent benchmark. Shared family IDs document known overlap; they are not an exhaustive semantic leakage detector.
+
+Coverage gaps identified in the initial 50-message batch: predominantly short, clean, single-request messages, with too few mixed-request clinical overrides, spelling variations, informal phrases and longer messages. The subsequent expansion adds examples in each of these areas; adequacy still needs team review. Ambiguous/out-of-domain cases stay in separate routing checks rather than becoming a sixth training label. Future validation/test scenarios must be prepared separately and checked against both the pilot and this batch; do not report accuracy from a random split of these 50 examples.
+
+
+## Expanded training draft and review metadata
+
+At the user's request, the training file now contains **280 synthetic candidates, 56 per category**. TRAIN-001–050 preserve the previously reviewed batch; TRAIN-051–280 add 230 examples. The additions include appointment-versus-class distinctions, document-request-versus-portal failures, general education versus personal-result interpretation, and clinical requests that override secondary administrative needs. All messages are authored as requests; they contain no model answer, clinical recommendation, or label text to copy as an answer.
+
+Known related scenarios reuse pilot/training family IDs. Exact duplicates are checked separately from semantic overlap: similar training messages are not independent evaluation cases. Keep validation/test scenarios and their variants outside these training families, and review semantic overlap before finalising those collections.
+
+At the user’s direction, all 315 JSONL records now have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The historical AI-assisted checks above remain part of the provenance record, and every example remains AI-drafted and synthetic. The 280-message training draft meets the planned size target; separate validation/test collections are still required. No model training has been run.

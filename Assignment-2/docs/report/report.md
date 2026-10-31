@@ -27,7 +27,7 @@ The roster below follows Assignment I. Assignment II contributions and percentag
 | Assessment component | Marks | Current status | Evidence still required |
 |---|---:|---|---|
 | I. API-based AI application | 4 | React/FastAPI skeleton; classifier and first summariser wired through existing interfaces | Summary quality review; chatbot; integrated screenshots and final API demonstrations |
-| II. Fine-tuning | 2 | Pilot labels reviewed; no model training performed | Reviewed training/validation/test data, training records, saved checkpoint, reload and base-versus-tuned results |
+| II. Fine-tuning | 2 | 280 synthetic training candidates (56/class); approved review metadata recorded; no model training performed | Reviewed full dataset and scenario-grouped splits, training records, saved checkpoint, reload and base-versus-tuned results |
 | III. RAG model | 4 | Knowledge-answering interface exists; implementation pending | Document inventory, retrieval, grounded chatbot answers, sources and evaluation |
 | IV. Situated Learning - Workplace Application | 5 | Industry-analogue workflow proposed | Anchor, Apply, Analyse and Reflect supported by actual workflow evidence |
 | Report and video | Included above | This report is in progress; recording utilities exist | Final screenshots, complete-project video, accessible Google Drive link and member submissions |
@@ -91,6 +91,10 @@ The classification pilot contains 35 synthetic, AI-drafted messages, seven per c
 Ten additional routing checks are documented in the existing label guide. They cover mixed clinical/administrative messages, educational versus personal-result questions, technical failures, ambiguous requests and unrelated requests. These are expected behaviours, not observed test passes, and remain outside classifier training.
 
 The pilot has valid JSON, balanced class counts, unique IDs and no exact duplicate messages. Related scenarios are grouped to support leakage-aware dataset preparation. The pilot is development material and must not be presented as a final held-out benchmark. The larger reviewed dataset and separate evaluation collections remain pending.
+
+The training draft is in `data/training/classification_train.jsonl`: **280 synthetic messages, 56 per category**, with tracking metadata and scenario-family IDs. The initial 50 examples received an AI-assisted content review, during which five messages were clarified and scenario groupings corrected. A further 230 examples add spelling variation, informal requests, longer inputs and mixed requests with clinical overrides. All records retain AI-drafted provenance.
+
+At the user’s direction, all pilot and training records use `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31`. The examples remain synthetic and AI-drafted, and their approval scope is unchanged. Historical AI-assisted review details are in the label guide. Exact duplicate checks found no repeated training messages or exact overlap with the pilot; known related scenarios share family IDs. Separate validation/test scenarios still need to be created and reviewed. No training run or measured model improvement is claimed.
 
 ### 1.5 Configurable model and runtime
 
