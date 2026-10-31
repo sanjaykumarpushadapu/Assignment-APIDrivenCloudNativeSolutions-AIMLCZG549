@@ -16,11 +16,16 @@ from diabetes_support.presentation.api import create_api_app
 
 
 def create_application() -> FastAPI:
-    # Both tasks share one lazy model and tokenizer in this API process.
-    settings = ModelSettings.from_env()
-    runtime = Seq2SeqRuntime(settings)
-    classifier = Seq2SeqClassifier(settings, runtime=runtime)
-    summarizer = Seq2SeqSummarizer(settings, runtime=runtime)
+    """Build the API with separately configured model runtimes per task."""
+    # Each task has its own lazy runtime so either can use a different checkpoint.
+    classifier_settings = ModelSettings.from_env(component="classifier")
+    summarizer_settings = ModelSettings.from_env(component="summarizer")
+    classifier = Seq2SeqClassifier(
+        classifier_settings, runtime=Seq2SeqRuntime(classifier_settings)
+    )
+    summarizer = Seq2SeqSummarizer(
+        summarizer_settings, runtime=Seq2SeqRuntime(summarizer_settings)
+    )
     knowledge_answerer = UnconfiguredKnowledgeAnswerer()
 
     return create_api_app(

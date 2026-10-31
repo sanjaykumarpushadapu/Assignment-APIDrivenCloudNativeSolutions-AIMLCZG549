@@ -40,7 +40,7 @@ class Seq2SeqClassifier:
         runtime: Seq2SeqRuntime | None = None,
     ) -> None:
         """Use supplied settings/runtime or create them from shared configuration."""
-        self.settings = settings or ModelSettings.from_env()
+        self.settings = settings or ModelSettings.from_env(component="classifier")
         self.runtime = runtime or Seq2SeqRuntime(self.settings)
 
     @property

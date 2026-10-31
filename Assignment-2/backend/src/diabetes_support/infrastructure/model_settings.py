@@ -42,9 +42,15 @@ class ModelSettings:
         )
 
     @classmethod
-    def from_env(cls, env_file: Path | None = None) -> "ModelSettings":
+    def from_env(
+        cls, env_file: Path | None = None, *, component: str | None = None
+    ) -> "ModelSettings":
+        """Load shared settings, with optional classifier/summarizer model overrides."""
         # Read only; do not mutate process variables when loading a .env file.
         values = {**dotenv_values(env_file or PROJECT_ROOT / ".env"), **os.environ}
+
+        if component not in {None, "classifier", "summarizer"}:
+            raise ValueError("component must be classifier, summarizer or None.")
 
         def text(name: str, default: str) -> str:
             value = values.get(name)
@@ -63,7 +69,11 @@ class ModelSettings:
             path = Path(value).expanduser()
             return path if path.is_absolute() else PROJECT_ROOT / path
 
-        model_name = text("MODEL_NAME", DEFAULT_MODEL_NAME)
+        # Per-task model values take precedence; shared keys remain the fallback.
+        prefix = f"{component.upper()}_" if component else ""
+        model_name = text(
+            f"{prefix}MODEL_NAME", text("MODEL_NAME", DEFAULT_MODEL_NAME)
+        )
         if not model_name:
             raise ValueError("MODEL_NAME must not be empty.")
         candidate = project_path(model_name)
@@ -76,10 +86,15 @@ class ModelSettings:
         if offline not in {"true", "false"}:
             raise ValueError("MODEL_LOCAL_FILES_ONLY must be true or false.")
 
+        model_revision = text(f"{prefix}MODEL_REVISION", "") or text(
+            "MODEL_REVISION", ""
+        )
         return cls(
             model_name=model_name,
-            model_revision=text("MODEL_REVISION", "") or None,
-            device=text("MODEL_DEVICE", "cpu").lower(),
+            model_revision=model_revision or None,
+            device=text(
+                f"{prefix}MODEL_DEVICE", text("MODEL_DEVICE", "cpu")
+            ).lower(),
             cache_dir=project_path(text("MODEL_CACHE_DIR", "artifacts/huggingface")),
             max_input_tokens=positive_int("MODEL_MAX_INPUT_TOKENS", 512),
             classification_max_new_tokens=positive_int(

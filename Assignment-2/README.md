@@ -68,14 +68,19 @@ Create your local settings file once, from `Assignment-2`:
 cp .env.example .env
 ```
 
-Edit `.env` to choose the shared model and runtime. One compatible model is used for both classification and summarisation. The API and terminal command use the
-same settings; restart the process after editing. Environment variables override
-the file. The `.env` file and downloaded model artifacts are excluded from Git.
+Edit `.env` to configure classification and summarisation independently. The
+classifier uses the local fine-tuned checkpoint and the summarizer uses
+`google/flan-t5-base` by default. Each task has its own lazy runtime. Restart the
+process after editing. Environment variables override the file. The `.env` file
+and downloaded model artifacts are excluded from Git.
 
 | Setting | Default | Purpose |
 |---|---|---|
 | `MODEL_NAME` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
+| `CLASSIFIER_MODEL_NAME` | `./artifacts/models/clinic-support` | Classifier model/checkpoint; overrides `MODEL_NAME` |
+| `SUMMARIZER_MODEL_NAME` | `google/flan-t5-base` | Summarizer model; overrides `MODEL_NAME` |
 | `MODEL_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
+| `CLASSIFIER_MODEL_REVISION` / `SUMMARIZER_MODEL_REVISION` | blank | Optional task-specific revision; overrides `MODEL_REVISION` |
 | `MODEL_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
 | `MODEL_CACHE_DIR` | `artifacts/huggingface` | Download/cache folder relative to Assignment-2 |
 | `MODEL_MAX_INPUT_TOKENS` | `512` | Full prompt limit, including task instructions |
@@ -83,17 +88,17 @@ the file. The `.env` file and downloaded model artifacts are excluded from Git.
 | `SUMMARY_MAX_NEW_TOKENS` | `128` | Summary generation limit |
 | `MODEL_LOCAL_FILES_ONLY` | `false` | Set `true` to require cached/local files without downloading |
 
-For example, changing `MODEL_NAME=google/flan-t5-small` and leaving the
+For example, changing `CLASSIFIER_MODEL_NAME=google/flan-t5-small` and leaving the
 revision blank selects that model without inheriting the default checkpoint's revision.
 This model switch is supported by configuration; its output quality still needs
-evaluation. The shared runtime supports compatible Hugging Face encoder-decoder models
+evaluation. Each runtime supports compatible Hugging Face encoder-decoder models
 that work with `AutoModelForSeq2SeqLM`, safetensors weights and the matching
 tokenizer.
 It does not support every model family: decoder-only chat models, hosted API
 providers and adapter-only LoRA checkpoints need a different loading implementation.
 
-For a future fine-tuned model, use `MODEL_NAME=./artifacts/models/clinic-support`
-after saving a complete compatible model and tokenizer there. Relative paths
+The classifier is configured with `CLASSIFIER_MODEL_NAME=./artifacts/models/clinic-support`,
+a complete compatible model and tokenizer saved there. Relative paths
 resolve from Assignment-2. Selecting a checkpoint does not verify its training
 history; output reports `weights_updated_during_inference: false` because this
 operation only predicts. The previous hard-coded `fine_tuned_by_us` field has
@@ -117,7 +122,7 @@ To try a different synthetic message:
 The adapter loads lazily on its first prediction and reuses that model object
 for later predictions in the same process. Each separate terminal invocation
 starts a new process and loads its own copy. A new application process initially
-reports both model tasks as not ready until the shared model is loaded.
+reports each model task as not ready until its own runtime is loaded.
 
 To exercise the integrated route after starting the API, use the same request you tested:
 
@@ -128,8 +133,8 @@ curl -X POST http://127.0.0.1:8001/analyze \
 ```
 
 `/analyze` now returns both a generated handoff summary and the main-request
-category. The classifier and summarizer share one lazily loaded FLAN-T5 model
-and tokenizer. A source-coverage check now appends any original sentence whose meaningful words
+category. The classifier and summarizer each have their own lazy model runtime.
+A source-coverage check now appends any original sentence whose meaningful words
 are missing from the generated summary. This prevents the tested second request
 from disappearing, though it can produce repetition when the model paraphrases.
 Review summaries for accuracy and unsupported additions. The standalone `scripts/check_classifier.py`
@@ -186,4 +191,4 @@ Run static checks with `uv run ruff check .` and `uv run black --check .`, or pr
 
 ## Current status
 
-The API and React UI are wired. The sequence-to-sequence classifier and message summarizer share one lazy model runtime. Document-grounded answer generation remains unconfigured, so chat returns HTTP 503 for the missing knowledge component. Summaries and categories are model outputs and require staff review. The 35-message pilot in `data/pilot/` and the 280-message training draft in `data/training/classification_train.jsonl` (56 per category) have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. Their AI-drafted provenance and historical AI-assisted review notes are retained; approval metadata does not make these datasets clinical guidance or a held-out benchmark. The 10 routing checks remain development-only. Separate validation/test candidate files now contain 60 synthetic examples each (12 per category); their review metadata is approved at the user’s direction. A one-epoch fine-tuned checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; the knowledge documents remain to be prepared. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.
+The API and React UI are wired. The sequence-to-sequence classifier and message summarizer use separate lazy model runtimes. Document-grounded answer generation remains unconfigured, so chat returns HTTP 503 for the missing knowledge component. Summaries and categories are model outputs and require staff review. The 35-message pilot in `data/pilot/` and the 280-message training draft in `data/training/classification_train.jsonl` (56 per category) have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. Their AI-drafted provenance and historical AI-assisted review notes are retained; approval metadata does not make these datasets clinical guidance or a held-out benchmark. The 10 routing checks remain development-only. Separate validation/test candidate files now contain 60 synthetic examples each (12 per category); their review metadata is approved at the user’s direction. A one-epoch fine-tuned checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; the knowledge documents remain to be prepared. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.
