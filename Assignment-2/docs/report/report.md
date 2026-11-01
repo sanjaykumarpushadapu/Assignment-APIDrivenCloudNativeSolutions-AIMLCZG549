@@ -6,7 +6,7 @@
 **Institution:** BITS Pilani, Work Integrated Learning Programmes  
 **Document status:** Working draft.
 
-This report records the design, implementation and evidence for a staff-facing diabetes-clinic support assistant. The project covers three connected NLP tasks: request classification, message summarisation and document-grounded question answering. The classifier has been fine-tuned from `google/flan-t5-base`; the summariser continues to use the original base model. Summarisation uses beam search with repeated-phrase blocking; summary completeness still requires evaluation. Retrieval and the complete workplace evaluation remain pending; summary accuracy still requires staff review.
+This report records the design, implementation and evidence for a staff-facing diabetes-clinic support assistant. The project covers three connected NLP tasks: request classification, message summarisation and document-grounded question answering. The classifier has been fine-tuned from `google/flan-t5-base`; a separate summariser checkpoint has also been trained, while inference remains configured to use the original base model pending comparative evaluation. The summariser's best validation ROUGE-L F1 was 0.4436 after three epochs; this synthetic-data metric alone does not establish quality. Summary accuracy, faithfulness and completeness still require comparative and staff review. Retrieval and the complete workplace evaluation remain pending.
 
 ## Team Contributions
 
@@ -26,9 +26,9 @@ Assignment II contributions and percentages must be confirmed from actual comple
 | Domain | Staff-facing support for a fictional diabetes clinic |
 | Application | React + TypeScript interface and FastAPI endpoints documented with Swagger/OpenAPI |
 | Classification | Fine-tuned `google/flan-t5-base` checkpoint with five clinic-support categories |
-| Summarisation | Original pinned `google/flan-t5-base` checkpoint with source-coverage safeguard |
+| Summarisation | Original pinned `google/flan-t5-base` at inference; fine-tuned candidate saved locally for evaluation |
 | Evaluation data | Synthetic, balanced training, validation and held-out test partitions |
-| Execution environment | Local macOS CPU inference and training; no real clinic deployment |
+| Execution environment | Local macOS CPU inference and CPU/MPS training; no real clinic deployment |
 | Scope | Education and administrative support; not diagnosis or individual treatment advice |
 
 ## Architecture Overview
@@ -71,14 +71,18 @@ The initial language model is `google/flan-t5-base`, loaded with Hugging Face Tr
 
 #### Base model and fine-tuned model roles
 
-The **base model** is the original pretrained `google/flan-t5-base` checkpoint at revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. It provides the starting weights and tokenizer for classification and remains the model used for message summarisation. The **fine-tuned model** is a complete FLAN-T5 checkpoint adapted for clinic-support classification. Part II describes the training method and saved checkpoint.
+The **base model** is the original pretrained `google/flan-t5-base` checkpoint at revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. It provides the starting weights and tokenizer for both classification and summarisation. The **fine-tuned models** are complete FLAN-T5 checkpoints adapted separately for clinic-support classification and message summarisation. Part II describes the classifier training method; the summariser training run is recorded below.
 
 | Application task | Configured model | Role |
 |---|---|---|
 | Classification | `./artifacts/models/clinic-support` (`CLASSIFIER_MODEL_NAME`) | Locally saved, one-epoch fine-tuned checkpoint derived from the pinned base model |
-| Summarisation | `google/flan-t5-base` (`SUMMARIZER_MODEL_NAME`) | Original pinned base checkpoint; it is not fine-tuned for summarisation |
+| Summarisation | `google/flan-t5-base` (`SUMMARIZER_MODEL_NAME`) | Current inference model; the separate fine-tuned candidate is `artifacts/models/clinic-summary` |
 
 The app loads the two task models through separate lazy runtimes. `CLASSIFIER_MODEL_NAME` and `SUMMARIZER_MODEL_NAME` override the shared `MODEL_NAME` fallback. The base model identifier and revision remain the training/evaluation source settings. This arrangement lets each task change independently, but the two model copies can both occupy memory after both tasks have run. The local classifier checkpoint is ignored by Git and must be present on the machine running the app.
+
+Summariser fine-tuning is implemented separately in `scripts/train_summarizer.py`. Its base checkpoint is configured with `SUMMARIZER_BASE_MODEL_NAME`, independently of `SUMMARIZER_MODEL_NAME`, which selects the inference checkpoint. It reads the 280-example training partition and 60-example validation partition, uses the same prompt builder as application inference, and selects a checkpoint using validation ROUGE-L. On the Mac, MPS training completed three epochs and 105 optimizer updates (batch size 1, gradient accumulation 8, learning rate `5e-5`, seed 42). Mean training loss decreased from 2.0435 to 1.3911. Validation ROUGE-L F1 rose from 0.4122 at epoch 1 to 0.4436 at epoch 3; the output/input word ratio rose from 0.5335 to 0.6080. The selected complete checkpoint and tokenizer are saved under `artifacts/models/clinic-summary`, with predictions and metrics in `training_summary.json`. The held-out test partition was not read.
+
+The saved validation examples still need comparative and human review before changing inference configuration. A spot check found omitted or altered request details and an unsupported department name, so the higher later-epoch ROUGE-L score is not sufficient evidence to adopt this model. The next evaluation should compare base and fine-tuned outputs on the same validation examples and review request preservation, unsupported additions and brevity. The test partition must remain unused until model and prompt choices are final.
 
 The classification instruction lists five categories and their meanings:
 

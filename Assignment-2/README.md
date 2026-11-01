@@ -79,6 +79,7 @@ and downloaded model artifacts are excluded from Git.
 | `MODEL_NAME` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
 | `CLASSIFIER_MODEL_NAME` | `./artifacts/models/clinic-support` | Classifier model/checkpoint; overrides `MODEL_NAME` |
 | `SUMMARIZER_MODEL_NAME` | `google/flan-t5-base` | Summarizer model; overrides `MODEL_NAME` |
+| `SUMMARIZER_BASE_MODEL_NAME` | `google/flan-t5-base` | Base checkpoint used by the summarizer training script; independent from the inference setting |
 | `MODEL_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
 | `CLASSIFIER_MODEL_REVISION` / `SUMMARIZER_MODEL_REVISION` | blank | Optional task-specific revision; overrides `MODEL_REVISION` |
 | `MODEL_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
@@ -140,6 +141,30 @@ from disappearing, though it can produce repetition when the model paraphrases.
 Review summaries for accuracy and unsupported additions. The standalone `scripts/check_classifier.py`
 experiment has been removed; the module command above exercises the actual
 application classifier adapter.
+
+### Fine-tune the summarizer
+
+Training examples and validation examples are kept in separate JSONL files.
+The script uses the same prompt as application inference, learns from the
+training partition, and selects the saved checkpoint using validation ROUGE-L.
+It never opens the held-out test partition. Start with one optimizer update:
+
+```bash
+.venv/bin/python scripts/train_summarizer.py --smoke
+```
+
+The smoke run loads only one training example and does not read validation data
+or save a checkpoint. After it succeeds, a full run can be started separately:
+
+```bash
+.venv/bin/python scripts/train_summarizer.py
+```
+
+The selected model is saved to `artifacts/models/clinic-summary`. To use it for
+inference after training, set `SUMMARIZER_MODEL_NAME=./artifacts/models/clinic-summary`
+in `.env`; keep `SUMMARIZER_BASE_MODEL_NAME` set to the source model for any
+future training run. Training is a full fine-tune of the selected base model,
+not inference and not a LoRA adapter run.
 
 ## Start locally
 

@@ -5,6 +5,17 @@ from diabetes_support.infrastructure.model_settings import ModelSettings
 from diabetes_support.infrastructure.seq2seq_runtime import Seq2SeqRuntime
 
 
+def build_summary_prompt(message: str) -> str:
+    """Build the same prompt for inference and summarizer training."""
+    return (
+        "Create a concise staff handoff summary of this clinic support "
+        "message. List every separate request, including requests about "
+        "different topics. Keep stated dates and details. Do not add facts, "
+        "diagnoses, or medical advice.\n"
+        f"Message: {message}\nSummary:"
+    )
+
+
 class Seq2SeqSummarizer:
     """Create a concise staff handoff summary using the configured shared model."""
 
@@ -26,13 +37,7 @@ class Seq2SeqSummarizer:
         if not message:
             raise ValueError("The message must not be empty.")
 
-        prompt = (
-            "Create a concise staff handoff summary of this clinic support "
-            "message. List every separate request, including requests about "
-            "different topics. Keep stated dates and details. Do not add facts, "
-            "diagnoses, or medical advice.\n"
-            f"Message: {message}\nSummary:"
-        )
+        prompt = build_summary_prompt(message)
         # Compare candidate sequences and discourage repeated phrases for summaries.
         # Other tasks keep the runtime's default decoding settings.
         generated_summary = self.runtime.generate(
