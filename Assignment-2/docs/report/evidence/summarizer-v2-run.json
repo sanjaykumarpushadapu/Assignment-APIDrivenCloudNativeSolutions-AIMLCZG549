@@ -1,0 +1,555 @@
+{
+  "artifact_id": "summarizer-v2",
+  "status": "validation candidate; not configured for application inference",
+  "checkpoint_path": "artifacts/models/clinic-summary-v2",
+  "weights": {
+    "file": "model.safetensors",
+    "size_bytes": 990345064,
+    "sha256": "30a95b75f9ffd1963acee794b0c5dec0d965e186905ada095aca98353117341e"
+  },
+  "base_model": "google/flan-t5-base",
+  "base_revision": "7bcac572ce56db69c1ea7c8af255c5d7c9672fc2",
+  "prompt_template": "Create a concise, factual staff handoff summary of this clinic support message. Include every separate request, even when requests concern different topics. Preserve dates, times, conditions, exclusions, and negative instructions that affect what staff should do. Keep clear what is confirmed, uncertain, pending, or being asked; do not turn a question into a statement or infer an outcome. Preserve reported symptoms and requests for clinical follow-up without answering medical questions. Do not add facts, diagnoses, or medical advice.\nMessage: {message}\nSummary:",
+  "training": {
+    "device": "mps",
+    "seed": 42,
+    "epochs_completed": 3,
+    "optimizer_steps": 105,
+    "training_examples": 280,
+    "validation_examples": 60,
+    "training_file_sha256": "537376ed4f8491838809cca100a0903b7bd088214052917f26c91fff9c84de72",
+    "validation_file_sha256": "46e9af44027e30a2c0e2a56bae8fc4be139d10c6e495af978c270b6e50adabe6",
+    "history": [
+      {
+        "epoch": 1,
+        "mean_training_loss": 2.0008,
+        "optimizer_steps": 35,
+        "validation": {
+          "mean_rouge_l_f1": 0.4211937455198696,
+          "mean_output_input_word_ratio": 0.5952419435879153
+        }
+      },
+      {
+        "epoch": 2,
+        "mean_training_loss": 1.5386,
+        "optimizer_steps": 70,
+        "validation": {
+          "mean_rouge_l_f1": 0.4464449900581693,
+          "mean_output_input_word_ratio": 0.627856132225387
+        }
+      },
+      {
+        "epoch": 3,
+        "mean_training_loss": 1.38,
+        "optimizer_steps": 105,
+        "validation": {
+          "mean_rouge_l_f1": 0.45630800470460486,
+          "mean_output_input_word_ratio": 0.59967171413479
+        }
+      }
+    ],
+    "best_validation": {
+      "mean_rouge_l_f1": 0.45630800470460486,
+      "mean_output_input_word_ratio": 0.59967171413479
+    }
+  },
+  "comparison": {
+    "device": "cpu",
+    "base": {
+      "mean_rouge_l_f1": 0.2976668025565109,
+      "mean_output_input_word_ratio": 0.9201452935571929
+    },
+    "fine_tuned": {
+      "mean_rouge_l_f1": 0.45630800470460486,
+      "mean_output_input_word_ratio": 0.59967171413479
+    },
+    "test_set_loaded": false
+  },
+  "validation_outputs": [
+    {
+      "example_id": "SUM-VAL-001",
+      "reference": "Work conflicts with Monday’s diabetes class; requests Thursday afternoon and asks the clinic to confirm availability.",
+      "base_prediction": "Message: My Monday diabetes class conflicts with work now. Can I move it to Thursday afternoon? Please confirm if that time is available.",
+      "base_rouge_l_f1": 0.20512820512820512,
+      "fine_tuned_prediction": "Requests moving Monday’s diabetes class to Thursday afternoon due to work; asks staff to confirm if it is available.",
+      "fine_tuned_rouge_l_f1": 0.39999999999999997
+    },
+    {
+      "example_id": "SUM-VAL-002",
+      "reference": "Cannot submit today’s clinic form because the portal rejects the verification code; requests sign-in help.",
+      "base_prediction": "The portal will not accept my verification code. I need to submit a clinic form today; can someone help me log in?",
+      "base_rouge_l_f1": 0.16216216216216214,
+      "fine_tuned_prediction": "Requests help logging in to the portal today because the portal does not accept the verification code.",
+      "fine_tuned_rouge_l_f1": 0.3125
+    },
+    {
+      "example_id": "SUM-VAL-003",
+      "reference": "Requests correction of the birth date on a clinic letter and a copy of visit notes.",
+      "base_prediction": "Message: Please correct the birth date on my clinic letter and send me a copy of my visit notes.",
+      "base_rouge_l_f1": 0.6857142857142857,
+      "fine_tuned_prediction": "Requests correcting the birth date on a clinic letter and a copy of visit notes.",
+      "fine_tuned_rouge_l_f1": 0.9032258064516129
+    },
+    {
+      "example_id": "SUM-VAL-004",
+      "reference": "Reports feeling sick after starting medication and requests a care-team call about whether to stop.",
+      "base_prediction": "I have been feeling sick since starting the tablets. Please ask the care team to contact me.",
+      "base_rouge_l_f1": 0.25,
+      "fine_tuned_prediction": "Reports feeling sick since starting the tablets and asks staff to contact the care team.",
+      "fine_tuned_rouge_l_f1": 0.4000000000000001
+    },
+    {
+      "example_id": "SUM-VAL-005",
+      "reference": "Cannot attend tomorrow’s appointment; requests Friday morning instead and notes that the change is unconfirmed.",
+      "base_prediction": "I cannot make the appointment tomorrow. I am free on Friday morning instead, but the clinic has not confirmed a change.",
+      "base_rouge_l_f1": 0.2222222222222222,
+      "fine_tuned_prediction": "Cannot make tomorrow’s appointment because the clinic has not confirmed a change.",
+      "fine_tuned_rouge_l_f1": 0.22222222222222224
+    },
+    {
+      "example_id": "SUM-VAL-006",
+      "reference": "The reminder and letter show different start times; asks staff to confirm the time before travelling.",
+      "base_prediction": "Message: My reminder says 8:30 but the letter from the clinic says 9:30. I have not changed the appointment. Could someone verify the start time before I travel?",
+      "base_rouge_l_f1": 0.22727272727272727,
+      "fine_tuned_prediction": "Requests checking the start time before traveling because the reminder says 8:30 and the letter says 9:30.",
+      "fine_tuned_rouge_l_f1": 0.24242424242424243
+    },
+    {
+      "example_id": "SUM-VAL-007",
+      "reference": "Requests correcting a misspelled first name on the diabetes class certificate and emailing a new copy.",
+      "base_prediction": "I completed the diabetes class, but the certificate has my first name misspelled. Could you correct it and email me the updated copy?",
+      "base_rouge_l_f1": 0.20512820512820512,
+      "fine_tuned_prediction": "Requests correcting the diabetes class certificate and e-mailing the updated copy.",
+      "fine_tuned_rouge_l_f1": 0.5925925925925926
+    },
+    {
+      "example_id": "SUM-VAL-008",
+      "reference": "Asks which department received the form submitted through the portal.",
+      "base_prediction": "The clinic portal accepted my form, but I cannot tell whether it went to the records team. Please confirm which department received it.",
+      "base_rouge_l_f1": 0.18181818181818182,
+      "fine_tuned_prediction": "Requests confirmation that the portal accepted the form and the records team received it.",
+      "fine_tuned_rouge_l_f1": 0.25
+    },
+    {
+      "example_id": "SUM-VAL-009",
+      "reference": "Requests updating the postal address for future letters while keeping the current phone number.",
+      "base_prediction": "I moved to a new address and want future clinic letters sent there. Please update my contact details, but keep my phone number the same.",
+      "base_rouge_l_f1": 0.20512820512820512,
+      "fine_tuned_prediction": "Moved to a new address and asks staff to update contact details and keep the phone number the same.",
+      "fine_tuned_rouge_l_f1": 0.18181818181818182
+    },
+    {
+      "example_id": "SUM-VAL-010",
+      "reference": "Prescription will run out before next week’s appointment; requests a clinical review for a refill.",
+      "base_prediction": "The clinical team will review whether you need a refill on your prescription.",
+      "base_rouge_l_f1": 0.21428571428571427,
+      "fine_tuned_prediction": "Reports a run-out prescription before next week’s appointment; requests a refill review.",
+      "fine_tuned_rouge_l_f1": 0.5185185185185186
+    },
+    {
+      "example_id": "SUM-VAL-011",
+      "reference": "Cannot travel to Monday’s appointment because transport was cancelled; asks about a phone appointment and to keep the original booking active.",
+      "base_prediction": "Message: My transport was cancelled, so I cannot get to the clinic on Monday. Could you check whether a phone appointment is possible? Please leave the original booking active for now.",
+      "base_rouge_l_f1": 0.30769230769230765,
+      "fine_tuned_prediction": "Requests a phone appointment on Monday because transport was cancelled; asks staff to leave the booking active.",
+      "fine_tuned_rouge_l_f1": 0.5263157894736842
+    },
+    {
+      "example_id": "SUM-VAL-012",
+      "reference": "Requests the missing class worksheet and asks whether a large-print version is available.",
+      "base_prediction": "I attended the class but did not receive the take-home worksheet. Could you send the worksheet and confirm whether it is also available in large print?",
+      "base_rouge_l_f1": 0.30769230769230776,
+      "fine_tuned_prediction": "Requests a take-home worksheet and confirms it is available in large print.",
+      "fine_tuned_rouge_l_f1": 0.32
+    },
+    {
+      "example_id": "SUM-VAL-013",
+      "reference": "Portal and letter show different clinic locations; asks staff to confirm the correct location without changing the booking.",
+      "base_prediction": "The portal says my appointment is at the North clinic, but the letter says Central. I have not changed the booking; please check the correct location.",
+      "base_rouge_l_f1": 0.18181818181818185,
+      "fine_tuned_prediction": "Requests checking the correct booking location on the portal and letter; asks staff to check the correct location.",
+      "fine_tuned_rouge_l_f1": 0.3888888888888889
+    },
+    {
+      "example_id": "SUM-VAL-014",
+      "reference": "Paid the balance by phone yesterday; asks staff to check the account and send a receipt if payment was processed.",
+      "base_prediction": "I paid the balance by phone yesterday, but the account still shows an amount due. Please check the payment and send a receipt if it was processed.",
+      "base_rouge_l_f1": 0.5957446808510639,
+      "fine_tuned_prediction": "Asks staff to check the balance and send a receipt if the payment was processed.",
+      "fine_tuned_rouge_l_f1": 0.7428571428571429
+    },
+    {
+      "example_id": "SUM-VAL-015",
+      "reference": "Reports vomiting after taking medication this morning and requests an urgent clinical-team call; says the dose is unchanged.",
+      "base_prediction": "Message: I have been vomiting since taking my medication this morning. Please ask the clinical team to call as soon as possible.",
+      "base_rouge_l_f1": 0.25,
+      "fine_tuned_prediction": "Reports vomiting after taking medication this morning; requests a clinical team call as soon as possible.",
+      "fine_tuned_rouge_l_f1": 0.411764705882353
+    },
+    {
+      "example_id": "SUM-VAL-016",
+      "reference": "Requests switching from Tuesday to Saturday class; asks staff to confirm space before making the change.",
+      "base_prediction": "I need to change my class registration from Tuesday to Saturday. Can you confirm there is space before changing it?",
+      "base_rouge_l_f1": 0.33333333333333326,
+      "fine_tuned_prediction": "Registers for the Tuesday group and asks staff to confirm there is space before changing the group.",
+      "fine_tuned_rouge_l_f1": 0.48484848484848486
+    },
+    {
+      "example_id": "SUM-VAL-017",
+      "reference": "Posted a signed insurance form last Friday; asks staff to check whether it arrived because it is not in the portal.",
+      "base_prediction": "I posted my signed insurance form last Friday. It has not appeared in the portal yet. Could you check whether it arrived by mail?",
+      "base_rouge_l_f1": 0.39999999999999997,
+      "fine_tuned_prediction": "Asks staff to check whether the signed insurance form arrived by mail.",
+      "fine_tuned_rouge_l_f1": 0.36363636363636365
+    },
+    {
+      "example_id": "SUM-VAL-018",
+      "reference": "Requests using the new phone number from a submitted form and confirmation that the clinic received it.",
+      "base_prediction": "The clinic called my old number about an appointment. Please use the new number on the form I sent and tell me whether you received it.",
+      "base_rouge_l_f1": 0.3255813953488372,
+      "fine_tuned_prediction": "Requests a new appointment number on the form sent and asks staff to verify receipt.",
+      "fine_tuned_rouge_l_f1": 0.3125
+    },
+    {
+      "example_id": "SUM-VAL-019",
+      "reference": "Has completed a week of readings and asks where to submit them for clinician review.",
+      "base_prediction": "Requests for clinical follow-up for a week.",
+      "base_rouge_l_f1": 0.09090909090909091,
+      "fine_tuned_prediction": "Requests tracking a week’s readings and requests a review of the list.",
+      "fine_tuned_rouge_l_f1": 0.22222222222222224
+    },
+    {
+      "example_id": "SUM-VAL-020",
+      "reference": "Requests a discharge letter and help opening the portal documents page.",
+      "base_prediction": "Message: I need a copy of my discharge letter, and the portal will not open the documents page. Please send the letter and help with the access problem.",
+      "base_rouge_l_f1": 0.358974358974359,
+      "fine_tuned_prediction": "Requests a copy of a discharge letter and help opening the documents page.",
+      "fine_tuned_rouge_l_f1": 0.8333333333333333
+    },
+    {
+      "example_id": "SUM-VAL-021",
+      "reference": "Requests checking whether a video visit is possible due to shuttle cancellation; asks staff to keep the in-person booking until confirmed.",
+      "base_prediction": "The clinic shuttle is not running on my appointment day. Please do not cancel the in-person appointment until I know whether video is possible.",
+      "base_rouge_l_f1": 0.17777777777777778,
+      "fine_tuned_prediction": "Requests a video visit instead of an appointment because the shuttle is not running on appointment day; asks staff not to cancel the in-person appointment until video is available.",
+      "fine_tuned_rouge_l_f1": 0.44
+    },
+    {
+      "example_id": "SUM-VAL-022",
+      "reference": "Requests a replacement follow-up booklet at home and asks whether postage is charged.",
+      "base_prediction": "I joined the education group last month but the follow-up booklet never arrived. Please resend it to my home address and tell me if there is a postage charge.",
+      "base_rouge_l_f1": 0.23809523809523808,
+      "fine_tuned_prediction": "Requests resending the education group follow-up booklet to a home address and a postage charge.",
+      "fine_tuned_rouge_l_f1": 0.42857142857142855
+    },
+    {
+      "example_id": "SUM-VAL-023",
+      "reference": "Reports another patient’s initials beside an appointment and asks staff to check the record before opening documents.",
+      "base_prediction": "I can sign in, but the portal shows another patient’s initials beside my appointment. Please check the record before I open any documents.",
+      "base_rouge_l_f1": 0.45,
+      "fine_tuned_prediction": "Requests checking another patient’s appointment’s initials before opening documents.",
+      "fine_tuned_rouge_l_f1": 0.46153846153846156
+    },
+    {
+      "example_id": "SUM-VAL-024",
+      "reference": "Requests correcting the receipt date while leaving the payment amount unchanged.",
+      "base_prediction": "Your payment receipt has the wrong date and the amount is correct. Please issue a corrected receipt without changing the amount paid.",
+      "base_rouge_l_f1": 0.24242424242424246,
+      "fine_tuned_prediction": "Requests a corrected payment receipt without changing the amount paid.",
+      "fine_tuned_rouge_l_f1": 0.380952380952381
+    },
+    {
+      "example_id": "SUM-VAL-025",
+      "reference": "Reports lip swelling after medication, has taken no more, and requests an urgent clinician call.",
+      "base_prediction": "Message: After taking my medication I developed swelling around my lips. I have not taken more; please get a clinician to call me urgently.",
+      "base_rouge_l_f1": 0.15384615384615385,
+      "fine_tuned_prediction": "Reports swelling around the lips after taking medication; requests a clinician call urgently.",
+      "fine_tuned_rouge_l_f1": 0.3571428571428571
+    },
+    {
+      "example_id": "SUM-VAL-026",
+      "reference": "Requests moving from Monday to Wednesday class due to work; asks staff to confirm space before releasing the current place.",
+      "base_prediction": "I need to move from the Monday class to the Wednesday one because of a work change. Please check there is space before removing my Monday place.",
+      "base_rouge_l_f1": 0.29787234042553196,
+      "fine_tuned_prediction": "Requests moving from Monday’s class to Wednesday’s because of a work change; asks staff to check space before removing the Monday place.",
+      "fine_tuned_rouge_l_f1": 0.5714285714285713
+    },
+    {
+      "example_id": "SUM-VAL-027",
+      "reference": "Faxed an insurance referral Friday; asks whether it arrived before next week’s appointment.",
+      "base_prediction": "I sent the insurance referral by fax on Friday. The appointment is next week and I need to know whether it arrived before then.",
+      "base_rouge_l_f1": 0.32432432432432434,
+      "fine_tuned_prediction": "Requests a fax confirmation of Friday’s insurance referral and an appointment next week; asks whether it arrived before next week.",
+      "fine_tuned_rouge_l_f1": 0.4848484848484849
+    },
+    {
+      "example_id": "SUM-VAL-028",
+      "reference": "Requests adding an interpreter preference and notes that availability for tomorrow is unconfirmed.",
+      "base_prediction": "Please add my interpreter preference to the appointment notes. I can attend tomorrow, but the clinic has not confirmed that an interpreter is available.",
+      "base_rouge_l_f1": 0.21621621621621623,
+      "fine_tuned_prediction": "Requests an interpreter preference for tomorrow’s appointment because the clinic has not confirmed an availability.",
+      "fine_tuned_rouge_l_f1": 0.3571428571428571
+    },
+    {
+      "example_id": "SUM-VAL-029",
+      "reference": "Completed and uploaded a readings log; asks whether the clinical team can see it before Thursday’s appointment.",
+      "base_prediction": "Your readings log is complete, and the portal upload worked. Could you confirm that the clinical team can see it before my appointment on Thursday?",
+      "base_rouge_l_f1": 0.38095238095238104,
+      "fine_tuned_prediction": "Requests that the clinical team sees the readings log before Thursday’s appointment.",
+      "fine_tuned_rouge_l_f1": 0.41379310344827586
+    },
+    {
+      "example_id": "SUM-VAL-030",
+      "reference": "Requests a resent appointment letter and removal of an old mobile number from contact details.",
+      "base_prediction": "Please send my appointment letter again. Also, remove my old mobile number from the contact details.",
+      "base_rouge_l_f1": 0.5161290322580646,
+      "fine_tuned_prediction": "Requests a new appointment letter and removal of the old mobile number from contact details.",
+      "fine_tuned_rouge_l_f1": 0.8666666666666667
+    },
+    {
+      "example_id": "SUM-VAL-031",
+      "reference": "Requests confirmation of the appointment location because the booking page and reminder conflict; asks staff not to change the time.",
+      "base_prediction": "The booking page lists my appointment at East Clinic, while my reminder says West Clinic. Please confirm the location before I arrange a ride; do not change the time.",
+      "base_rouge_l_f1": 0.32653061224489793,
+      "fine_tuned_prediction": "Requests confirmation of a West Clinic appointment before arranging a ride; asks staff not to change the time.",
+      "fine_tuned_rouge_l_f1": 0.5789473684210527
+    },
+    {
+      "example_id": "SUM-VAL-032",
+      "reference": "Requests the missing recipe booklet in large print and asks if it includes vegetarian meals.",
+      "base_prediction": "I attended the workshop but the promised recipe booklet was not included. Could you send it in large print and confirm whether it covers vegetarian meals?",
+      "base_rouge_l_f1": 0.43902439024390244,
+      "fine_tuned_prediction": "Requests a large-print recipe booklet and confirmation that it covers vegetarian meals.",
+      "fine_tuned_rouge_l_f1": 0.5185185185185186
+    },
+    {
+      "example_id": "SUM-VAL-033",
+      "reference": "Asks staff to confirm which email is on the account after an update confirmation went to the old address.",
+      "base_prediction": "The portal says my contact details were updated, but the confirmation went to the old email. Please check which email is now on my account.",
+      "base_rouge_l_f1": 0.2727272727272727,
+      "fine_tuned_prediction": "Requests checking the old confirmation email on the portal account.",
+      "fine_tuned_rouge_l_f1": 0.20689655172413793
+    },
+    {
+      "example_id": "SUM-VAL-034",
+      "reference": "Requests a copy of last week’s insurance letter, including its sent date and recipient department.",
+      "base_prediction": "I need a copy of the letter sent to my insurance company last week. Please include the date it was sent and the recipient department.",
+      "base_rouge_l_f1": 0.4,
+      "fine_tuned_prediction": "Requests a copy of last week’s insurance letter and the recipient department.",
+      "fine_tuned_rouge_l_f1": 0.7407407407407408
+    },
+    {
+      "example_id": "SUM-VAL-035",
+      "reference": "Reports a rash and stopping the new medicine; requests contact with the prescriber and a call time.",
+      "base_prediction": "Please contact the clinician who prescribed your new medicine and let me know when they can call.",
+      "base_rouge_l_f1": 0.17647058823529413,
+      "fine_tuned_prediction": "Reports a rash caused by a new medicine and asks staff to contact the prescriber and let them know when they can call.",
+      "fine_tuned_rouge_l_f1": 0.39999999999999997
+    },
+    {
+      "example_id": "SUM-VAL-036",
+      "reference": "Payment has cleared but portal booking remains blocked; asks staff to check the billing status.",
+      "base_prediction": "The clinic says my payment has cleared but the portal still blocks appointment booking. Please check whether the billing status is updated before I try again.",
+      "base_rouge_l_f1": 0.3902439024390244,
+      "fine_tuned_prediction": "Requests checking whether billing status is updated before trying again.",
+      "fine_tuned_rouge_l_f1": 0.08
+    },
+    {
+      "example_id": "SUM-VAL-037",
+      "reference": "Requests an afternoon class on any day except Thursday and asks for confirmation before releasing the current place.",
+      "base_prediction": "Message: Can you move my class registration from the morning to an afternoon session? I can attend any day except Thursday; please confirm before cancelling my current place.",
+      "base_rouge_l_f1": 0.34782608695652173,
+      "fine_tuned_prediction": "Requests moving class registration from the morning to an afternoon session because of Thursday; asks staff to confirm before cancelling the place.",
+      "fine_tuned_rouge_l_f1": 0.35000000000000003
+    },
+    {
+      "example_id": "SUM-VAL-038",
+      "reference": "Posted a new emergency-contact form ten days ago; asks staff to verify receipt and update the contact if processed.",
+      "base_prediction": "I sent the clinic a new emergency contact form by post ten days ago. Could you verify it arrived and update the contact if it has been processed?",
+      "base_rouge_l_f1": 0.46808510638297873,
+      "fine_tuned_prediction": "Requests verification of a new emergency contact form sent by post 10 days ago and updating the contact if it has been processed.",
+      "fine_tuned_rouge_l_f1": 0.42857142857142855
+    },
+    {
+      "example_id": "SUM-VAL-039",
+      "reference": "Reports shakiness and a reading below the clinician-provided range; requests a clinical-team call, not an emailed dose change.",
+      "base_prediction": "I feel shaky after lunch and my reading is lower than the range my clinician gave me. Please have the clinical team call; I am not asking for a dose change by email.",
+      "base_rouge_l_f1": 0.19607843137254904,
+      "fine_tuned_prediction": "Reports shakiness after lunch and a lower reading than the clinician’s range; requests a clinical team call; does not request a dose change by email.",
+      "fine_tuned_rouge_l_f1": 0.5116279069767442
+    },
+    {
+      "example_id": "SUM-VAL-040",
+      "reference": "Asks whether a support person may attend Monday’s appointment and requests the policy without changing the booking.",
+      "base_prediction": "The appointment is still booked for Monday, but I need to ask whether a support person can attend.",
+      "base_rouge_l_f1": 0.22857142857142856,
+      "fine_tuned_prediction": "Requests a support person attend Monday’s appointment without changing the visitor policy.",
+      "fine_tuned_rouge_l_f1": 0.6206896551724139
+    },
+    {
+      "example_id": "SUM-VAL-041",
+      "reference": "Requests confirmation of Thursday’s accessible entrance because the letter and access note conflict.",
+      "base_prediction": "Requests to confirm the accessible entrance at the front of the building.",
+      "base_rouge_l_f1": 0.32,
+      "fine_tuned_prediction": "Requests confirmation of the accessible entrance before Thursday because the appointment letter says the lift is at the rear.",
+      "fine_tuned_rouge_l_f1": 0.5
+    },
+    {
+      "example_id": "SUM-VAL-042",
+      "reference": "Requests a replacement audio link that remains available through next week’s class.",
+      "base_prediction": "I received the diabetes class audio link, but it expires before the session next week. Please send a link that will remain available until then.",
+      "base_rouge_l_f1": 0.21621621621621623,
+      "fine_tuned_prediction": "Requests a remaining audio link for next week’s diabetes class due to expire before the next session.",
+      "fine_tuned_rouge_l_f1": 0.41379310344827586
+    },
+    {
+      "example_id": "SUM-VAL-043",
+      "reference": "Asks staff to resolve conflicting consent-form statuses before reuploading.",
+      "base_prediction": "The portal says my consent form is complete, but the clinic text says it is missing. Please confirm the status before I upload it again.",
+      "base_rouge_l_f1": 0.058823529411764705,
+      "fine_tuned_prediction": "Requests confirmation of a missing consent form before uploading it again.",
+      "fine_tuned_rouge_l_f1": 0.09999999999999999
+    },
+    {
+      "example_id": "SUM-VAL-044",
+      "reference": "Requests confirmation that the new address is on file and asks whether clinic notes can be resent.",
+      "base_prediction": "Message: My clinic notes were sent to my former address. Please confirm the new address is on file and tell me whether the notes can be resent.",
+      "base_rouge_l_f1": 0.5454545454545455,
+      "fine_tuned_prediction": "Requests confirmation of the new address and whether the notes can be resent.",
+      "fine_tuned_rouge_l_f1": 0.7333333333333334
+    },
+    {
+      "example_id": "SUM-VAL-045",
+      "reference": "Asks staff to check whether insurer approval is recorded because the portal still blocks booking.",
+      "base_prediction": "Please confirm that your insurance has approved the referral.",
+      "base_rouge_l_f1": 0.08333333333333334,
+      "fine_tuned_prediction": "Requests checking the insurer’s approval before scheduling a referral.",
+      "fine_tuned_rouge_l_f1": 0.08333333333333334
+    },
+    {
+      "example_id": "SUM-VAL-046",
+      "reference": "Requests confirming the entrance and bus stop; asks staff to keep the confirmed appointment unchanged.",
+      "base_prediction": "Your appointment is still confirmed, but the reminder gives the wrong bus stop. Please confirm the clinic entrance and transport stop without changing the booking.",
+      "base_rouge_l_f1": 0.2,
+      "fine_tuned_prediction": "Requests changing the appointment entrance and transport stop without changing the booking.",
+      "fine_tuned_rouge_l_f1": 0.3703703703703704
+    },
+    {
+      "example_id": "SUM-VAL-047",
+      "reference": "Requests a personal large-print copy of the same diabetes guide edition.",
+      "base_prediction": "I need a copy of the diabetes guide from the library. Can you send the same edition in large print?",
+      "base_rouge_l_f1": 0.3870967741935483,
+      "fine_tuned_prediction": "Requests a large-print copy of the diabetes guide from the library.",
+      "fine_tuned_rouge_l_f1": 0.7272727272727273
+    },
+    {
+      "example_id": "SUM-VAL-048",
+      "reference": "Requests checking the referral transmission date and resending if the insurer did not receive it.",
+      "base_prediction": "The portal shows my referral as sent, but the insurer says nothing arrived. Please check the transmission date and resend if needed.",
+      "base_rouge_l_f1": 0.3243243243243243,
+      "fine_tuned_prediction": "Requests checking the transmission date and resending the referral if the insurer says nothing arrived.",
+      "fine_tuned_rouge_l_f1": 0.6666666666666666
+    },
+    {
+      "example_id": "SUM-VAL-049",
+      "reference": "Requests an emergency-contact update while keeping appointment messages directed to the patient by email.",
+      "base_prediction": "Please update your emergency contact, but do not use that person as my appointment contact.",
+      "base_rouge_l_f1": 0.1379310344827586,
+      "fine_tuned_prediction": "Requests updating an emergency contact and not using that person as an appointment contact.",
+      "fine_tuned_rouge_l_f1": 0.21428571428571427
+    },
+    {
+      "example_id": "SUM-VAL-050",
+      "reference": "Requests a clinician call about a new symptom and postal delivery of visit notes.",
+      "base_prediction": "Message: I have a question about a new symptom and a separate request for my visit notes. Please let a clinician call and mail the notes to my home.",
+      "base_rouge_l_f1": 0.37209302325581395,
+      "fine_tuned_prediction": "Reports a new symptom and requests a clinician call and mail visit notes.",
+      "fine_tuned_rouge_l_f1": 0.5185185185185186
+    },
+    {
+      "example_id": "SUM-VAL-051",
+      "reference": "Requests confirmation of Friday’s appointment change and asks what proof to send the transport company.",
+      "base_prediction": "Message: My appointment moved to Friday, but the transport company still has the old date. Please confirm the new booking and tell me what proof to send them.",
+      "base_rouge_l_f1": 0.27906976744186046,
+      "fine_tuned_prediction": "Requests confirmation of Friday’s appointment and confirmation of the transport company’s new booking.",
+      "fine_tuned_rouge_l_f1": 0.5714285714285715
+    },
+    {
+      "example_id": "SUM-VAL-052",
+      "reference": "Asks staff to verify class enrollment because the portal and joining link conflict.",
+      "base_prediction": "The portal lists my class as cancelled, but I received a joining link today. Please check whether I am enrolled before sending another link.",
+      "base_rouge_l_f1": 0.21621621621621623,
+      "fine_tuned_prediction": "Requests checking whether a joining link is enrolled before sending another link.",
+      "fine_tuned_rouge_l_f1": 0.16
+    },
+    {
+      "example_id": "SUM-VAL-053",
+      "reference": "Requests confirmation of the 4th’s bank transfer and an updated statement if payment cleared.",
+      "base_prediction": "I paid the clinic by bank transfer on the 4th. Please confirm the payment is on my account and update the statement if it has cleared.",
+      "base_rouge_l_f1": 0.35000000000000003,
+      "fine_tuned_prediction": "Requests confirmation of a bank transfer payment on the 4th and updating the statement if it has cleared.",
+      "fine_tuned_rouge_l_f1": 0.5625000000000001
+    },
+    {
+      "example_id": "SUM-VAL-054",
+      "reference": "Asks whether the insurance approval covers the Central clinic appointment.",
+      "base_prediction": "Your new insurance approval is for the East clinic, but your appointment is at Central. Please check whether the approval covers this location before the visit.",
+      "base_rouge_l_f1": 0.2777777777777778,
+      "fine_tuned_prediction": "Requests checking whether the new insurance approval covers the Central clinic before the visit.",
+      "fine_tuned_rouge_l_f1": 0.6666666666666666
+    },
+    {
+      "example_id": "SUM-VAL-055",
+      "reference": "Reports taking the evening medicine in the morning and requests clinician contact before the next dose.",
+      "base_prediction": "I accidentally took the evening medicine in the morning. Please ask a clinician to call before my next scheduled dose.",
+      "base_rouge_l_f1": 0.5,
+      "fine_tuned_prediction": "Reports taking the evening medicine in the morning; requests a clinician call before next dose.",
+      "fine_tuned_rouge_l_f1": 0.7741935483870969
+    },
+    {
+      "example_id": "SUM-VAL-056",
+      "reference": "Requests checking the postal address and arranging replacement records if Monday’s mailing cannot be delivered.",
+      "base_prediction": "Message: The letter says my records were posted on Monday, but nothing has arrived. Could you verify the address and arrange a replacement if necessary?",
+      "base_rouge_l_f1": 0.25,
+      "fine_tuned_prediction": "Requests verification of Monday’s post-posting address and a replacement if necessary.",
+      "fine_tuned_rouge_l_f1": 0.3846153846153846
+    },
+    {
+      "example_id": "SUM-VAL-057",
+      "reference": "Asks for Saturday session’s finish time and whether materials can be sent if leaving at noon.",
+      "base_prediction": "Please confirm the finish time and whether I can receive the materials afterwards.",
+      "base_rouge_l_f1": 0.3448275862068966,
+      "fine_tuned_prediction": "Registers for Saturday’s session but needs to leave at noon; requests confirmation of the finish time and the materials afterwards.",
+      "fine_tuned_rouge_l_f1": 0.2777777777777778
+    },
+    {
+      "example_id": "SUM-VAL-058",
+      "reference": "Requests updating the email from a submitted form and portal sign-in help because reset links go to the old email.",
+      "base_prediction": "The portal has my old email and I cannot receive the reset link. Please update my email from the form I submitted and help me sign in.",
+      "base_rouge_l_f1": 0.25531914893617025,
+      "fine_tuned_prediction": "Requests updating the portal email from the form submitted and help signing in.",
+      "fine_tuned_rouge_l_f1": 0.4848484848484849
+    },
+    {
+      "example_id": "SUM-VAL-059",
+      "reference": "Requests confirmation of a prescription review because a refill awaits clinic approval.",
+      "base_prediction": "I need the clinic to confirm whether my prescription review is booked. The pharmacy says a refill is waiting for clinic approval.",
+      "base_rouge_l_f1": 0.3529411764705882,
+      "fine_tuned_prediction": "Requests confirmation of a prescription review booked because a refill is waiting for clinic approval.",
+      "fine_tuned_rouge_l_f1": 0.8148148148148148
+    },
+    {
+      "example_id": "SUM-VAL-060",
+      "reference": "Requests a visit summary to a secure email instead of the shared family email and asks for confirmation of the address change.",
+      "base_prediction": "Message: Please send the visit summary to my secure email, not the shared family email on file. Confirm once the address has been changed.",
+      "base_rouge_l_f1": 0.43478260869565216,
+      "fine_tuned_prediction": "Requests sending the visit summary to a secure email, not the shared family email on file.",
+      "fine_tuned_rouge_l_f1": 0.5263157894736842
+    }
+  ],
+  "review_notes": [
+    "The fine-tuned model remains a candidate; do not select based on ROUGE-L alone.",
+    "Qualitative review found changed questions, omitted constraints, and missing separate requests.",
+    "The held-out test partition has not been used."
+  ]
+}

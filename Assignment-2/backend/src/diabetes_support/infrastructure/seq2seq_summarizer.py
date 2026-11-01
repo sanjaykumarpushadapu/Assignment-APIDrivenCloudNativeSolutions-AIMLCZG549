@@ -8,10 +8,14 @@ from diabetes_support.infrastructure.seq2seq_runtime import Seq2SeqRuntime
 def build_summary_prompt(message: str) -> str:
     """Build the same prompt for inference and summarizer training."""
     return (
-        "Create a concise staff handoff summary of this clinic support "
-        "message. List every separate request, including requests about "
-        "different topics. Keep stated dates and details. Do not add facts, "
-        "diagnoses, or medical advice.\n"
+        "Create a concise, factual staff handoff summary of this clinic support "
+        "message. Include every separate request, even when requests concern "
+        "different topics. Preserve dates, times, conditions, exclusions, and "
+        "negative instructions that affect what staff should do. Keep clear what "
+        "is confirmed, uncertain, pending, or being asked; do not turn a question "
+        "into a statement or infer an outcome. Preserve reported symptoms and "
+        "requests for clinical follow-up without answering medical questions. "
+        "Do not add facts, diagnoses, or medical advice.\n"
         f"Message: {message}\nSummary:"
     )
 

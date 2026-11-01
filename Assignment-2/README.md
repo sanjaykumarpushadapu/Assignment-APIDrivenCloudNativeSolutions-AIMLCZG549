@@ -133,12 +133,12 @@ curl -X POST http://127.0.0.1:8001/analyze \
   -d '{"message":"Please move my appointment to Friday. I also cannot download the education leaflet from the portal."}'
 ```
 
-`/analyze` now returns both a generated handoff summary and the main-request
+`/analyze` returns both a generated handoff summary and the main-request
 category. The classifier and summarizer each have their own lazy model runtime.
-A source-coverage check now appends any original sentence whose meaningful words
-are missing from the generated summary. This prevents the tested second request
-from disappearing, though it can produce repetition when the model paraphrases.
-Review summaries for accuracy and unsupported additions. The standalone `scripts/check_classifier.py`
+The summary prompt asks the model to retain separate requests, uncertainty,
+conditions, exclusions and stated details. Review summaries for omissions,
+changed meaning and unsupported additions; this instruction does not guarantee
+complete or accurate summaries. The standalone `scripts/check_classifier.py`
 experiment has been removed; the module command above exercises the actual
 application classifier adapter.
 
@@ -157,14 +157,31 @@ The smoke run loads only one training example and does not read validation data
 or save a checkpoint. After it succeeds, a full run can be started separately:
 
 ```bash
-.venv/bin/python scripts/train_summarizer.py
+.venv/bin/python scripts/train_summarizer.py --output-dir artifacts/models/clinic-summary-v3
 ```
 
-The selected model is saved to `artifacts/models/clinic-summary`. To use it for
-inference after training, set `SUMMARIZER_MODEL_NAME=./artifacts/models/clinic-summary`
-in `.env`; keep `SUMMARIZER_BASE_MODEL_NAME` set to the source model for any
-future training run. Training is a full fine-tune of the selected base model,
-not inference and not a LoRA adapter run.
+The checkpoint and tokenizer are saved in the selected output directory. A
+trained checkpoint is a candidate until its outputs have been reviewed; do not
+change `SUMMARIZER_MODEL_NAME` based on the training score alone. Training is a
+full fine-tune of the selected base model, not inference and not a LoRA adapter
+run.
+
+### Sharing model results with the team
+
+Commit source code, synthetic train/validation data, `.env.example`, the report,
+and the small run record at `docs/report/evidence/summarizer-v2-run.json`. It
+records the model revision, prompt, dataset hashes, training metrics, validation
+outputs and checkpoint SHA-256. Model weights are about 947 MB and `artifacts/`
+is Git-ignored; keep these binary files out of ordinary Git history.
+
+To reproduce a run, teammates can use the same code, data, model revision and
+training command. Device differences can produce slightly different weights.
+To consume the exact same checkpoint, share the complete approved model folder
+through the team’s approved file storage, then compare its `model.safetensors`
+SHA-256 with the run record. The folder must include the config and tokenizer
+files as well as the weights. Once a checkpoint is approved for inference, set
+`SUMMARIZER_MODEL_NAME` to its local folder in each teammate’s `.env`; `.env`
+itself stays local and is not committed.
 
 ## Start locally
 
