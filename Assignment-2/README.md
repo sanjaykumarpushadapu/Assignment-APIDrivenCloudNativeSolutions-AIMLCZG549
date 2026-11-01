@@ -164,7 +164,9 @@ The checkpoint and tokenizer are saved in the selected output directory. A
 trained checkpoint is a candidate until its outputs have been reviewed; do not
 change `SUMMARIZER_MODEL_NAME` based on the training score alone. Training is a
 full fine-tune of the selected base model, not inference and not a LoRA adapter
-run.
+run. The latest v2 evidence records the earlier 280-example training snapshot;
+20 targeted synthetic examples have since been added, so the next run uses 300
+training examples and should be saved under a new output directory.
 
 ### Sharing model results with the team
 
