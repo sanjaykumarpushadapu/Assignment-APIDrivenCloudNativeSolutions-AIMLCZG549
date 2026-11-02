@@ -22,9 +22,9 @@ Each member contributed 25% of the group work. The qualitative contributions bel
 
 ## Project and Platform Details
 
-This project is an interactive, staff-facing AI application for a diabetes clinic support desk. It combines three natural language processing tasks to help staff route incoming messages, prepare handoff summaries, and answer general diabetes questions from a selected source. The application has a React and TypeScript interface with a FastAPI backend.
+This project is an interactive, staff-facing AI application for a diabetes clinic support desk. It combines three natural language processing tasks: classify incoming support messages, prepare handoff summaries, and answer general diabetes questions using a curated World Health Organization (WHO) FAQ. The application has a React and TypeScript interface with a FastAPI backend.
 
-The three tasks share one workflow objective: help support staff understand and respond to routine enquiries. Classification and summarisation operate on synthetic support messages. The knowledge assistant answers general questions from a curated World Health Organization (WHO) diabetes FAQ and returns the passages used. Clinic-specific procedures and personal treatment decisions are referred to staff because they are outside the indexed source.
+Together, the tasks help staff organise diabetes-support messages and answer general education questions. Classification and summarisation operate on synthetic support messages. The knowledge assistant answers questions from the WHO diabetes FAQ and returns the passages used. Clinic-specific procedures and personal treatment decisions are referred to staff because they are outside the indexed source.
 
 | Task | Input and output | Model used by the application |
 |---|---|---|
@@ -64,7 +64,7 @@ flowchart LR
 
 ### Domain and workflow
 
-The selected category is natural language processing in the healthcare-support domain. The workplace is a fictional diabetes clinic support desk, used as an industry analogue. In the proposed workflow, staff read incoming messages, route requests, prepare handoffs, and consult education material when responding to general questions. Staff review the assistant's outputs before using them.
+The application applies natural language processing to healthcare support. The workplace scenario is a fictional diabetes clinic support desk used as an industry analogue. In this workflow, staff read incoming messages, route requests, prepare handoffs, and consult education material when responding to general questions. Staff review the assistant's outputs before using them.
 
 For example, one message may request an appointment change and help finding an education leaflet. The classifier selects the primary queue; the summary preserves the relevant requests for a staff handoff. A separate question about general diabetes information can be submitted to the knowledge assistant, which displays its answer and source passages.
 
@@ -76,7 +76,7 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 ### Observed application examples
 
-Figure 2 shows the interactive support-message workflow in the React application. It uses a synthetic request and displays the request category and handoff summary. The later examples in Section IV show how the application supports the workplace analogue.
+Figure 2 shows the React interface classifying a synthetic support request and displaying its handoff summary.
 
 ### API demonstration
 
@@ -120,7 +120,7 @@ The fine-tuned model's three errors involved authorised-contact paperwork, prefe
 
 ### Summary quality check
 
-The configured base summariser was evaluated on 20 reviewed synthetic message/summary cases, each with an essential-fact checklist. Its mean ROUGE-L F1 was 0.3912. Review found all 20 summaries supported by the input and no unsupported facts added; 10 of 20 retained every essential fact. This evaluation shows that summaries can omit details, so staff should check each handoff against the original message.
+The configured base summariser was evaluated on 20 reviewed synthetic message/summary cases, each with an essential-fact checklist. Its mean ROUGE-L F1 was 0.3912. Manual review judged all 20 summaries to contain only information supported by the input; 10 of 20 retained every checklist fact. Staff should check each handoff against the original message because some summaries omitted checklist details.
 
 ## III. Retrieval-Augmented Generation
 
@@ -162,13 +162,13 @@ The initial evaluation used 30 reviewed cases: 20 answerable from the indexed so
 
 The baseline missed six of ten expected referrals, including missed-dose advice, individual glucose readings, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. One answerable question was incorrectly abstained on; one generated answer did not support its answer key; and four answers were judged incomplete or incorrect. These are results from the earlier version.
 
-The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Regression checks cover selected phrasings for these rules.
+The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Automated checks exercise personal-care and clinic-process referrals, keep general WHO questions eligible for answers, and cover urgent and negated-emergency wording.
 
 ## IV. Situated Learning - Workplace Application
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. This creates repeated reading and lookup work, while clinic-specific requests still need the appropriate team or approved procedure. The application supports message organisation and source lookup in this workflow. The evaluation uses synthetic messages and public education material.
+The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. In the scenario, staff classify each request, prepare a handoff, and consult education material for general questions. The application supports these tasks with message classification, handoff summaries, and source-backed answers. Evaluation uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
@@ -182,19 +182,19 @@ For a general symptoms question, `/chat` returned an answer based on WHO01-003, 
 
 ### Analyse - Evaluate workplace relevance
 
-The classifier's held-out test result was 95.00% accuracy and 94.74% macro-F1 on synthetic messages. For summarisation, 10/20 outputs retained all required facts. In the pre-fix RAG evaluation, a relevant passage was retrieved in all 20 answerable cases, while 4/10 referral cases were correctly referred. Together, these results show that classification performed best on the evaluated examples; summarisation and answer/referral quality still require staff review. The retrieval score alone did not ensure that a generated answer was supported.
+On the synthetic held-out set, the classifier achieved 95.00% accuracy and 94.74% macro-F1. In the 20-case summary review, 10 outputs retained every checklist fact. In the 30-case RAG baseline, retrieval returned a relevant passage in all 20 answerable cases, while 4 of 10 cases expected to be referred were correctly referred. These measures assess different tasks and should be read separately. The baseline also shows that retrieving a relevant passage did not always produce a supported, complete answer.
 
-The application demonstrates message routing and source inspection; staff continue to complete appointment, portal, and records transactions through clinic workflows.
+The application classifies messages, prepares summaries, and displays retrieved sources. It does not call scheduling, portal, or records APIs; staff complete those transactions through clinic workflows.
 
 ### Reflect - Deployment constraints and improvement
 
-Evaluation data consists of synthetic support messages and public education material. Handling real health information requires clinic-approved data governance for access, retention, privacy, security, and regulations applicable to the organisation. The model and retrieval components run as a locally configured application. Operating costs depend on hosting, model storage, inference capacity, monitoring, and maintenance. The indexed WHO source covers general diabetes information; answering clinic-specific appointment, portal, and leaflet questions requires approved clinic content.
+Evaluation uses synthetic support messages and public education material; no real patient messages are included. Before using real messages, a clinic would need to define access roles, retention periods, and applicable privacy, security, and regulatory controls. The application uses configured model checkpoints and a local WHO passage index. Hosting and operating costs were not measured; they would depend on deployment choices and usage. The indexed WHO source covers general diabetes information. Clinic-specific appointment, portal, and leaflet answers require clinic-approved content.
 
-The most important next step for workplace adoption is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. The baseline evaluation found incomplete summaries and missed referrals, so the next evaluation should measure these outcomes for the current rules. Clinic scheduling, portal, and records integration requires approved interfaces and workflow validation.
+The next step is an independent review by clinic subject-matter experts using representative, approved cases. It should score summary fact preservation, answer support, and referral correctness under the current rules; the reported RAG baseline predates the rule changes. The current application does not call scheduling, portal, or records APIs. Connecting those systems would require authorised interfaces and checks against clinic workflows.
 
 ## Conclusion
 
-The diabetes-care support application combines request classification, handoff summarisation, and source-grounded question answering in one staff workflow. The fine-tuned classifier achieved 95.00% accuracy and 94.74% macro-F1 on the 60-message synthetic held-out set. In the 20-case base-summariser review, 10 summaries retained every essential fact. RAG evaluation and development diagnostics informed updates to the referral rules, and staff review is part of the handoff and answer workflow.
+The diabetes-care support application combines request classification, handoff summarisation, and source-grounded question answering in one staff workflow. The fine-tuned classifier achieved 95.00% accuracy and 94.74% macro-F1 on the 60-message synthetic held-out set. In the 20-case base-summariser review, 10 summaries retained every checklist fact. The 30-case RAG baseline retrieved a relevant passage for all 20 answerable cases and correctly referred 4 of 10 referral cases; this evaluation preceded the referral-rule updates. The application returns summaries and answers for staff review.
 
 ## Demonstration Video
 
