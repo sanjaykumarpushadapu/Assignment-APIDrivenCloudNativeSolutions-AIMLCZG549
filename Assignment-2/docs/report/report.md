@@ -4,8 +4,9 @@
 **Assignment:** Assignment II
 **Group:** 49
 **Institution:** BITS Pilani, Work Integrated Learning Programmes
+**Source repository:** [GitHub](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
 
-This report describes the design, implementation, and evaluation of an interactive diabetes-care support prototype. It follows the four assessed areas in Assignment II: API-based AI application, fine-tuning, retrieval-augmented generation, and situated learning in a workplace analogue.
+This report presents the design, implementation, and evaluation of an interactive diabetes-care support application. It is organised around the four assessed areas in Assignment II: API-based AI application, fine-tuning, retrieval-augmented generation, and situated learning in a workplace analogue.
 
 ## Team Contribution and Work Allocation
 
@@ -21,7 +22,7 @@ Each member contributed 25% of the group work. The qualitative contributions bel
 
 ## Project and Platform Details
 
-This project is an interactive, staff-facing prototype for a diabetes clinic support desk. It uses three natural language processing tasks to help staff route incoming messages, prepare handoff summaries, and answer general diabetes questions from a selected source. The application has a React and TypeScript interface with a FastAPI backend.
+This project is an interactive, staff-facing AI application for a diabetes clinic support desk. It combines three natural language processing tasks to help staff route incoming messages, prepare handoff summaries, and answer general diabetes questions from a selected source. The application has a React and TypeScript interface with a FastAPI backend.
 
 The three tasks share one workflow objective: help support staff understand and respond to routine enquiries. Classification and summarisation operate on synthetic support messages. The knowledge assistant answers general questions from a curated World Health Organization (WHO) diabetes FAQ and returns the passages used. Clinic-specific procedures and personal treatment decisions are referred to staff because they are outside the indexed source.
 
@@ -75,7 +76,7 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 ### Observed application examples
 
-Figure 2 shows the interactive support-message workflow in the React application. It uses a synthetic request and displays the request category and handoff summary. The later examples in Section IV show how the prototype supports the workplace analogue.
+Figure 2 shows the interactive support-message workflow in the React application. It uses a synthetic request and displays the request category and handoff summary. The later examples in Section IV show how the application supports the workplace analogue.
 
 ### API demonstration
 
@@ -167,11 +168,11 @@ The current implementation includes routing rules for personal-care, clinic-proc
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. This creates repeated reading and lookup work, while clinic-specific requests still need the appropriate team or approved procedure. The prototype is intended to help staff organise routine messages and locate supporting passages; no time saving has been measured. This evaluation uses synthetic messages and public education material.
+The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. This creates repeated reading and lookup work, while clinic-specific requests still need the appropriate team or approved procedure. The application supports message organisation and source lookup in this workflow. The evaluation uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
-The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. The captured output kept the work conflict, requested Friday time, availability check, and the fact that a new booking was still unconfirmed. This example does not establish consistent summary completeness: in the separate 20-case summary evaluation, only 10 outputs retained every essential fact. Staff need to compare each handoff summary with the original message. The prototype does not make or confirm appointments.
+The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. The captured output kept the work conflict, requested Friday time, availability check, and the fact that a new booking was still unconfirmed. In the separate 20-case summary evaluation, 10 outputs retained every essential fact, so staff review each handoff against the original message. Appointment changes remain with clinic staff.
 
 For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 6 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 7. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
 
@@ -183,28 +184,18 @@ For a general symptoms question, `/chat` returned an answer based on WHO01-003, 
 
 The classifier's held-out test result was 95.00% accuracy and 94.74% macro-F1 on synthetic messages. For summarisation, 10/20 outputs retained all required facts. In the pre-fix RAG evaluation, a relevant passage was retrieved in all 20 answerable cases, while 4/10 referral cases were correctly referred. Together, these results show that classification performed best on the evaluated examples; summarisation and answer/referral quality still require staff review. The retrieval score alone did not ensure that a generated answer was supported.
 
-The evaluation did not measure staff handling time or throughput. It therefore does not establish a reduction in work or an efficiency gain. The prototype demonstrates the message-routing and source-inspection workflow; it does not perform clinic transactions or access a clinic's internal procedures.
+The evaluation assessed answer quality and referral outcomes on fixed case sets. No staff-handling times were collected, so efficiency gains are not quantified. The application demonstrates message routing and source inspection; staff continue to complete appointment, portal, and records transactions through clinic workflows.
 
 ### Reflect - Deployment constraints and improvement
 
-The prototype uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components run as a locally configured application. Deployment costs would depend on the selected hosting, model storage, inference capacity, monitoring, and maintenance; no operating-cost estimate has been measured. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
+The application uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components run as a locally configured application. Operating costs would vary with hosting, model storage, inference capacity, monitoring, and maintenance. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
 
-The single most important improvement before workplace deployment is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. This is justified by the observed incomplete summaries and missed referrals in the baseline evaluation. The prototype does not connect to clinic scheduling, portal, or records systems; any later integration would require approved interfaces and workflow validation.
+The single most important improvement before workplace deployment is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. This is justified by the observed incomplete summaries and missed referrals in the baseline evaluation. Integration with clinic scheduling, portal, and records systems would require approved interfaces and workflow validation.
 
 ## Conclusion
 
-The prototype brings request classification, handoff summarisation, and document-grounded question answering into one staff workflow. Held-out results show strong classification on the synthetic test set, while the summary and baseline RAG evaluations identify where staff review remains necessary.
+The application brings request classification, handoff summarisation, and document-grounded question answering into one staff workflow. Held-out results show strong classification on the synthetic test set, while the summary and baseline RAG evaluations identify where staff review remains necessary.
 
-## Project Links
-
-**Source repository:** https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549
+## Demonstration Video
 
 **Demonstration video:** Google Drive link to be added after the required project demonstration is uploaded.
-
-## References
-
-1. Course brief, *AIMLZG 549: API-driven Cloud Native Solutions, Assignment II* (`Assignment 2.pdf`).
-2. Google / Hugging Face. FLAN-T5 Base model card: https://huggingface.co/google/flan-t5-base.
-3. Hugging Face. Transformers T5 documentation: https://huggingface.co/docs/transformers/en/model_doc/t5.
-4. World Health Organization. Diabetes: Questions and Answers: https://www.who.int/news-room/questions-and-answers/item/diabetes.
-5. Sentence Transformers. all-MiniLM-L6-v2 model card: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2.
