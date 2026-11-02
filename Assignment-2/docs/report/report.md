@@ -5,17 +5,6 @@
 **Group:** 49
 **Institution:** BITS Pilani, Work Integrated Learning Programmes
 
-## Team Contributions
-
-The team lead confirmed that all four members contributed equally. The group share is 25% per member.
-
-| Team member | BITS ID | Qualitative contribution | Share |
-|---|---|---|---:|
-| Pushadapu Sanjay Kumar | 2025ae05898 | Equal contribution to the shared Assignment II project work | 25% |
-| Sathish Krishnan V | 2025ae05425 | Equal contribution to the shared Assignment II project work | 25% |
-| Chezrla Raga Suma | 2025ae05828 | Equal contribution to the shared Assignment II project work | 25% |
-| Bhuvnesh Mishra | 2025ae05391 | Equal contribution to the shared Assignment II project work | 25% |
-
 ## Project Overview
 
 This project is an interactive, staff-facing prototype for a diabetes clinic support desk. It uses three natural language processing tasks to help staff route incoming messages, prepare handoff summaries, and answer general diabetes questions from a selected source. The application has a React and TypeScript interface with a FastAPI backend.
@@ -48,21 +37,13 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 The application screenshots in Section IV show a support request classified and summarised, a WHO-sourced general-information answer, and a medication question referred to clinic staff. The screenshots use synthetic inputs and illustrate the application path.
 
-### Swagger API evidence
+### API demonstration
 
-The following Swagger UI calls show successful API responses for request analysis, passage retrieval, and a medication question routed to clinic staff. The analysis response also shows that the summary omits the pending-booking detail described in the evaluation.
+The Swagger UI request below demonstrates `POST /analyze`. Its response confirms the category and summary and makes the omitted pending-booking detail visible for review.
 
-**Figure 1. Swagger response from `POST /analyze`.**
+**Figure 1. Swagger request and response for `POST /analyze`.**
 
 ![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)
-
-**Figure 2. Swagger response from `POST /retrieve`.**
-
-![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
-
-**Figure 3. Swagger response from `POST /chat` for a medication question.**
-
-![Swagger request and staff referral response](evidence/swagger-chat.png)
 
 ## II. Fine-Tuning
 
@@ -100,6 +81,18 @@ The indexed corpus is prepared from one public source: the WHO page [Diabetes: Q
 
 The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, and returns the three highest-ranked passages. The answer model receives the question and retrieved passages. `/chat` includes the source passages with its answer; requests identified as personal clinical advice, urgent symptoms, or clinic-specific processes are routed to staff.
 
+### API demonstration
+
+Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat` returns a staff referral for an individual medication question.
+
+**Figure 2. Swagger response from `POST /retrieve` with ranked WHO passages.**
+
+![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
+
+**Figure 3. Swagger response from `POST /chat` for a medication question.**
+
+![Swagger request and staff referral response](evidence/swagger-chat.png)
+
 ### Evaluation results
 
 The first held-out evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. The question set was not used for tuning. It measured the application before the referral rules were expanded.
@@ -122,7 +115,7 @@ The table is a pre-change baseline. The current implementation includes determin
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. They must identify the main request, retain the important details for handoff, and find an appropriate source when answering general questions. This report evaluates a proposed workflow using synthetic messages and public education material.
+The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. The prototype is expected to reduce the effort needed to understand routine requests and locate supporting passages; no time saving has been measured. This evaluation uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
@@ -150,11 +143,22 @@ The evaluation did not measure staff handling time or throughput. It therefore d
 
 ### Reflect - Deployment constraints and improvement
 
-The prototype uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components currently run as a locally configured application; an operational service would require an agreed hosting and support arrangement. Hosting and model-storage costs have not been estimated. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
+The prototype uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components run as a locally configured application. Deployment costs would depend on the selected hosting, model storage, inference capacity, monitoring, and maintenance; no operating-cost estimate has been measured. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
 
-The priority improvement before any patient-facing use is an independent, clinician-reviewed evaluation of the full workflow on approved representative cases, focused on summary fact preservation, answer support, and correct staff referral. This is justified by the observed incomplete summaries and missed referrals in the held-out evaluations.
+The priority improvement before any patient-facing use is an independent, clinician-reviewed evaluation of the full workflow on approved representative cases, focused on summary fact preservation, answer support, and correct staff referral. This is justified by the observed incomplete summaries and missed referrals in the held-out evaluations. The prototype does not connect to clinic scheduling, portal, or records systems; any integration would require approved interfaces and workflow validation.
 
-## Project Repository and Demonstration Video
+## Team Contributions
+
+The group confirmed an equal overall contribution share of 25% per member. The table records each member’s primary contribution area and the agreed quantitative share.
+
+| Team member | BITS ID | Primary contribution area | Share |
+|---|---|---|---:|
+| Pushadapu Sanjay Kumar | 2025ae05898 | Workplace scenario, synthetic dataset and label review, evaluation review, and report | 25% |
+| Sathish Krishnan V | 2025ae05425 | Diabetes knowledge source, retrieval pipeline, and source-grounded answers | 25% |
+| Chezrla Raga Suma | 2025ae05828 | FLAN-T5 classifier fine-tuning and evaluation; summarisation result review | 25% |
+| Bhuvnesh Mishra | 2025ae05391 | FastAPI and React application; model and retrieval integration | 25% |
+
+## Project Links
 
 **Source repository:** [Assignment-2 GitHub repository](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
 
