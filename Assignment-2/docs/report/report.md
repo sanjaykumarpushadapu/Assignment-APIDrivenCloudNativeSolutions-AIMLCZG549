@@ -110,15 +110,15 @@ The workplace analogue is a diabetes clinic support desk. Staff receive messages
 
 ### Apply - Adapt the AI solution
 
-The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`; its summary preserved the requested Friday time, reason, availability check, and pending confirmation. The prototype does not make or confirm appointments.
+The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms,” and displayed that source passage. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. These examples demonstrate the classifier, summary, retrieval, answer, and referral components using inputs and outputs from the prototype.
+For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 2 shows the answer and the opened source passage. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. These examples demonstrate the classifier, summary, retrieval, answer, and referral components using inputs and outputs from the prototype.
 
 **Figure 1. Appointment request, category, and handoff summary.**
 
 ![Support request classified and summarized in the staff workspace](evidence/02-request-analysis.png)
 
-**Figure 2. General-information answer with retrieved WHO passages.**
+**Figure 2. General-information answer with its retrieved WHO passage open.**
 
 ![Knowledge assistant answer with WHO source passages](evidence/03-source-grounded-answer.png)
 

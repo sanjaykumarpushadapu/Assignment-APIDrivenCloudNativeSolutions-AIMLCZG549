@@ -171,15 +171,19 @@ def main() -> int:
         "--api-url", default="http://127.0.0.1:8001", help="Running API base URL."
     )
     parser.add_argument(
+        "--dataset", type=Path, default=DATASET_PATH, help="Approved evaluation JSONL."
+    )
+    parser.add_argument(
         "--output", type=Path, default=DEFAULT_OUTPUT, help="JSON results path."
     )
     args = parser.parse_args()
+    dataset_path = args.dataset.resolve()
 
     # Never call the model while the question set is still a draft.
-    cases = read_reviewed_cases(DATASET_PATH)
+    cases = read_reviewed_cases(dataset_path)
     result = evaluate_cases(args.api_url, cases)
-    result["dataset"] = str(DATASET_PATH.relative_to(PROJECT_ROOT))
-    result["dataset_sha256"] = hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()
+    result["dataset"] = str(dataset_path.relative_to(PROJECT_ROOT))
+    result["dataset_sha256"] = hashlib.sha256(dataset_path.read_bytes()).hexdigest()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
     print(
