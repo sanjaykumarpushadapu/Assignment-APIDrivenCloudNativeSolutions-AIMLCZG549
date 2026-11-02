@@ -48,6 +48,22 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 The application screenshots in Section IV show a support request classified and summarised, a WHO-sourced general-information answer, and a medication question referred to clinic staff. The screenshots use synthetic inputs and illustrate the application path.
 
+### Swagger API evidence
+
+The following Swagger UI calls show successful API responses for request analysis, passage retrieval, and a medication question routed to clinic staff. The analysis response also shows that the summary omits the pending-booking detail described in the evaluation.
+
+**Figure 1. Swagger response from `POST /analyze`.**
+
+![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)
+
+**Figure 2. Swagger response from `POST /retrieve`.**
+
+![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
+
+**Figure 3. Swagger response from `POST /chat` for a medication question.**
+
+![Swagger request and staff referral response](evidence/swagger-chat.png)
+
 ## II. Fine-Tuning
 
 ### Dataset and method
@@ -100,7 +116,7 @@ The first held-out evaluation used 30 reviewed cases: 20 answerable from the ind
 
 The baseline missed referrals for missed-dose advice, an individual glucose reading, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. Two answerable-case responses were unsupported by their cited passages, and four were incomplete or incorrect. The case counts, dataset hash, model versions, and failure IDs are recorded in the [RAG evaluation record](evidence/rag-evaluation-record.json).
 
-After this evaluation, the application added broader deterministic referral rules, including a distinct urgent-care response for severe or immediately dangerous symptoms. After further wording misses were found in development diagnostics, the referral rules were expanded and the backend regression suite passed 43 tests, including the newly observed phrasings. Those diagnostic cases informed the code changes and are not independent held-out results. A fresh end-to-end RAG evaluation is still required to measure the current behavior. Therefore, the baseline figures above describe the earlier application behavior, not the updated referral rules.
+The table is a pre-change baseline. The current implementation includes deterministic routing for personal-care, clinic-process, and urgent-symptom questions. Regression tests cover the added phrasings; the backend suite passes 43 tests. Development diagnostic cases were used while refining the rules and are excluded from performance claims. An independent end-to-end evaluation is still needed to measure answer support and referral quality for the current version.
 
 ## IV. Situated Learning - Workplace Application
 
@@ -112,17 +128,17 @@ The workplace analogue is a diabetes clinic support desk. Staff receive messages
 
 The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 2 shows the answer and the opened source passage. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. These examples demonstrate the classifier, summary, retrieval, answer, and referral components using inputs and outputs from the prototype.
+For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 shows the answer and the opened source passage. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. These examples demonstrate the classifier, summary, retrieval, answer, and referral components using inputs and outputs from the prototype.
 
-**Figure 1. Appointment request, category, and handoff summary.**
+**Figure 4. Appointment request, category, and handoff summary in the web interface.**
 
 ![Support request classified and summarized in the staff workspace](evidence/02-request-analysis.png)
 
-**Figure 2. General-information answer with its retrieved WHO passage open.**
+**Figure 5. General-information answer with its retrieved WHO passage open.**
 
 ![Knowledge assistant answer with WHO source passages](evidence/03-source-grounded-answer.png)
 
-**Figure 3. Medication question referred to clinic staff.**
+**Figure 6. Medication question referred to clinic staff in the web interface.**
 
 ![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 
