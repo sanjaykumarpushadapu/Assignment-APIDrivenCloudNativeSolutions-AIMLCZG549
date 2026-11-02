@@ -100,7 +100,7 @@ The first held-out evaluation used 30 reviewed cases: 20 answerable from the ind
 
 The baseline missed referrals for missed-dose advice, an individual glucose reading, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. Two answerable-case responses were unsupported by their cited passages, and four were incomplete or incorrect. The case counts, dataset hash, model versions, and failure IDs are recorded in the [RAG evaluation record](evidence/rag-evaluation-record.json).
 
-After this evaluation, the application added broader deterministic referral rules, including a distinct urgent-care response for severe or immediately dangerous symptoms. The backend regression suite passed 33 tests, including referral-wording cases. The held-out RAG set remains unchanged; a new end-to-end RAG evaluation is required to measure the updated behavior. Therefore, the baseline figures above describe the earlier application behavior, not the updated referral rules.
+After this evaluation, the application added broader deterministic referral rules, including a distinct urgent-care response for severe or immediately dangerous symptoms. After further wording misses were found in development diagnostics, the referral rules were expanded and the backend regression suite passed 43 tests, including the newly observed phrasings. Those diagnostic cases informed the code changes and are not independent held-out results. A fresh end-to-end RAG evaluation is still required to measure the current behavior. Therefore, the baseline figures above describe the earlier application behavior, not the updated referral rules.
 
 ## IV. Situated Learning - Workplace Application
 

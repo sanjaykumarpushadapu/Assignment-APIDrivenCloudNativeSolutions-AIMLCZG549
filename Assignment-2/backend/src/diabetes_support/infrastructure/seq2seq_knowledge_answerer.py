@@ -22,9 +22,37 @@ _PERSONAL_CARE_PATTERNS = (
         r"\b(?:medication|meds?|medicine|dose|insulin|treatment|pill)\b",
         re.IGNORECASE,
     ),
+    # Include common individual-dose wording that the corpus cannot answer.
     re.compile(
         r"\b(?:missed|forgot|miss)\s+(?:my\s+)?(?:diabetes\s+)?"
-        r"(?:medication|meds?|medicine|dose|insulin|pill)\b",
+        r"(?:medication|meds?|medicine|dose|insulin|pill|tablets?)\b|"
+        r"\b(?:my\s+)?(?:morning|evening|next\s+)?diabetes\s+"
+        r"(?:medication|medicine|dose|tablet|pill)s?\s+(?:was|were)\s+missed\b|"
+        r"\b(?:double|repeat|skip|hold)\s+(?:my\s+)?(?:next\s+)?"
+        r"(?:dose|tablet|pill|medication|medicine)\b",
+        re.IGNORECASE,
+    ),
+    # Catch missed-dose questions even when the event is described passively.
+    re.compile(
+        r"\b(?:missed|forgot|miss)\b.{0,70}\b"
+        r"(?:diabetes|medication|medicine|tablets?|pills?|dose)\b",
+        re.IGNORECASE,
+    ),
+    # Catch questions that ask a model to interpret a personal glucose value.
+    re.compile(
+        r"\b(?:glucose|blood\s+sugar|blood\s+glucose)\s+"
+        r"(?:number|result|reading)\s+(?:is\s+)?\d{2,3}\b",
+        re.IGNORECASE,
+    ),
+    # Detect diagnosis requests phrased around test or laboratory results.
+    re.compile(
+        r"\b(?:whether|if)\s+i\s+have\s+diabetes\b|"
+        r"\b(?:do|mean)\s+(?:these\s+)?(?:blood\s+)?test\s+"
+        r"results?\b.{0,60}\bdiabetes\b|"
+        r"\b(?:based\s+on|from)\s+my\s+(?:lab|laboratory|test)\s+"
+        r"(?:results?|numbers?)\b.{0,60}\bdiabetes\b|"
+        r"\bmy\s+blood\s+work\b.{0,80}\bdiabetes\b|"
+        r"\bblood\s+work\b.{0,80}\b(?:prove|mean|show)\b.{0,40}\bdiabetes\b",
         re.IGNORECASE,
     ),
     re.compile(
@@ -32,7 +60,9 @@ _PERSONAL_CARE_PATTERNS = (
         r"\b(?:with\s+(?:my\s+)?(?:other\s+)?(?:medications?|meds?|"
         r"medicines?|insulin)|medication|meds?|medicine|insulin)\b|"
         r"\b(?:can|may|should)\s+i\s+take\b.{0,70}"
-        r"\bwith\s+(?:my\s+)?(?:other\s+)?(?:medications?|meds?|medicines?)\b",
+        r"\bwith\s+(?:my\s+)?(?:other\s+)?(?:medications?|meds?|medicines?)\b|"
+        r"\b(?:take|combine|use)\b.{0,100}\b(?:together\s+with|with)\b"
+        r".{0,60}\b(?:prescription|medicine|medication|drug|tablet|pill)\b",
         re.IGNORECASE,
     ),
     re.compile(r"\bdo\s+i\s+have\s+(?:diabetes|a\s+diagnosis)\b", re.I),
@@ -83,10 +113,12 @@ _CLINIC_PROCESS_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(?:clinic|diabetes\s+education)\b.{0,45}"
-        r"\b(?:video|group|class|session|link|join)\b|"
-        r"\b(?:video|group|class|session)\b.{0,45}"
-        r"\b(?:clinic|diabetes\s+education)\b",
+        r"\b(?:clinic|diabetes\s+education|diabetes\s+team)\b.{0,60}"
+        r"\b(?:video|remote|online|group|class|session|link|join)\b|"
+        r"\b(?:video|remote|online|group|class|session)\b.{0,60}"
+        r"\b(?:clinic|diabetes\s+education|diabetes\s+team)\b|"
+        r"\b(?:my\s+)?(?:blood\s+)?glucose\s+(?:result|reading)\s+"
+        r"(?:number\s+)?(?:is\s+)?\d{2,3}\b",
         re.IGNORECASE,
     ),
 )
