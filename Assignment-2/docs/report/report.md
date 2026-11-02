@@ -79,7 +79,7 @@ Figure 2 shows the interactive support-message workflow in the React application
 
 ### API demonstration
 
-The Swagger UI request below demonstrates `POST /analyze`. Its response confirms the category and summary and makes the omitted pending-booking detail visible for review.
+The Swagger UI request below demonstrates `POST /analyze`. The response shows the predicted category and generated handoff summary for a synthetic rescheduling request. In this run, the summary retained that the new booking had not yet been confirmed.
 
 **Figure 1. Swagger request and response for `POST /analyze`.**
 
@@ -171,7 +171,7 @@ The workplace analogue is a diabetes clinic support desk. Staff receive messages
 
 ### Apply - Adapt the AI solution
 
-The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
+The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. The captured output kept the work conflict, requested Friday time, availability check, and the fact that a new booking was still unconfirmed. This example does not establish consistent summary completeness: in the separate 20-case summary evaluation, only 10 outputs retained every essential fact. Staff need to compare each handoff summary with the original message. The prototype does not make or confirm appointments.
 
 For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 6 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 7. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
 

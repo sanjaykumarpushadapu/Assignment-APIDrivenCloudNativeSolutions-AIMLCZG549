@@ -6,8 +6,9 @@ length follows the narration, then joins them in order.
 
 Narration placeholders such as ``{macro_f1_tuned}`` are filled from facts
 collected during preflight: live test results, ``/metadata`` versions, and the
-measured results in ``evaluation/results.json``. A scene whose evidence does
-not exist yet cannot be recorded, so the video never states unmeasured results.
+tracked run records in ``docs/report/evidence``. RAG figures are explicitly
+labelled as a pre-fix baseline; no current post-fix RAG score or workplace time
+study is claimed.
 
 Scene kinds: card, image, code, terminal, json, links, url, app, swagger.
 ``app`` scenes type into the live React app using its visible labels.
@@ -16,7 +17,7 @@ Scene kinds: card, image, code, terminal, json, links, url, app, swagger.
 # ---------------------------------------------------------------- local URLs
 APP_URL = "http://127.0.0.1:5173"
 API_URL = "http://127.0.0.1:8001"
-APP_HEADING = "Diabetes support desk"
+APP_HEADING = "Diabetes support"
 REQUIRED_ENDPOINTS = ["/health", "/metadata"]
 
 # ------------------------------------------------------------------- team
@@ -49,15 +50,21 @@ TERMINAL_COMMANDS = {
     },
 }
 
-# Measured results written by the evaluation step (see README.md for the keys).
-RESULTS_FILE = "evaluation/results.json"
-IMAGES_DIR = "docs/report/imgs"
+# Tracked result records and report figures are the shared evidence source.
+RESULT_RECORDS = {
+    "classifier": "docs/report/evidence/classifier-run-record.json",
+    "summarizer": "docs/report/evidence/summarizer-evaluation-record.json",
+    "rag": "docs/report/evidence/rag-evaluation-record.json",
+}
+IMAGES_DIR = "docs/report/evidence"
 
 ANALYZE_BODY = (
     '{\n  "message": "I need to move my diabetes education appointment, and I cannot find '
     'the preparation leaflet in the portal."\n}'
 )
-CHAT_BODY = '{\n  "question": "How do I change a clinic appointment?"\n}'
+CHAT_BODY = (
+    '{\n  "question": "What symptoms might someone with diabetes experience?"\n}'
+)
 
 
 def part_card(number, title, member, say):
@@ -87,22 +94,28 @@ SCENES = [
     },
     {
         "id": "architecture",
-        "kind": "image",
-        "images": ["architecture.png"],
-        "caption": "React + TypeScript UI → FastAPI → fine-tuned classifier, summariser and RAG retrieval",
+        "kind": "card",
+        "eyebrow": "Application architecture",
+        "title": "React + TypeScript · FastAPI · three connected NLP tasks",
+        "lines": [
+            "Support message → fine-tuned FLAN-T5 classifier → category",
+            "Support message → FLAN-T5 summariser → staff handoff summary",
+            "Question → referral rules → WHO passage retrieval → grounded answer and sources",
+            "Staff review before information is shared",
+        ],
         "say": (
             "The architecture: a React and TypeScript interface calls a FastAPI backend. The backend runs a "
-            "fine-tuned request classifier, a summariser, and a retrieval-augmented question-answering service "
-            "over approved documents. Staff review every output before it reaches a patient."
+            "fine-tuned request classifier, the base FLAN-T5 summariser, and a retrieval-augmented question-"
+            "answering service over curated World Health Organization material. Staff review every output."
         ),
     },
     # ------------------------------------------------------------- Part 1
     part_card(
         1,
         "Workplace Problem, Labels & Data",
-        MEMBERS[0],
-        "Part one, by Pushadapu Sanjay Kumar: the workplace problem. A fictional diabetes clinic's support "
-        "desk reads, routes and answers routine messages by hand. The assistant reduces that effort and sends "
+        MEMBERS[3],
+        "Part one: the workplace problem. A fictional diabetes clinic's support "
+        "desk reads, routes and answers routine messages by hand. The prototype assists with that workflow and sends "
         "clinical decisions to qualified staff.",
     ),
     {
@@ -122,15 +135,15 @@ SCENES = [
     # ------------------------------------------------------------- Part 2
     part_card(
         2,
-        "Fine-Tuning & Summarisation",
+        "Fine-Tuning & Summary Evaluation",
         MEMBERS[2],
-        "Part two, by Chezrla Raga Suma: fine-tuning the request classifier and the summariser.",
+        "Part two: full fine-tuning of the request classifier and evaluation of the configured base summariser.",
     ),
     {
         "id": "fine_tuning",
         "kind": "image",
-        "images": ["training_loss.png", "confusion_matrix.png"],
-        "caption": "Fine-tuning: training loss and held-out confusion matrix",
+        "images": ["03-classifier-fine-tuning.png"],
+        "caption": "Classifier full fine-tuning method and held-out test results",
         "say": (
             "The classifier, {classifier_model}, was fine-tuned on reviewed synthetic support messages. On "
             "{test_messages} held-out test messages, macro F1 moved from {macro_f1_base} for the base model to "
@@ -140,8 +153,8 @@ SCENES = [
     {
         "id": "summaries",
         "kind": "image",
-        "images": ["summary_examples.png"],
-        "caption": "Handoff summaries — reviewer check of retained and invented facts",
+        "images": ["02-request-analysis.png"],
+        "caption": "Example support-message analysis and handoff summary",
         "say": (
             "Handoff summaries kept every essential request in {summary_ok} of {summary_total} held-out messages, "
             "as checked by a reviewer."
@@ -152,25 +165,26 @@ SCENES = [
         3,
         "Retrieval-Augmented Q&A",
         MEMBERS[1],
-        "Part three, by Sathish Krishnan V: the retrieval-augmented chatbot over approved documents.",
+        "Part three: retrieval-augmented Q&A grounded in curated World Health Organization diabetes information.",
     ),
     {
         "id": "rag_pipeline",
         "kind": "image",
-        "images": ["rag_pipeline.png"],
-        "caption": "Documents → passages → embeddings → top-k retrieval → grounded answer with sources",
+        "images": ["03-source-grounded-answer.png"],
+        "caption": "Grounded answer with retrieved WHO source sections",
         "say": (
-            "Approved public education material and clearly fictional clinic procedures are split into passages "
-            "and embedded. Relevant evidence was in the top three for {retrieval_hits} of {retrieval_total} test "
-            "questions, and {answers_supported} of {answers_total} answers were supported by their cited sources."
+            "The index contains curated passages from the WHO diabetes questions-and-answers page. In the "
+            "pre-fix baseline, a relevant passage appeared in the top three for {retrieval_hits} of "
+            "{retrieval_total} answerable questions; {answers_supported} generated answers were judged source-"
+            "supported. That baseline also identified referral cases for improvement."
         ),
     },
     # ------------------------------------------------------------- Part 4
     part_card(
         4,
-        "Application, API & Tests",
-        MEMBERS[3],
-        "Part four, by Bhuvnesh Mishra: the application, the API, and the tests.",
+        "Application, API & Workplace Workflow",
+        MEMBERS[0],
+        "Part four: the interactive application, documented API, and workplace workflow demonstration.",
     ),
     {
         "id": "tests_terminal",
@@ -184,25 +198,28 @@ SCENES = [
         "kind": "app",
         "steps": [
             {
-                "fill": "Incoming support message",
+                "fill": "Incoming message",
                 "text": (
                     "I need to move my diabetes education appointment, and I cannot find the preparation "
                     "leaflet in the portal."
                 ),
             },
             {"click": "Analyze request"},
-            {"expect": "Primary category"},
+            {"expect": "appointment support"},
         ],
         "say": (
             "In the live app, a staff member pastes a support message. The fine-tuned classifier returns the "
-            "primary category, and the summariser keeps both requests in the handoff note."
+            "primary category, and the configured base summariser prepares a handoff note for staff review."
         ),
     },
     {
         "id": "app_chat",
         "kind": "app",
         "steps": [
-            {"fill": "Question", "text": "How do I change a clinic appointment?"},
+            {
+                "fill": "Question",
+                "text": "What symptoms might someone with diabetes experience?",
+            },
             {"click": "Send question"},
             {"expect": "Sources"},
         ],
@@ -222,7 +239,7 @@ SCENES = [
                 ),
             },
             {"click": "Analyze request"},
-            {"expect": "clinical_staff_referral"},
+            {"expect": "clinical staff referral"},
         ],
         "say": (
             "A personal medication question is routed to clinical staff. The assistant does not give clinical "
@@ -264,12 +281,11 @@ SCENES = [
     {
         "id": "workplace",
         "kind": "image",
-        "images": ["workplace_results.png"],
-        "caption": "Situated learning: manual versus assisted handling of representative support tasks",
+        "images": ["04-staff-referral.png"],
+        "caption": "Workplace example: a personal medication question is referred to clinic staff",
         "say": (
-            "In the workplace study, {workflow_tasks} representative tasks took {time_manual_min} minutes by hand "
-            "and {time_assisted_min} minutes with the assistant, including staff review. Unsupported or clinical "
-            "questions were declined or referred in {refusals_ok} of {refusals_total} test cases."
+            "In this workplace analogue, a personal medication question receives a staff referral. The prototype "
+            "does not make clinic decisions, and no handling-time reduction has been measured."
         ),
     },
     {
@@ -279,8 +295,9 @@ SCENES = [
         "title": "A staff-facing prototype, not a clinical decision system",
         "lines": MEMBERS,
         "say": (
-            "To summarise: three connected N.L.P. tasks, a fine-tuned classifier, and a retrieval-augmented chatbot "
-            "support a clinic's routine requests. Before any patient-facing use, clinicians must validate answer "
+            "To summarise: three connected N.L.P. tasks, a fine-tuned classifier, the base summariser, and a "
+            "retrieval-augmented chatbot support a clinic's routine requests. Before any patient-facing use, "
+            "clinicians must validate answer "
             "correctness and referral behaviour. Thank you for watching."
         ),
     },
@@ -299,12 +316,12 @@ SELF_SCRIPTS = {
     ),
     "architecture": (
         "Here's our architecture. A React and TypeScript interface calls our FastAPI backend, which runs a "
-        "fine-tuned classifier, a summariser, and a retrieval-augmented question-answering service. Staff "
-        "review every output before it reaches a patient."
+        "fine-tuned classifier, the base FLAN-T5 summariser, and a retrieval-augmented question-answering "
+        "service over curated WHO material. Staff review every output."
     ),
     "part1_card": (
-        "Part one, by Sanjay, is the workplace problem. Our fictional diabetes clinic's support desk reads, "
-        "routes and answers routine messages by hand. Our assistant reduces that effort and sends clinical "
+        "Part one is the workplace problem. A fictional diabetes clinic's support desk reads, "
+        "routes and answers routine messages by hand. Our prototype assists with that workflow and sends clinical "
         "decisions to qualified staff."
     ),
     "label_guide": (
@@ -312,25 +329,24 @@ SELF_SCRIPTS = {
         "and billing, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
         "to staff."
     ),
-    "part2_card": "Part two, by Raga Suma, covers fine-tuning the classifier and the summariser.",
+    "part2_card": "Part two covers full fine-tuning of the classifier and evaluation of the configured base summariser.",
     "fine_tuning": (
-        "We fine-tuned our classifier on reviewed synthetic support messages. Here are the training loss and "
-        "the held-out confusion matrix, comparing the base model with the fine-tuned one."
+        "We fully fine-tuned our classifier on synthetic support messages. The held-out results compare the "
+        "base model with the fine-tuned checkpoint."
     ),
     "summaries": (
-        "Here are our handoff summaries, checked by a reviewer for retained and invented facts on held-out "
-        "messages."
+        "We evaluated the configured base summariser on held-out messages for essential-fact retention and unsupported additions."
     ),
-    "part3_card": "Part three, by Sathish, is our retrieval-augmented chatbot over approved documents.",
+    "part3_card": "Part three is retrieval-augmented Q&A over curated WHO diabetes information.",
     "rag_pipeline": (
-        "We split approved education material and fictional clinic procedures into passages and embed them. "
-        "On screen are our retrieval and answer-support results on held-out questions."
+        "Our index contains curated passages from the WHO diabetes questions-and-answers page. The results shown "
+        "are the pre-fix baseline, retained to document the failures that prompted referral-rule changes."
     ),
-    "part4_card": "Part four, by Bhuvnesh, covers the application, the API, and the tests.",
+    "part4_card": "Part four demonstrates the interactive application, API, and workplace workflow.",
     "tests_terminal": "We ran our backend tests and the production frontend build just before recording.",
     "app_analysis": (
         "In our live app, a staff member pastes a support message. The fine-tuned classifier gives the primary "
-        "category, and the summary keeps both requests."
+        "category, and the base summariser prepares a handoff note for staff review."
     ),
     "app_chat": (
         "Our knowledge assistant answers from retrieved passages and shows its sources, so staff can check "
@@ -345,12 +361,13 @@ SELF_SCRIPTS = {
     "api_analyze": "The analyse endpoint returns the category and the handoff summary.",
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
     "workplace": (
-        "For the workplace study, we compared handling representative tasks by hand and with the assistant. "
-        "Our measured times and referral results are on screen."
+        "In this workplace analogue, a personal medication question is referred to clinic staff. We have not "
+        "measured a handling-time reduction."
     ),
     "closing": (
-        "To wrap up: three connected NLP tasks, a fine-tuned classifier, and a retrieval-augmented chatbot "
-        "support a clinic's routine requests. Before any patient-facing use, clinicians must validate the "
+        "To wrap up: three connected NLP tasks, a fine-tuned classifier, the base summariser, and a "
+        "retrieval-augmented chatbot support a clinic's routine requests. Before any patient-facing use, "
+        "clinicians must validate the "
         "answers and referrals. Thank you!"
     ),
 }

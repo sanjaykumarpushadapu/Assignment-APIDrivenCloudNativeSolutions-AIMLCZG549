@@ -18,6 +18,7 @@ Run everything from the `Assignment-2` folder. The scripts work on Windows, macO
 | `python demo_video/record_voice.py` | Shows each scene's script and records your voice, one scene at a time, into `demo_video/voice/`. |
 | `python demo_video/record_demo.py --tts files --burn-subtitles` | Records the full video using your voice recordings. Record every scene first. |
 | `python demo_video/record_demo.py --list` | Lists the scenes and who narrates each part. |
+| `.venv/bin/python scripts/capture_report_evidence.py` | Refreshes the report's Swagger and React screenshots after the API and app are running. |
 | `python demo_video/record_demo.py --clean-all` | Last step only, after upload: deletes generated videos and voice recordings (asks first). |
 
 ## Before recording
@@ -26,20 +27,23 @@ The full video shows real results only. Recording stops unless all of these are 
 
 1. The API is running on `http://127.0.0.1:8001` and the React app on `http://127.0.0.1:5173` (see the project README).
 2. `/metadata` reports the classifier, summariser and knowledge index as ready, with versions.
-3. `evaluation/results.json` exists with the measured values used by the narration:
+3. The tracked report evaluation records exist. The video reads them directly, rather than a separate stale results file:
 
-   | Key | Meaning |
+   | Record | Values used |
    |---|---|
-   | `classifier_model`, `test_messages` | Base model name and number of held-out test messages |
-   | `macro_f1_base`, `macro_f1_tuned` | Macro-F1 before and after fine-tuning, on the same test set |
-   | `summary_ok`, `summary_total` | Held-out summaries that kept every essential request |
-   | `retrieval_hits`, `retrieval_total` | Questions with relevant evidence in the top three |
-   | `answers_supported`, `answers_total` | Answers supported by their cited sources |
-   | `workflow_tasks`, `time_manual_min`, `time_assisted_min` | Workplace timing study |
-   | `refusals_ok`, `refusals_total` | Unsupported/clinical questions correctly declined or referred |
+   | `classifier-run-record.json` | Base and fine-tuned classifier macro-F1 and held-out test size |
+   | `summarizer-evaluation-record.json` | Reviewed essential-fact retention count |
+   | `rag-evaluation-record.json` | Retrieval, answer-support, and referral results from the explicitly labelled pre-fix baseline |
 
-4. The report figures exist in `docs/report/imgs/`: `architecture.png`, `training_loss.png`,
-   `confusion_matrix.png`, `summary_examples.png`, `rag_pipeline.png`, `workplace_results.png`.
+4. The report screenshots exist in `docs/report/evidence/`. The video reuses the current classifier-results,
+   request-analysis, source-grounded-answer, and staff-referral images. The report architecture is described
+   directly in its Mermaid diagram; the video uses a matching architecture title card.
+
+The report and its screenshot names are kept in sync by using stable embedded filenames. Refresh the screenshots
+after a final successful API/UI run; the script checks that all requests succeeded before replacing any image.
+If an implementation result or evaluation changes, update the report text and tracked record together. The RAG
+evaluation currently available is a pre-fix baseline, and the report/video do not claim a post-fix score or a
+measured workplace time saving.
 
 Missing evidence stops the build instead of producing a video with invented numbers. To try the
 recorder before the models are ready, record only scenes that need no results, for example:

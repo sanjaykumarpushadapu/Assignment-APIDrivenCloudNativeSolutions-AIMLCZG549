@@ -11,7 +11,8 @@ What it does, in order:
    endpoints answer HTTP 200, that the classifier, summariser and knowledge
    index report ready, and runs the tests and the frontend build on this
    machine so the video shows real, current output. Measured evaluation
-   results are read from ``evaluation/results.json``.
+   results are read from the tracked classifier, summary, and RAG records used
+   by the main report.
 2. Narration: fills the narration in ``scenes.py`` with the facts gathered in
    step 1 and turns each scene's text into speech (or a silent track).
 3. Recording: drives Chromium with Playwright, one clip per scene: title cards,
@@ -272,18 +273,43 @@ def preflight(args, work: Path) -> dict:
             f"    WARNING: tests did not all pass ({facts['pytest_summary']}); the narration will say so."
         )
 
-    # ---- 4. measured results --------------------------------------------
-    results = REPO / S.RESULTS_FILE
-    if results.exists():
-        data = json.loads(results.read_text(encoding="utf-8"))
-        facts.update(
-            {str(k): str(v) for k, v in data.items() if not isinstance(v, (dict, list))}
-        )
-        log(f"Preflight 4/4: loaded measured results from {S.RESULTS_FILE}")
-    else:
-        log(
-            f"Preflight 4/4: {S.RESULTS_FILE} not found; scenes that quote results cannot be recorded yet"
-        )
+    # ---- 4. tracked evaluation records -----------------------------------
+    log("Preflight 4/4: loading the report's tracked evaluation records")
+    records = {}
+    for name, relative_path in S.RESULT_RECORDS.items():
+        path = REPO / relative_path
+        if not path.exists():
+            fail(f"tracked evaluation record not found: {relative_path}")
+        records[name] = json.loads(path.read_text(encoding="utf-8"))
+        log(f"    loaded {relative_path}")
+
+    classifier = records["classifier"]["held_out_evaluation"]
+    summary = records["summarizer"]["metrics"]
+    rag_record = records["rag"]
+    rag = rag_record["metrics"]
+    facts.update(
+        {
+            "classifier_model": records["classifier"]["base_model"]["name"],
+            "test_messages": str(classifier["examples"]),
+            "macro_f1_base": f"{classifier['base_model_macro_f1']:.2%}",
+            "macro_f1_tuned": f"{classifier['fine_tuned_macro_f1']:.2%}",
+            "summary_ok": str(summary["human_outputs_with_all_essential_facts"]),
+            "summary_total": str(records["summarizer"]["case_count"]),
+            "retrieval_hits": str(
+                round(
+                    rag["retrieval_hit_at_3"] * rag_record["case_counts"]["answerable"]
+                )
+            ),
+            "retrieval_total": str(rag_record["case_counts"]["answerable"]),
+            "answers_supported": str(
+                round(
+                    rag["human_supported_answers"]
+                    * rag_record["case_counts"]["answerable"]
+                )
+            ),
+        }
+    )
+    log("    RAG figures are the documented pre-fix baseline")
     return {"facts": facts, "terminal": outputs}
 
 
@@ -297,8 +323,8 @@ def fill(text: str, facts: dict, scene_id: str) -> str:
         return text.format_map(facts)
     except KeyError as exc:
         fail(
-            f"scene '{scene_id}' narration needs {exc}, which preflight did not produce. Measured values "
-            f"come from {S.RESULTS_FILE}; record only scenes whose evidence exists (see --only)."
+            f"scene '{scene_id}' narration needs {exc}, which preflight did not produce. "
+            "Check the tracked records and scene text before recording."
         )
     return text
 
