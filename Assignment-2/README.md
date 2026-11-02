@@ -1,344 +1,163 @@
 # Diabetes Care Support Assistant
 
-A staff-facing prototype for routing diabetes support requests, preparing handoff summaries, and answering general diabetes-background and education-support questions from the WHO Diabetes Q&A page. It is not a clinical decision system, and staff must review outputs.
+A staff-facing application for classifying diabetes-support messages, preparing handoff summaries, and answering general diabetes questions from a curated WHO source. Staff review generated summaries and answers.
 
-The evolving assessment report is [docs/report/report.md](docs/report/report.md).
-Update it with verified results and screenshots as each step is completed; export
-the reviewed report to PDF at the end.
+The assessment report is in [docs/report/report.md](docs/report/report.md).
 
-## Install development tools
+## Run the application
 
-Use Python 3.10 or newer. Choose one package manager for this checkout; `uv` and Poetry use separate lockfiles, so avoid switching between them during the same work.
+### Requirements
 
-```powershell
-uv sync --extra dev
-```
+- macOS with Python 3.10 or newer
+- Node.js 20.19 or newer
+- `uv` and `npm`
 
-Poetry 2.x can use the same PEP 621 project metadata:
-
-```powershell
-poetry install -E dev
-```
-
-## Part I: classifier in the application skeleton
-
-The `Seq2SeqClassifier` adapter implements the existing `Classifier` interface
-and is wired into `main.py`. The configured classifier loads the locally saved,
-full-fine-tuned `clinic-support` checkpoint; the summarizer and RAG answerer use
-the pinned `google/flan-t5-base` model. Each component has its own model setting.
-The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
-
-From `Assignment-2`, using uv and an isolated Python 3.11 environment:
+From the `Assignment-2` directory, install the Python dependencies and create local settings:
 
 ```bash
-uv venv --python 3.11 .venv
-uv pip install --python .venv/bin/python -e ".[inference,dev]"
-.venv/bin/python -m diabetes_support.infrastructure.seq2seq_classifier
-```
-
-On Windows, use `.venv\Scripts\python.exe` in place of `.venv/bin/python`.
-If you already use Poetry, keep that environment and install the `inference`
-extra there instead of creating a second environment.
-
-The first run downloads the tokenizer and model to the git-ignored
-`artifacts/huggingface/` folder by default. Inference runs locally on CPU by default; it makes no paid
-inference API call. The model download requires internet access.
-
-The adapter has three main prediction steps: **tokenize** (convert text to numerical tokens),
-**generate** (run the original model without changing its weights), and **decode**
-(convert its output tokens back to text). The terminal command prints the actual
-output, category validity and model revision. An unrecognised output produces a
-null category and a nonzero exit status; it is never replaced with an expected label.
-
-The default message is “Please move my appointment to Friday.” The expected label
-is `appointment_support`. Compare that expectation with the actual output:
-`valid_category` only confirms the output is one of our labels, not its accuracy.
-A single successful example is a feasibility check, not an evaluation score.
-
-Verified locally on 31 October 2026: the default message returned
-`appointment_support` on CPU using Python 3.11.5, PyTorch 2.15.0 and Transformers
-5.22.1. The adapter pins model/tokenizer revision
-`7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. These are observed runtime versions;
-the optional dependency ranges do not lock every future installation to them.
-
-## Configure the classifier
-
-Create your local settings file once, from `Assignment-2`:
-
-```bash
+uv sync --extra inference --extra dev
 cp .env.example .env
 ```
 
-Edit `.env` to configure classification and summarisation independently. The
-classifier uses the local fine-tuned checkpoint and the summarizer uses
-`google/flan-t5-base` by default. Each task has its own lazy runtime. Restart the
-process after editing. Environment variables override the file. The `.env` file
-and downloaded model artifacts are excluded from Git.
-
-| Setting | Default | Purpose |
-|---|---|---|
-| `MODEL_NAME` | `google/flan-t5-base` | Hub ID or complete local seq2seq checkpoint folder |
-| `CLASSIFIER_MODEL_NAME` | `./artifacts/models/clinic-support` | Classifier model/checkpoint; overrides `MODEL_NAME` |
-| `SUMMARIZER_MODEL_NAME` | `google/flan-t5-base` | Summarizer model; overrides `MODEL_NAME` |
-| `SUMMARIZER_BASE_MODEL_NAME` | `google/flan-t5-base` | Base checkpoint used by the summarizer training script; independent from the inference setting |
-| `MODEL_REVISION` | blank | Automatically pins our baseline; specify a SHA for another Hub model |
-| `CLASSIFIER_MODEL_REVISION` / `SUMMARIZER_MODEL_REVISION` | blank | Optional task-specific revision; overrides `MODEL_REVISION` |
-| `MODEL_DEVICE` | `cpu` | `cpu`, `cuda`, `mps`, or `auto` |
-| `MODEL_CACHE_DIR` | `artifacts/huggingface` | Download/cache folder relative to Assignment-2 |
-| `MODEL_MAX_INPUT_TOKENS` | `512` | Full prompt limit, including task instructions |
-| `CLASSIFICATION_MAX_NEW_TOKENS` | `32` | Category generation limit |
-| `SUMMARY_MAX_NEW_TOKENS` | `128` | Summary generation limit |
-| `MODEL_LOCAL_FILES_ONLY` | `false` | Set `true` to require cached/local files without downloading |
-
-For example, changing `CLASSIFIER_MODEL_NAME=google/flan-t5-small` and leaving the
-revision blank selects that model without inheriting the default checkpoint's revision.
-This model switch is supported by configuration; its output quality still needs
-evaluation. Each runtime supports compatible Hugging Face encoder-decoder models
-that work with `AutoModelForSeq2SeqLM`, safetensors weights and the matching
-tokenizer.
-It does not support every model family: decoder-only chat models, hosted API
-providers and adapter-only LoRA checkpoints need a different loading implementation.
-
-The classifier is configured with `CLASSIFIER_MODEL_NAME=./artifacts/models/clinic-support`,
-a complete compatible model and tokenizer saved there. Relative paths
-resolve from Assignment-2. Selecting a checkpoint does not verify its training
-history; output reports `weights_updated_during_inference: false` because this
-operation only predicts. The previous hard-coded `fine_tuned_by_us` field has
-been removed to avoid mislabelling a selected checkpoint.
-
-### Share or recreate the fine-tuned classifier
-
-The fine-tuned checkpoint is about 944 MB and is excluded from Git. To use the
-same trained model, transfer the complete `artifacts/models/clinic-support/`
-directory through team-approved storage, preserving the directory name. Check
-the transferred weight file from the Assignment-2 directory:
+Start the API:
 
 ```bash
-shasum -a 256 artifacts/models/clinic-support/model.safetensors
+.venv/bin/python -m uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
 ```
 
-It should match the SHA-256 in
-[`classifier-run-record.json`](docs/report/evidence/classifier-run-record.json).
-Keep `CLASSIFIER_MODEL_NAME=./artifacts/models/clinic-support` in `.env`; the
-checkpoint's local path is resolved from the Assignment-2 project directory.
-
-If the checkpoint cannot be shared, install the dependencies and recreate a
-compatible checkpoint from the tracked training and validation data:
+In a second terminal, start the web interface:
 
 ```bash
-.venv/bin/python scripts/train_classifier.py --device cpu --epochs 1
+cd frontend
+npm ci
+npm run dev
 ```
 
-This writes to the default checkpoint directory. It does not guarantee
-byte-identical weights across machines or library versions. Re-evaluate a
-recreated checkpoint before treating its results as the report's measured
-model. The tracked run record contains model/data identity, training settings,
-metrics, and the local checkpoint checksum; it does not contain model weights
-or per-example predictions.
+Open the application at <http://127.0.0.1:5173>. The API documentation is at <http://127.0.0.1:8001/docs>.
 
-`auto` selects CUDA when available, then Apple MPS, then CPU. An explicitly
-requested unavailable device fails with an explanation. Choose the device before
-loading: both input tensors and model weights are placed on that device.
+The first model load may download weights from Hugging Face. Set `MODEL_LOCAL_FILES_ONLY=true` in `.env` to use only cached or local model files.
 
-Configuration parsing and validation live in
-`backend/src/diabetes_support/infrastructure/model_settings.py`; inference
-logic stays in the existing classifier adapter. The constructor also accepts a
-`ModelSettings` object for tests or programmatic configuration.
+The classifier checkpoint is stored locally and is not included in Git. Before testing `POST /analyze`, obtain the team checkpoint or create one using the Classifier instructions below. Without it, the classifier component will not be ready.
 
-To try a different synthetic message:
+## Application workflow
+
+| API route | Purpose |
+|---|---|
+| `GET /health` | Check whether the API is running |
+| `GET /metadata` | Inspect model and knowledge-index readiness |
+| `POST /analyze` | Classify a support message and return a handoff summary |
+| `POST /retrieve` | Return ranked passages from the local knowledge index |
+| `POST /chat` | Answer a general question from retrieved passages or return a staff referral |
+
+The React and TypeScript frontend calls the FastAPI service. Classification uses the fine-tuned `clinic-support` checkpoint. Summarisation and answer generation use the configured FLAN-T5 model. Retrieval uses `sentence-transformers/all-MiniLM-L6-v2` and the local WHO passage index.
+
+## Configure models and retrieval
+
+Edit `.env` to choose model IDs or local checkpoint directories, model revisions, and devices. `.env` is local and excluded from Git. Environment variables override values in the file; restart the API after changing settings.
+
+| Setting | Purpose |
+|---|---|
+| `CLASSIFIER_MODEL_NAME` | Classifier model ID or local checkpoint; defaults to `./artifacts/models/clinic-support` |
+| `SUMMARIZER_MODEL_NAME` | Model used for summary inference; defaults to `google/flan-t5-base` |
+| `SUMMARIZER_BASE_MODEL_NAME` | Starting checkpoint used when fine-tuning the summariser |
+| `MODEL_DEVICE` | Inference device: `cpu`, `mps`, `cuda`, or `auto` |
+| `MODEL_REVISION` | Optional pinned Hugging Face model revision |
+| `MODEL_LOCAL_FILES_ONLY` | Require local or cached model files when set to `true` |
+| `RETRIEVAL_MODEL_NAME` | Embedding model used to rank passages |
+| `KNOWLEDGE_CHUNKS_PATH` | Path to the local retrieval corpus |
+
+See `.env.example` for the full list, including token limits, retrieval thresholds, and task-specific overrides. Checkpoint paths are resolved from the `Assignment-2` directory.
+
+## Model training and evaluation
+
+Training data, validation data, and held-out evaluation data are stored separately under `data/`. Evaluation scripts use the test partitions for measurement; do not use them to select prompts, thresholds, or checkpoints.
+
+### Classifier
+
+The fine-tuned classifier checkpoint is stored under `artifacts/models/clinic-support/`. Model weights and downloaded caches are excluded from Git. To create a separate candidate checkpoint from the tracked training data:
 
 ```bash
-.venv/bin/python -m diabetes_support.infrastructure.seq2seq_classifier --message "The clinic portal will not let me sign in."
+.venv/bin/python scripts/train_classifier.py --epochs 1 --output-dir artifacts/models/clinic-support-candidate
 ```
 
-The adapter loads lazily on its first prediction and reuses that model object
-for later predictions in the same process. Each separate terminal invocation
-starts a new process and loads its own copy. A new application process initially
-reports each model task as not ready until its own runtime is loaded.
-
-To exercise the integrated route after starting the API, use the same request you tested:
+The evaluation script uses the classifier selected by `CLASSIFIER_MODEL_NAME`. Run it without `--final-test` for validation results. After model and prompt choices are frozen, run the held-out test once:
 
 ```bash
-curl -X POST http://127.0.0.1:8001/analyze \
-  -H 'Content-Type: application/json' \
-  -d '{"message":"Please move my appointment to Friday. I also cannot download the education leaflet from the portal."}'
+.venv/bin/python scripts/evaluate_classifier.py --final-test
 ```
 
-`/analyze` returns both a generated handoff summary and the main-request
-category. The classifier and summarizer each have their own lazy model runtime.
-The summary prompt asks the model to retain separate requests, uncertainty,
-conditions, exclusions and stated details. Review summaries for omissions,
-changed meaning and unsupported additions; this instruction does not guarantee
-complete or accurate summaries. The standalone `scripts/check_classifier.py`
-experiment has been removed; the module command above exercises the actual
-application classifier adapter.
+To use or share a checkpoint, set `CLASSIFIER_MODEL_NAME` to its directory in `.env`, or transfer the complete model directory through team-approved storage. Each team member keeps their own `.env` and model files locally.
 
-### Fine-tune the summarizer
+### Summariser
 
-Training examples and validation examples are kept in separate JSONL files.
-The script uses the same prompt as application inference, learns from the
-training partition, and selects the saved checkpoint using validation ROUGE-L.
-It never opens the held-out test partition. Start with one optimizer update:
+The application currently uses the model set by `SUMMARIZER_MODEL_NAME`. To fine-tune a candidate checkpoint and save it to a separate directory:
+
+```bash
+.venv/bin/python scripts/train_summarizer.py --output-dir artifacts/models/clinic-summary-candidate
+```
+
+To run the one-example smoke check without saving a checkpoint:
 
 ```bash
 .venv/bin/python scripts/train_summarizer.py --smoke
 ```
 
-The smoke run loads only one training example and does not read validation data
-or save a checkpoint. After it succeeds, a full run can be started separately:
+Evaluate summary outputs with:
 
 ```bash
-.venv/bin/python scripts/train_summarizer.py --output-dir artifacts/models/clinic-summary-v3
+.venv/bin/python scripts/evaluate_summarizer.py --model google/flan-t5-base
 ```
 
-The checkpoint and tokenizer are saved in the selected output directory. A
-trained checkpoint is a candidate until its outputs have been reviewed; do not
-change `SUMMARIZER_MODEL_NAME` based on the training score alone. Training is a
-full fine-tune of the selected base model, not inference and not a LoRA adapter
-run. The latest v2 evidence records the earlier 280-example training snapshot;
-20 targeted synthetic examples have since been added, so the next run uses 300
-training examples and should be saved under a new output directory.
+The held-out summary cases are in `data/test/summarization_evaluation_candidate.jsonl`; they are for evaluation, not model tuning. To use a reviewed summariser checkpoint in the application, set `SUMMARIZER_MODEL_NAME` to its directory in `.env` and restart the API.
 
-### Evaluate summaries on held-out cases
+### Knowledge source
 
-`data/test/summarization_evaluation_candidate.jsonl` contains 20 team-reviewed
-message/reference-summary pairs and essential-fact checklists. It is marked
-approved for held-out evaluation only and `use_for_tuning: false`. The configured
-base summarizer was evaluated on CPU; it scored mean ROUGE-L F1 0.3912, with
-10/20 outputs retaining all checklist facts. See
-`docs/report/evidence/summarizer-evaluation-record.json`. The fine-tuned
-candidate was not evaluated on this held-out set, so the results have not been
-used for checkpoint selection.
-
-To reproduce the base-model evaluation on a Mac with cached weights:
+The retrieval corpus is built from reviewed local notes in `data/knowledge/`. The source URL, source details, and content checks are recorded in `data/knowledge/manifest.json`. To rebuild the chunks after editing the notes:
 
 ```bash
-MODEL_LOCAL_FILES_ONLY=true .venv/bin/python scripts/evaluate_summarizer.py --model google/flan-t5-base --device cpu
+.venv/bin/python scripts/prepare_knowledge.py
 ```
 
-The script writes separate model-named result files under the ignored
-`artifacts/evaluation/` directory. ROUGE-L is lexical overlap only; a human
-must mark whether each output retained all essential facts and added no
-unsupported facts. Do not use these cases to choose prompts, thresholds, or
-checkpoints.
-
-### Sharing model results with the team
-
-Commit source code, synthetic train/validation data, `.env.example`, the report,
-and the small run record at `docs/report/evidence/summarizer-v2-run.json`. It
-records the model revision, prompt, dataset hashes, training metrics, validation
-outputs and checkpoint SHA-256. Model weights are about 947 MB and `artifacts/`
-is Git-ignored; keep these binary files out of ordinary Git history.
-
-To reproduce a run, teammates can use the same code, data, model revision and
-training command. Device differences can produce slightly different weights.
-To consume the exact same checkpoint, share the complete approved model folder
-through the team’s approved file storage, then compare its `model.safetensors`
-SHA-256 with the run record. The folder must include the config and tokenizer
-files as well as the weights. Once a checkpoint is approved for inference, set
-`SUMMARIZER_MODEL_NAME` to its local folder in each teammate’s `.env`; `.env`
-itself stays local and is not committed.
-
-## Start locally
-
-Start the API from `Assignment-2` with the inference extra installed. With the
-virtual environment above, run:
+If the reviewed WHO snapshot is not present locally, use `--download` to retrieve and verify it:
 
 ```bash
-.venv/bin/python -m uvicorn diabetes_support.main:app --reload --port 8001
+.venv/bin/python scripts/prepare_knowledge.py --download
 ```
 
-Or use your selected package manager (include the inference extra in that environment):
+The script checks the source content before writing `data/knowledge/chunks.jsonl`. Review changes to the source and notes before rebuilding the corpus.
 
-```powershell
-uv run --extra inference uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
-```
+## Checks
 
-Or with Poetry:
-
-```powershell
-poetry run uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
-```
-
-In a second terminal, install and start the React frontend:
-
-```powershell
-Set-Location frontend
-npm ci
-npm run dev
-```
-
-The frontend is available at `http://127.0.0.1:5173`. Vite proxies `/api` requests to the FastAPI service on port `8001`. API documentation is available at `http://127.0.0.1:8001/docs`.
-
-## Prepare the knowledge chunks
-
-The WHO source snapshot stays on the local machine. It is excluded from Git;
-the source URL and reviewed FAQ content hash are recorded in
-`data/knowledge/manifest.json`. The paraphrased notes are the reviewed text used
-to build retrieval chunks.
-
-From `Assignment-2`, regenerate the chunk file after editing the curated notes:
+Run backend tests:
 
 ```bash
-python3 scripts/prepare_knowledge.py
+.venv/bin/python -m pytest
 ```
 
-If a fresh checkout does not have the local WHO snapshot, fetch the exact
-reviewed version with:
+Build the frontend:
 
 ```bash
-python3 scripts/prepare_knowledge.py --download
+cd frontend
+npm run build
 ```
 
-The script checks the normalized FAQ content hash, page date, and expected sections
-before writing `data/knowledge/chunks.jsonl`. If the official page changes, it
-stops instead of silently using old notes with new source material. Review the
-page and notes before updating the source record. The script makes chunks from
-the human-reviewed notes; it does not generate or approve medical content.
+The browser workflow test is optional. Install its browser once with `uv run playwright install chromium`, then start the API and frontend before running:
 
-`POST /retrieve` in Swagger ranks those local chunks with the configured
-embedding model and returns matching passages, source details and cosine
-scores. Set `RETRIEVAL_MODEL_NAME`, `RETRIEVAL_MODEL_REVISION`,
-`RETRIEVAL_DEVICE`, `RETRIEVAL_TOP_K`, `RETRIEVAL_MIN_SCORE` and
-`KNOWLEDGE_CHUNKS_PATH` in `.env` to change retrieval settings. The minimum
-score is a provisional /chat abstention floor, not a probability; `/retrieve`
-still returns low-scoring matches for inspection. The embedding model loads on the first retrieval
-request. `/chat` passes retrieved passages to the base sequence-to-sequence
-runtime and returns their source details alongside generated answers. It has a
-fixed refusal for personal-care and clinic-process requests covered by the referral rules. Swagger smoke checks returned a source-backed definition and the fixed medication-refusal response. Staff must review generated outputs.
+```bash
+.venv/bin/python -m pytest -m e2e
+```
 
-The 30-case held-out RAG evaluation in
-`data/test/rag_evaluation_candidate.jsonl` was reviewed by Sanjay on behalf of
-the team and remains `use_for_tuning: false`. Its pre-fix baseline had 20/20
-retrieval hits, 4/10 referrals detected, and 16/20 answers judged correct and
-complete. The failures exposed gaps in personal-care and clinic-process
-referral rules. Results are recorded in
-`docs/report/evidence/rag-evaluation-record.json`. Do not tune with these
-questions. The code now contains broader referral guards and an urgent-care
-response for severe or immediately dangerous symptoms, and the backend
-regression suite passes. A fresh, independent post-fix RAG evaluation is still
-required. The original raw per-case output remains on the development Mac under
-the ignored `artifacts/evaluation/rag_test_results.json`; its tracked summary
-preserves model versions, data hash, scores and failure IDs. Do not rerun or
-tune against this same question set.
+## Project structure
 
-## Tests and checks
-
-Build the frontend with `npm run build` from `frontend/`. Install Playwright's Chromium browser once with `uv run playwright install chromium` or `poetry run playwright install chromium` if Google Chrome is not installed. The browser smoke test uses installed Google Chrome by default. To choose another channel in PowerShell, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` or `$env:PLAYWRIGHT_CHANNEL = 'chromium'`.
-
-Run API tests with `uv run pytest` or `poetry run pytest`. The backend suite passed 33 tests on 2 November 2026, including referral-guard and urgent-care regression cases. The browser smoke test is opt-in and expects the React app to be running at `http://127.0.0.1:5173`; run it from the project root with `uv run pytest -m e2e` or `poetry run pytest -m e2e`.
-
-Run static checks with `uv run ruff check .` and `uv run black --check .`, or prefix those commands with `poetry run` when using Poetry.
-
-## Backend layout
-
-- `backend/src/diabetes_support/domain`: application-independent errors and status types.
-- `backend/src/diabetes_support/application`: use cases and ports for model/retrieval capabilities.
-- `backend/src/diabetes_support/infrastructure`: classifier and generation adapters, transformer-based knowledge retrieval, and source-grounded answer generation.
-- `backend/src/diabetes_support/presentation`: FastAPI routes and HTTP schemas.
-- `backend/src/diabetes_support/main.py`: composition root that wires the layers.
-- `backend/tests`: backend API tests. `frontend` contains the React + TypeScript client, and `tests/e2e` checks the browser workflow.
-
-## Current status
-
-The API and React UI are wired. The classifier uses the saved `clinic-support` checkpoint; summarisation and RAG answer generation share the configured base-model runtime. `/chat` returns answers alongside source details; the UI displays linked WHO passages and fixed staff-referral responses. Held-out summaries and RAG questions have been reviewed and evaluated. The base summarizer retained all required facts in 10/20 outputs. The original RAG run retrieved an expected source for all answerable cases but detected only 4/10 expected referrals; the raw baseline remains in ignored local artifacts and its tracked summary is in `docs/report/evidence/rag-evaluation-record.json`. Broader deterministic referral guards and regression cases have since been added; fresh post-fix evaluation is still required. The WHO corpus covers general diabetes information and self-management education/support, not clinic procedures. Summaries, categories and generated answers require staff review. Synthetic dataset approvals record team review scope and do not make examples clinical guidance. A one-epoch fine-tuned classifier checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; the curated WHO source notes and chunks are in `data/knowledge/`. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.
+```text
+backend/src/diabetes_support/   FastAPI application and model adapters
+backend/tests/                 API, model-configuration, and summariser tests
+frontend/                      React and TypeScript user interface
+data/training/                 Training datasets
+data/validation/               Validation datasets
+data/test/                     Held-out evaluation datasets
+data/knowledge/                Reviewed source notes and retrieval chunks
+scripts/                       Training, evaluation, and corpus preparation
+docs/report/                   Assessment report and supporting evidence
+artifacts/                     Local model weights and evaluation outputs; ignored by Git
+```
