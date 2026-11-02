@@ -194,7 +194,7 @@ The most important next step for workplace adoption is an independent, domain-ex
 
 ## Conclusion
 
-The application brings request classification, handoff summarisation, and document-grounded question answering into one staff workflow. Held-out results show strong classification on the synthetic test set, while the summary and baseline RAG evaluations identify where staff review remains necessary.
+The diabetes-care support application combines request classification, handoff summarisation, and source-grounded question answering in one staff workflow. The fine-tuned classifier achieved 95.00% accuracy and 94.74% macro-F1 on the 60-message synthetic held-out set. In the 20-case base-summariser review, 10 summaries retained every essential fact. RAG evaluation and development diagnostics informed updates to the referral rules, and staff review is part of the handoff and answer workflow.
 
 ## Demonstration Video
 
