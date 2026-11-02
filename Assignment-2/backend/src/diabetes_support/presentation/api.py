@@ -53,6 +53,8 @@ def create_api_app(
     def analyze(request: SupportMessageRequest) -> dict[str, object]:
         try:
             return analyze_support_request.execute(request.message)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
         except ComponentNotConfiguredError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
 
@@ -60,6 +62,8 @@ def create_api_app(
     def chat(request: ChatRequest) -> dict[str, object]:
         try:
             return answer_question.execute(request.question)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
         except ComponentNotConfiguredError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
 

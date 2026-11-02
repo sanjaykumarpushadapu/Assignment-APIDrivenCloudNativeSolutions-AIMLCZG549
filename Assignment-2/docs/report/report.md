@@ -9,14 +9,14 @@ This report describes the design, implementation, and evaluation of an interacti
 
 ## Team Contribution and Work Allocation
 
-The group agreed to an equal contribution share of 25% per member. The qualitative column identifies each member’s contribution to the assessment work.
+Each member contributed 25% of the group work. The qualitative contributions below are organised around the four assessed parts in the assignment brief; the percentage records the group’s agreed equal share of the overall work.
 
-| Sl. No. | BITS ID | Name | Contribution of team member (Qualitative) | Percentage Contribution (Out of 100) (Quantitative) |
+| Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
 |---:|---|---|---|---:|
-| 1 | 2025ae05898 | Pushadapu Sanjay Kumar | Part II: prepared and reviewed the synthetic classification data and labels. Part IV: framed the workplace workflow and reviewed evaluation findings; compiled the report. | 25% |
-| 2 | 2025ae05425 | Sathish Krishnan V | Part III: prepared the WHO diabetes knowledge source and passages, and developed source retrieval for the chatbot. | 25% |
-| 3 | 2025ae05828 | Chezrla Raga Suma | Part II: fine-tuned and evaluated the FLAN-T5 classifier; reviewed the summarisation evaluation results. | 25% |
-| 4 | 2025ae05391 | Bhuvnesh Mishra | Part I: developed the FastAPI and React application. Parts II–III: integrated the configured models and RAG endpoints into the workflow. | 25% |
+| 1 | 2025ae05391 | Bhuvnesh Mishra | **Part I – API-Based AI Application:** built the FastAPI and React application and connected classification, summarisation, and question answering in the staff workflow. | 25% |
+| 2 | 2025ae05828 | Chezrla Raga Suma | **Part II – Fine-Tuning:** prepared and reviewed classification examples and labels, fine-tuned the FLAN-T5 classifier, and evaluated the base and tuned checkpoints. | 25% |
+| 3 | 2025ae05425 | Sathish Krishnan V | **Part III – RAG:** selected and checked the WHO source, prepared the local knowledge passages, and implemented retrieval for question answering. | 25% |
+| 4 | 2025ae05898 | Pushadapu Sanjay Kumar | **Part IV – Situated Learning:** defined the diabetes clinic support-desk workflow, selected representative synthetic cases, and analysed the evaluation against workplace needs. | 25% |
 | **Total** |  |  |  | **100%** |
 
 ## Project and Platform Details
@@ -31,18 +31,13 @@ The three tasks share one workflow objective: help support staff understand and 
 | Message summarisation | A support message is condensed into a staff handoff summary | Pinned `google/flan-t5-base` |
 | Retrieval-augmented question answering | A question is answered from retrieved WHO passages, with the passages returned as sources | `google/flan-t5-base` answer model and `sentence-transformers/all-MiniLM-L6-v2` retriever |
 
-The base FLAN-T5 model revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The application uses separate model settings for the classifier and summariser. Its API exposes `/health`, `/metadata`, `/analyze`, `/retrieve`, and `/chat`.
+The base FLAN-T5 model revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The classifier has its own runtime. Summarisation and RAG answer generation share one FLAN-T5 runtime and configuration; retrieval uses a separately configured embedding model. The API exposes `/health`, `/metadata`, `/analyze`, `/retrieve`, and `/chat`.
 
 ## Architecture Overview
 
-The React and TypeScript staff interface sends support messages and questions to the FastAPI service. The analysis endpoint invokes the classifier and summariser. For knowledge questions, the retriever searches the local WHO passage index; the chat endpoint passes retrieved passages to the answer model and returns either a source-grounded response or a staff referral.
+The React and TypeScript interface sends support messages and questions to FastAPI. The diagram shows how the three tasks connect to the local models and WHO passages. The classifier has a separate runtime; summarisation and answer generation use the same FLAN-T5 runtime. Referral rules can return a fixed staff response before generation.
 
-```text
-Clinic staff → React interface → FastAPI
-                                  ├─ /analyze → classifier + summariser
-                                  ├─ /retrieve → WHO passage index
-                                  └─ /chat → retriever → answer model → answer + sources or referral
-```
+![Architecture diagram showing the staff interface, API tasks, separate classifier runtime, shared FLAN-T5 generation runtime, WHO passage retrieval, and referral path](evidence/architecture.svg)
 
 ## I. API-Based AI Application
 
@@ -78,9 +73,9 @@ The Swagger UI request below demonstrates `POST /analyze`. Its response confirms
 
 ### Dataset and method
 
-The classifier uses five support categories. The dataset contains 280 synthetic training messages, 60 validation messages, and 60 held-out test messages, with 56 training and 12 validation/test examples per category. The messages are AI-drafted and reviewed by Sanjay for the classification task. Scenario-family identifiers were used when preparing the partitions, and the exact-duplicate review found no repeated messages across the partitions.
+The classifier uses five support categories. The dataset contains 280 synthetic training messages, 60 validation messages, and 60 held-out test messages, with 56 training and 12 validation/test examples per category. The messages are AI-drafted and reviewed for the classification task. Scenario-family identifiers were used when preparing the partitions, and the exact-duplicate review found no repeated messages across the partitions.
 
-The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint and its data hashes, settings, and model-file checksum are recorded in the [classifier run record](evidence/classifier-run-record.json). The model weights are stored outside Git.
+The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint was saved locally and used by the application.
 
 ### Validation and held-out results
 
@@ -100,15 +95,15 @@ The fine-tuned model's three errors involved authorised-contact paperwork, prefe
 
 ### Summary quality check
 
-The configured base summariser was evaluated on 20 reviewed synthetic message/summary cases, each with an essential-fact checklist. Its mean ROUGE-L F1 was 0.3912. Human review found all 20 summaries supported by the input and no added unsupported facts; 10 of 20 retained every essential fact. The result record contains case-level scores and review outcomes in [summariser evaluation evidence](evidence/summarizer-evaluation-record.json). This evaluation shows that summaries can omit details, so the staff handoff should be checked against the original message.
+The configured base summariser was evaluated on 20 reviewed synthetic message/summary cases, each with an essential-fact checklist. Its mean ROUGE-L F1 was 0.3912. Review found all 20 summaries supported by the input and no unsupported facts added; 10 of 20 retained every essential fact. This evaluation shows that summaries can omit details, so staff should check each handoff against the original message.
 
 ## III. Retrieval-Augmented Generation
 
 ### Source and retrieval
 
-The indexed corpus is prepared from one public source: the WHO page [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in the local source manifest. The corpus contains eight curated passages covering diabetes basics, common symptoms, prevention, and high-level education and self-management support. Each passage carries its source title, section, URL, and chunk ID.
+The indexed corpus is prepared from one public source: the WHO page *Diabetes: Questions and Answers* (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in the local source manifest. The corpus contains eight curated passages covering diabetes basics, common symptoms, prevention, and high-level education and self-management support. Each passage carries its source title, section, URL, and chunk ID.
 
-The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, and returns the three highest-ranked passages. The answer model receives the question and retrieved passages. `/chat` includes the source passages with its answer; requests identified as personal clinical advice, urgent symptoms, or clinic-specific processes are routed to staff.
+The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, and returns the three highest-ranked passages. The answer model receives the question and retrieved passages. `/chat` includes the retrieved passages with a generated answer; requests identified by referral rules as personal clinical advice, urgent symptoms, or clinic-specific processes receive a fixed staff referral.
 
 ### API demonstration
 
@@ -122,9 +117,13 @@ Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat
 
 ![Swagger request and staff referral response](evidence/swagger-chat.png)
 
+**Figure 5. General-information answer and retrieved source sections in the web interface.**
+
+![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
+
 ### Evaluation results
 
-The first held-out evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. The question set was not used for tuning. It measured the application before the referral rules were expanded.
+The initial evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. It measured the application before the referral rules were expanded. The baseline results below describe that earlier version, not the current implementation.
 
 | Measure | Result |
 |---|---:|
@@ -132,29 +131,25 @@ The first held-out evaluation used 30 reviewed cases: 20 answerable from the ind
 | Expected answer/referral decisions matched | 23/30 (76.7%) |
 | Expected staff referrals detected | 4/10 (40%) |
 | Answerable questions incorrectly abstained | 1/20 (5%) |
-| Answers judged supported by the cited text | 18/20 (90%) |
-| Citations judged correct | 18/20 (90%) |
-| Answers judged correct and complete | 16/20 (80%) |
+| Answerable cases producing an answer judged supported by its source | 18/20 (90%) |
+| Answerable cases with a correct source citation | 18/20 (90%) |
+| Answerable cases with a correct and complete response | 16/20 (80%) |
 
-The baseline missed referrals for missed-dose advice, an individual glucose reading, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. Two answerable-case responses were unsupported by their cited passages, and four were incomplete or incorrect. The case counts, dataset hash, model versions, and failure IDs are recorded in the [RAG evaluation record](evidence/rag-evaluation-record.json).
+The baseline missed six of ten expected referrals, including missed-dose advice, individual glucose readings, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. One answerable question was incorrectly abstained on; one generated answer did not support its answer key; and four answers were judged incomplete or incorrect. These are results from the earlier version.
 
-The table is a pre-change baseline. The current implementation includes deterministic routing for personal-care, clinic-process, and urgent-symptom questions. Regression tests cover the added phrasings; the backend suite passes 43 tests. Development diagnostic cases were used while refining the rules and are excluded from performance claims. An independent end-to-end evaluation is still needed to measure answer support and referral quality for the current version.
+The current implementation includes deterministic routing rules for personal-care, clinic-process, and urgent-symptom questions. Regression tests cover selected phrasings. Development diagnostic cases informed those changes and are excluded from performance claims. An independent evaluation is still needed to measure answer support and referral quality for the current version.
 
 ## IV. Situated Learning - Workplace Application
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. The prototype is expected to reduce the effort needed to understand routine requests and locate supporting passages; no time saving has been measured. This evaluation uses synthetic messages and public education material.
+The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. The current workflow requires staff to read each message, determine where it should go, prepare a handoff, and search education material when answering general questions. This creates repeated reading and lookup work, while clinic-specific requests still need the appropriate team or approved procedure. The prototype is intended to help staff organise routine messages and locate supporting passages; no time saving has been measured. This evaluation uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
 The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 shows the answer and the retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. Figure 2, shown in Part I, documents the support-message flow; Figures 5 and 6 show the two knowledge-assistant outcomes. Together, these examples demonstrate the classifier, summary, retrieval, answer, and referral components using prototype inputs and outputs.
-
-**Figure 5. General-information answer with retrieved WHO source sections listed.**
-
-![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
+For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 6. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
 
 **Figure 6. Medication question referred to clinic staff in the web interface.**
 
@@ -170,7 +165,7 @@ The evaluation did not measure staff handling time or throughput. It therefore d
 
 The prototype uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components run as a locally configured application. Deployment costs would depend on the selected hosting, model storage, inference capacity, monitoring, and maintenance; no operating-cost estimate has been measured. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
 
-The priority improvement before any patient-facing use is an independent, clinician-reviewed evaluation of the full workflow on approved representative cases, focused on summary fact preservation, answer support, and correct staff referral. This is justified by the observed incomplete summaries and missed referrals in the held-out evaluations. The prototype does not connect to clinic scheduling, portal, or records systems; any integration would require approved interfaces and workflow validation.
+The single most important improvement before workplace deployment is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. This is justified by the observed incomplete summaries and missed referrals in the baseline evaluation. The prototype does not connect to clinic scheduling, portal, or records systems; any later integration would require approved interfaces and workflow validation.
 
 ## Conclusion
 
@@ -178,14 +173,14 @@ The prototype brings request classification, handoff summarisation, and document
 
 ## Project Links
 
-**Source repository:** [Assignment-2 GitHub repository](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
+**Source repository:** https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549
 
 **Demonstration video:** Google Drive link to be added after the required project demonstration is uploaded.
 
 ## References
 
 1. Course brief, *AIMLZG 549: API-driven Cloud Native Solutions, Assignment II* (`Assignment 2.pdf`).
-2. Google / Hugging Face. [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base).
-3. Hugging Face. [Transformers T5 documentation](https://huggingface.co/docs/transformers/en/model_doc/t5).
-4. World Health Organization. [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes).
-5. Sentence Transformers. [all-MiniLM-L6-v2 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
+2. Google / Hugging Face. FLAN-T5 Base model card: https://huggingface.co/google/flan-t5-base.
+3. Hugging Face. Transformers T5 documentation: https://huggingface.co/docs/transformers/en/model_doc/t5.
+4. World Health Organization. Diabetes: Questions and Answers: https://www.who.int/news-room/questions-and-answers/item/diabetes.
+5. Sentence Transformers. all-MiniLM-L6-v2 model card: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2.

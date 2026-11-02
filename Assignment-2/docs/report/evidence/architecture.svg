@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="860" viewBox="0 0 1440 860" role="img" aria-labelledby="title desc">
+  <title id="title">Diabetes Care Support Assistant architecture</title>
+  <desc id="desc">Clinic staff use a React interface connected to FastAPI. Analyze uses a fine-tuned classifier and the shared FLAN-T5 generation runtime for summaries. Retrieve and chat use an embedding model to rank local WHO passages. Chat checks referral rules first, then either returns a staff referral or uses the shared FLAN-T5 runtime to answer from retrieved passages.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="#526579"/></marker>
+    <style>
+      .bg{fill:#f5f7fa}.box{fill:#fff;stroke:#496179;stroke-width:2;rx:16}.api{fill:#e8eff7;stroke:#294d70;stroke-width:3;rx:18}.model{fill:#edf5ef;stroke:#48765a;stroke-width:2;rx:16}.data{fill:#fff5e7;stroke:#a97933;stroke-width:2;rx:16}.ref{fill:#fbefee;stroke:#a85852;stroke-width:2;rx:16}.title{font:700 22px Arial,sans-serif;fill:#233447}.label{font:600 17px Arial,sans-serif;fill:#2e4054}.small{font:15px Arial,sans-serif;fill:#506174}.line{fill:none;stroke:#526579;stroke-width:2.5;marker-end:url(#arrow)}.dashed{fill:none;stroke:#8291a0;stroke-width:2;stroke-dasharray:7 6;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="860"/>
+  <text class="title" x="56" y="54">Diabetes Care Support Assistant</text>
+  <rect class="box" x="55" y="360" width="190" height="105"/>
+  <text class="label" x="150" y="405" text-anchor="middle">Clinic staff</text>
+  <text class="small" x="150" y="433" text-anchor="middle">review each output</text>
+  <rect class="box" x="320" y="360" width="220" height="105"/>
+  <text class="label" x="430" y="405" text-anchor="middle">React interface</text>
+  <text class="small" x="430" y="433" text-anchor="middle">support message / question</text>
+  <rect class="api" x="625" y="350" width="205" height="125"/>
+  <text class="title" x="727" y="402" text-anchor="middle">FastAPI</text>
+  <text class="small" x="727" y="432" text-anchor="middle">/analyze · /retrieve · /chat</text>
+  <path class="line" d="M245 412 H315"/><path class="line" d="M540 412 H620"/>
+
+  <rect class="box" x="930" y="95" width="205" height="100"/>
+  <text class="label" x="1032" y="137" text-anchor="middle">/analyze</text>
+  <text class="small" x="1032" y="166" text-anchor="middle">message analysis</text>
+  <path class="line" d="M830 380 C885 350 885 145 925 145"/>
+  <rect class="model" x="1190" y="75" width="215" height="115"/>
+  <text class="label" x="1297" y="116" text-anchor="middle">Fine-tuned FLAN-T5</text>
+  <text class="small" x="1297" y="146" text-anchor="middle">classifier · own runtime</text>
+  <path class="line" d="M1135 125 H1185"/>
+  <rect class="model" x="1190" y="220" width="215" height="115"/>
+  <text class="label" x="1297" y="261" text-anchor="middle">FLAN-T5</text>
+  <text class="small" x="1297" y="290" text-anchor="middle">summary and answer</text>
+  <text class="small" x="1297" y="313" text-anchor="middle">shared runtime</text>
+  <path class="line" d="M1135 165 C1160 165 1160 275 1185 275"/>
+
+  <rect class="box" x="930" y="390" width="205" height="100"/>
+  <text class="label" x="1032" y="432" text-anchor="middle">/retrieve</text>
+  <text class="small" x="1032" y="460" text-anchor="middle">rank source passages</text>
+  <rect class="box" x="930" y="545" width="205" height="100"/>
+  <text class="label" x="1032" y="587" text-anchor="middle">/chat</text>
+  <text class="small" x="1032" y="615" text-anchor="middle">question answering</text>
+  <path class="line" d="M830 400 C870 400 880 440 925 440"/>
+  <path class="line" d="M830 435 C870 480 870 590 925 590"/>
+
+  <rect class="data" x="1190" y="410" width="215" height="100"/>
+  <text class="label" x="1297" y="450" text-anchor="middle">Embedding model</text>
+  <text class="small" x="1297" y="478" text-anchor="middle">question vector</text>
+  <rect class="data" x="1190" y="550" width="215" height="100"/>
+  <text class="label" x="1297" y="590" text-anchor="middle">Local WHO passages</text>
+  <text class="small" x="1297" y="618" text-anchor="middle">ranked retrieved context</text>
+  <path class="line" d="M1135 440 H1185"/>
+  <path class="line" d="M1297 510 V545"/>
+  <path class="line" d="M1135 590 H1185"/>
+
+  <rect class="ref" x="625" y="665" width="260" height="105"/>
+  <text class="label" x="755" y="706" text-anchor="middle">Referral rules</text>
+  <text class="small" x="755" y="735" text-anchor="middle">checked before generation</text>
+  <path class="line" d="M930 590 C900 610 900 700 890 710"/>
+  <rect class="ref" x="320" y="665" width="220" height="105"/>
+  <text class="label" x="430" y="706" text-anchor="middle">Staff referral</text>
+  <text class="small" x="430" y="735" text-anchor="middle">fixed response, no sources</text>
+  <path class="line" d="M625 715 H545"/>
+  <path class="dashed" d="M755 665 C755 525 1070 530 1185 315"/>
+  <text class="small" x="920" y="536">if answer is appropriate</text>
+  <path class="dashed" d="M1190 645 C1120 740 965 780 890 740"/>
+  <text class="small" x="1030" y="760">context for answer generation</text>
+</svg>
