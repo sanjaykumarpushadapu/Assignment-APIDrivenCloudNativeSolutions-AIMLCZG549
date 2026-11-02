@@ -1,12 +1,22 @@
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
-from diabetes_support.main import app
 from diabetes_support.infrastructure.seq2seq_knowledge_answerer import (
     Seq2SeqKnowledgeAnswerer,
 )
+from diabetes_support.main import app
 
 client = TestClient(app)
+
+
+@pytest.mark.parametrize(
+    ("route", "field"),
+    [("/analyze", "message"), ("/chat", "question"), ("/retrieve", "question")],
+)
+def test_whitespace_only_inputs_are_validation_errors(route: str, field: str) -> None:
+    response = client.post(route, json={field: "   "})
+
+    assert response.status_code == 422
 
 
 def test_health_reports_running_service() -> None:
@@ -91,6 +101,8 @@ def test_chat_abstains_for_personal_medication_advice() -> None:
         "What should I do about a severe low blood sugar episode?",
         "Where can I download the clinic education leaflet?",
         "The clinic portal will not let me sign in.",
+        "How much insulin should my father inject tonight?",
+        "Can she stop her diabetes tablets?",
     ],
 )
 def test_personal_care_and_clinic_process_questions_route_to_staff(
@@ -131,3 +143,17 @@ def test_emergency_wording_uses_urgent_care_path(question: str) -> None:
     assert result["abstained"] is True
     assert result["sources"] == []
     assert "urgent medical attention" in result["answer"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "I am not unconscious. What is diabetes?",
+        "What are symptoms of a seizure?",
+        "I do not have severe hypoglycemia. What is a normal symptom?",
+    ],
+)
+def test_negated_or_general_emergency_terms_do_not_trigger_urgent_path(
+    question: str,
+) -> None:
+    assert Seq2SeqKnowledgeAnswerer._requires_urgent_care(question) is False

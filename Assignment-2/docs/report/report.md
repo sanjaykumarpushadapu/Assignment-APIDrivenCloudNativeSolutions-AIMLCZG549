@@ -37,7 +37,27 @@ The base FLAN-T5 model revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. T
 
 The React and TypeScript interface sends support messages and questions to FastAPI. The diagram shows how the three tasks connect to the local models and WHO passages. The classifier has a separate runtime; summarisation and answer generation use the same FLAN-T5 runtime. Referral rules can return a fixed staff response before generation.
 
-![Architecture diagram showing the staff interface, API tasks, separate classifier runtime, shared FLAN-T5 generation runtime, WHO passage retrieval, and referral path](evidence/architecture.svg)
+```mermaid
+flowchart LR
+    Staff[Clinic staff] --> UI[React interface]
+    UI --> API[FastAPI]
+
+    API -->|/analyze| Analyze[Analyze message]
+    Analyze --> Classifier[Fine-tuned FLAN-T5 classifier<br/>separate runtime]
+    Analyze --> Summary[FLAN-T5 summariser<br/>shared generation runtime]
+
+    API -->|/retrieve| Retriever[Passage retrieval]
+    API -->|/chat| Guard[Referral rules]
+    Guard -->|Refer| Handoff[Fixed staff referral]
+    Guard -->|Continue| Retriever
+    Retriever --> Embed[Embedding model]
+    Embed --> Index[Local WHO passage index]
+    Index --> Context[Ranked source passages]
+    Context --> Answer[FLAN-T5 answer generation<br/>shared with summarisation]
+    Answer --> Result[Answer with retrieved sources]
+    Result --> Staff
+    Handoff --> Staff
+```
 
 ## I. API-Based AI Application
 
@@ -93,6 +113,10 @@ The base and fine-tuned models were then evaluated on the same 60-example held-o
 
 The fine-tuned model's three errors involved authorised-contact paperwork, preferred language for clinic letters, and insurance coverage for an appointment fee. The examples are synthetic and the test set contains 60 messages; the results describe this dataset and are not a measure of real clinic performance.
 
+**Figure 3. Fine-tuning method and held-out classifier results.**
+
+![Full fine-tuning setup and base versus tuned held-out metrics](evidence/03-classifier-fine-tuning.png)
+
 ### Summary quality check
 
 The configured base summariser was evaluated on 20 reviewed synthetic message/summary cases, each with an essential-fact checklist. Its mean ROUGE-L F1 was 0.3912. Review found all 20 summaries supported by the input and no unsupported facts added; 10 of 20 retained every essential fact. This evaluation shows that summaries can omit details, so staff should check each handoff against the original message.
@@ -109,21 +133,21 @@ The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision 
 
 Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat` returns a staff referral for an individual medication question.
 
-**Figure 3. Swagger response from `POST /retrieve` with ranked WHO passages.**
+**Figure 4. Swagger response from `POST /retrieve` with ranked WHO passages.**
 
 ![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
 
-**Figure 4. Swagger response from `POST /chat` for a medication question.**
+**Figure 5. Swagger response from `POST /chat` for a medication question.**
 
 ![Swagger request and staff referral response](evidence/swagger-chat.png)
 
-**Figure 5. General-information answer and retrieved source sections in the web interface.**
+**Figure 6. General-information answer and retrieved source sections in the web interface.**
 
 ![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
 
 ### Evaluation results
 
-The initial evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. It measured the application before the referral rules were expanded. The baseline results below describe that earlier version, not the current implementation.
+The initial evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. It measured the application before the referral rules were expanded. The baseline results below describe that earlier version, not the current implementation. The displayed final test figures must come from a fresh, independent review of the frozen implementation; development diagnostic results are not reported as final performance.
 
 | Measure | Result |
 |---|---:|
@@ -137,7 +161,7 @@ The initial evaluation used 30 reviewed cases: 20 answerable from the indexed so
 
 The baseline missed six of ten expected referrals, including missed-dose advice, individual glucose readings, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. One answerable question was incorrectly abstained on; one generated answer did not support its answer key; and four answers were judged incomplete or incorrect. These are results from the earlier version.
 
-The current implementation includes deterministic routing rules for personal-care, clinic-process, and urgent-symptom questions. Regression tests cover selected phrasings. Development diagnostic cases informed those changes and are excluded from performance claims. An independent evaluation is still needed to measure answer support and referral quality for the current version.
+The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Regression checks cover selected phrasings; an independent evaluation is required to establish answer support and referral quality for the current version.
 
 ## IV. Situated Learning - Workplace Application
 
@@ -149,9 +173,9 @@ The workplace analogue is a diabetes clinic support desk. Staff receive messages
 
 The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 6. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
+For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 6 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 7. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
 
-**Figure 6. Medication question referred to clinic staff in the web interface.**
+**Figure 7. Medication question referred to clinic staff in the web interface.**
 
 ![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 

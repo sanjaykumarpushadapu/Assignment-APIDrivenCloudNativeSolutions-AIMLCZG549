@@ -67,6 +67,15 @@ _PERSONAL_CARE_PATTERNS = (
     ),
     re.compile(r"\bdo\s+i\s+have\s+(?:diabetes|a\s+diagnosis)\b", re.I),
     re.compile(
+        r"\b(?:how\s+much|what\s+dose)\b.{0,90}\b"
+        r"(?:should|can|could|may)\b.{0,40}\b(?:take|inject|use)\b|"
+        r"\b(?:should|can|could|may)\b.{0,30}\b(?:he|she|they|my\s+"
+        r"(?:father|mother|parent|child|partner|husband|wife))\b.{0,60}"
+        r"\b(?:take|stop|start|change|adjust|inject|skip)\b.{0,50}"
+        r"\b(?:diabetes\s+)?(?:medication|medicine|dose|insulin|tablet|pill)s?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
         r"\bmy\s+(?:medication|meds?|medicine|dose|insulin|treatment|diagnosis|"
         r"blood\s+sugar|blood\s+glucose|glucose\s+reading|symptoms?)\b",
         re.IGNORECASE,
@@ -207,17 +216,28 @@ class Seq2SeqKnowledgeAnswerer:
     @staticmethod
     def _requires_urgent_care(question: str) -> bool:
         """Use an urgent-care response for severe or immediately dangerous signs."""
-        return bool(
-            re.search(
-                r"\b(?:severe|dangerously\s+low|dangerously\s+high)\b.{0,40}"
-                r"\b(?:blood\s+sugar|blood\s+glucose|glucose|hypoglyc?emia|"
-                r"hyperglyc?emia)\b|"
-                r"\b(?:faint(?:ed|ing)?|unconscious|seizure|cannot\s+wake)\b|"
-                r"\bsevere\s+hypoglyc?emia\b",
-                question,
-                re.IGNORECASE,
-            )
+        pattern = re.compile(
+            r"\b(?:severe|dangerously\s+low|dangerously\s+high)\b.{0,40}"
+            r"\b(?:blood\s+sugar|blood\s+glucose|glucose|hypoglyc?emia|"
+            r"hyperglyc?emia)\b|"
+            r"\b(?:faint(?:ed|ing)?|unconscious|cannot\s+wake)\b|"
+            r"\b(?:having|experiencing)\s+(?:a\s+)?seizure\b|"
+            r"\bsevere\s+hypoglyc?emia\b",
+            re.IGNORECASE,
         )
+        for match in pattern.finditer(question):
+            preceding = question[max(0, match.start() - 24) : match.start()]
+            negated = re.search(
+                r"\b(?:not|never|no|without|denies?)\b", preceding, re.I
+            )
+            explanatory = re.search(
+                r"\b(?:what\s+(?:is|are)|symptoms\s+of|define)\b",
+                question,
+                re.I,
+            )
+            if not negated and not explanatory:
+                return True
+        return False
 
     @staticmethod
     def _build_prompt(question: str, sources: list[dict[str, object]]) -> str:
