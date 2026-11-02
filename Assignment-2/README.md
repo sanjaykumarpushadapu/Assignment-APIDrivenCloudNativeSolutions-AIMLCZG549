@@ -23,9 +23,10 @@ poetry install -E dev
 ## Part I: classifier in the application skeleton
 
 The `Seq2SeqClassifier` adapter implements the existing `Classifier` interface
-and is wired into `main.py`. The same configurable sequence-to-sequence model
-serves classification and summarisation. By default it uses the original
-`google/flan-t5-base` weights without training on the pilot dataset. The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
+and is wired into `main.py`. The configured classifier loads the locally saved,
+full-fine-tuned `clinic-support` checkpoint; the summarizer and RAG answerer use
+the pinned `google/flan-t5-base` model. Each component has its own model setting.
+The loading approach follows the [official model card](https://huggingface.co/google/flan-t5-base).
 
 From `Assignment-2`, using uv and an isolated Python 3.11 environment:
 
@@ -105,6 +106,36 @@ history; output reports `weights_updated_during_inference: false` because this
 operation only predicts. The previous hard-coded `fine_tuned_by_us` field has
 been removed to avoid mislabelling a selected checkpoint.
 
+### Share or recreate the fine-tuned classifier
+
+The fine-tuned checkpoint is about 944 MB and is excluded from Git. To use the
+same trained model, transfer the complete `artifacts/models/clinic-support/`
+directory through team-approved storage, preserving the directory name. Check
+the transferred weight file from the Assignment-2 directory:
+
+```bash
+shasum -a 256 artifacts/models/clinic-support/model.safetensors
+```
+
+It should match the SHA-256 in
+[`classifier-run-record.json`](docs/report/evidence/classifier-run-record.json).
+Keep `CLASSIFIER_MODEL_NAME=./artifacts/models/clinic-support` in `.env`; the
+checkpoint's local path is resolved from the Assignment-2 project directory.
+
+If the checkpoint cannot be shared, install the dependencies and recreate a
+compatible checkpoint from the tracked training and validation data:
+
+```bash
+.venv/bin/python scripts/train_classifier.py --device cpu --epochs 1
+```
+
+This writes to the default checkpoint directory. It does not guarantee
+byte-identical weights across machines or library versions. Re-evaluate a
+recreated checkpoint before treating its results as the report's measured
+model. The tracked run record contains model/data identity, training settings,
+metrics, and the local checkpoint checksum; it does not contain model weights
+or per-example predictions.
+
 `auto` selects CUDA when available, then Apple MPS, then CPU. An explicitly
 requested unavailable device fails with an explanation. Choose the device before
 loading: both input tensors and model weights are placed on that device.
@@ -167,6 +198,29 @@ full fine-tune of the selected base model, not inference and not a LoRA adapter
 run. The latest v2 evidence records the earlier 280-example training snapshot;
 20 targeted synthetic examples have since been added, so the next run uses 300
 training examples and should be saved under a new output directory.
+
+### Evaluate summaries on held-out cases
+
+`data/test/summarization_evaluation_candidate.jsonl` contains 20 team-reviewed
+message/reference-summary pairs and essential-fact checklists. It is marked
+approved for held-out evaluation only and `use_for_tuning: false`. The configured
+base summarizer was evaluated on CPU; it scored mean ROUGE-L F1 0.3912, with
+10/20 outputs retaining all checklist facts. See
+`docs/report/evidence/summarizer-evaluation-record.json`. The fine-tuned
+candidate was not evaluated on this held-out set, so the results have not been
+used for checkpoint selection.
+
+To reproduce the base-model evaluation on a Mac with cached weights:
+
+```bash
+MODEL_LOCAL_FILES_ONLY=true .venv/bin/python scripts/evaluate_summarizer.py --model google/flan-t5-base --device cpu
+```
+
+The script writes separate model-named result files under the ignored
+`artifacts/evaluation/` directory. ROUGE-L is lexical overlap only; a human
+must mark whether each output retained all essential facts and added no
+unsupported facts. Do not use these cases to choose prompts, thresholds, or
+checkpoints.
 
 ### Sharing model results with the team
 
@@ -251,13 +305,28 @@ score is a provisional /chat abstention floor, not a probability; `/retrieve`
 still returns low-scoring matches for inspection. The embedding model loads on the first retrieval
 request. `/chat` passes retrieved passages to the base sequence-to-sequence
 runtime and returns their source details alongside generated answers. It has a
-fixed refusal for common personal medical requests. Swagger smoke checks returned a source-backed definition and the fixed medication-refusal response. Broader answer quality and refusal coverage still need evaluation; staff must review generated outputs.
+fixed refusal for personal-care and clinic-process requests covered by the referral rules. Swagger smoke checks returned a source-backed definition and the fixed medication-refusal response. Staff must review generated outputs.
+
+The 30-case held-out RAG evaluation in
+`data/test/rag_evaluation_candidate.jsonl` was reviewed by Sanjay on behalf of
+the team and remains `use_for_tuning: false`. Its pre-fix baseline had 20/20
+retrieval hits, 4/10 referrals detected, and 16/20 answers judged correct and
+complete. The failures exposed gaps in personal-care and clinic-process
+referral rules. Results are recorded in
+`docs/report/evidence/rag-evaluation-record.json`. Do not tune with these
+questions. The code now contains broader referral guards and an urgent-care
+response for severe or immediately dangerous symptoms, and the backend
+regression suite passes. A fresh, independent post-fix RAG evaluation is still
+required. The original raw per-case output remains on the development Mac under
+the ignored `artifacts/evaluation/rag_test_results.json`; its tracked summary
+preserves model versions, data hash, scores and failure IDs. Do not rerun or
+tune against this same question set.
 
 ## Tests and checks
 
 Build the frontend with `npm run build` from `frontend/`. Install Playwright's Chromium browser once with `uv run playwright install chromium` or `poetry run playwright install chromium` if Google Chrome is not installed. The browser smoke test uses installed Google Chrome by default. To choose another channel in PowerShell, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` or `$env:PLAYWRIGHT_CHANNEL = 'chromium'`.
 
-Run API tests with `uv run pytest` or `poetry run pytest`. The browser smoke test is opt-in and expects the React app to be running at `http://127.0.0.1:5173`; run it from the project root with `uv run pytest -m e2e` or `poetry run pytest -m e2e`.
+Run API tests with `uv run pytest` or `poetry run pytest`. The backend suite passed 33 tests on 2 November 2026, including referral-guard and urgent-care regression cases. The browser smoke test is opt-in and expects the React app to be running at `http://127.0.0.1:5173`; run it from the project root with `uv run pytest -m e2e` or `poetry run pytest -m e2e`.
 
 Run static checks with `uv run ruff check .` and `uv run black --check .`, or prefix those commands with `poetry run` when using Poetry.
 
@@ -272,4 +341,4 @@ Run static checks with `uv run ruff check .` and `uv run black --check .`, or pr
 
 ## Current status
 
-The API and React UI are wired. The sequence-to-sequence classifier and base-model generation use separate lazy runtimes; summarisation and question answering share the base-model runtime. `/chat` sends retrieved passages to the base runtime and returns source details with the answer; the React chat displays linked WHO sources and marks fixed staff-referral responses. A definition chat returned an answer with its top source, a paraphrased symptoms question returned an answer from WHO01-003, and a personal medication question produced the fixed abstention response. A clinic-leaflet query initially produced an invalid citation-only answer; after adding the provisional /chat retrieval score floor, it returned the fixed abstention response. The floor still needs broader evaluation. Broader evaluation remains pending. The initial RAG corpus uses one WHO Diabetes Q&A page on general diabetes information and self-management education/support. Summaries, categories and generated answers require staff review. The 35-message pilot in `data/pilot/` and the 280-message training draft in `data/training/classification_train.jsonl` (56 per category) have `review_status: approved`, `reviewer: Sanjay`, and `reviewed_on: 2026-10-31` at the user’s direction. Their AI-drafted provenance and historical AI-assisted review notes are retained; approval metadata does not make these datasets clinical guidance or a held-out benchmark. The 10 routing checks remain development-only. Separate validation/test candidate files contain 60 synthetic examples each (12 per category); their review metadata is approved at the user’s direction. A one-epoch fine-tuned checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; curated WHO source notes and chunks are in `data/knowledge/`; three in-scope retrieval smoke checks returned the expected WHO section first, while an out-of-scope medication query returned only indirect passages. Broader retrieval and answer evaluation remain pending. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.
+The API and React UI are wired. The classifier uses the saved `clinic-support` checkpoint; summarisation and RAG answer generation share the configured base-model runtime. `/chat` returns answers alongside source details; the UI displays linked WHO passages and fixed staff-referral responses. Held-out summaries and RAG questions have been reviewed and evaluated. The base summarizer retained all required facts in 10/20 outputs. The original RAG run retrieved an expected source for all answerable cases but detected only 4/10 expected referrals; the raw baseline remains in ignored local artifacts and its tracked summary is in `docs/report/evidence/rag-evaluation-record.json`. Broader deterministic referral guards and regression cases have since been added; fresh post-fix evaluation is still required. The WHO corpus covers general diabetes information and self-management education/support, not clinic procedures. Summaries, categories and generated answers require staff review. Synthetic dataset approvals record team review scope and do not make examples clinical guidance. A one-epoch fine-tuned classifier checkpoint is saved locally under `artifacts/models/clinic-support` and has been reload-verified; the curated WHO source notes and chunks are in `data/knowledge/`. See [the pilot label guide](data/pilot/label_guide.md) for data status and use. Downloaded model weights stay in the ignored artifacts directory.

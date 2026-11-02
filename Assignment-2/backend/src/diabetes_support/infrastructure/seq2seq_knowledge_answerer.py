@@ -7,28 +7,94 @@ from diabetes_support.domain.status import ComponentStatus
 from diabetes_support.infrastructure.model_settings import ModelSettings
 from diabetes_support.infrastructure.seq2seq_runtime import Seq2SeqRuntime
 
+# These requests need a clinician because general WHO passages cannot safely
+# determine an individual's dose, reading, diagnosis, or urgent symptoms.
 _PERSONAL_CARE_PATTERNS = (
     re.compile(
-        r"\b(?:should|can|could|may)\s+i\s+"
-        r"(?:change|adjust|increase|decrease|stop(?:\s+taking)?|start|take)\s+"
-        r"(?:my\s+)?(?:diabetes\s+)?"
-        r"(?:medication|meds?|medicine|dose|insulin|treatment)\b",
+        r"\b(?:should|can|could|may)\s+i\b.{0,45}"
+        r"\b(?:change|adjust|increase|decrease|stop|start|take|skip|miss)\b"
+        r".{0,45}\b(?:medication|meds?|medicine|dose|insulin|treatment|pill)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\bhow\s+do\s+i\s+(?:change|adjust|stop(?:\s+taking)?|start|take)\s+"
-        r"(?:my\s+)?(?:diabetes\s+)?"
-        r"(?:medication|meds?|medicine|dose|insulin|treatment)\b",
+        r"\bhow\s+do\s+i\b.{0,45}\b(?:change|adjust|increase|decrease|"
+        r"stop|start|take|skip)\b.{0,45}"
+        r"\b(?:medication|meds?|medicine|dose|insulin|treatment|pill)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:missed|forgot|miss)\s+(?:my\s+)?(?:diabetes\s+)?"
+        r"(?:medication|meds?|medicine|dose|insulin|pill)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:is\s+it\s+safe|safe|interact(?:s|ing)?)\b.{0,70}"
+        r"\b(?:with\s+(?:my\s+)?(?:other\s+)?(?:medications?|meds?|"
+        r"medicines?|insulin)|medication|meds?|medicine|insulin)\b|"
+        r"\b(?:can|may|should)\s+i\s+take\b.{0,70}"
+        r"\bwith\s+(?:my\s+)?(?:other\s+)?(?:medications?|meds?|medicines?)\b",
         re.IGNORECASE,
     ),
     re.compile(r"\bdo\s+i\s+have\s+(?:diabetes|a\s+diagnosis)\b", re.I),
     re.compile(
         r"\bmy\s+(?:medication|meds?|medicine|dose|insulin|treatment|diagnosis|"
-        r"blood\s+sugar|blood\s+glucose|symptoms?)\b",
+        r"blood\s+sugar|blood\s+glucose|glucose\s+reading|symptoms?)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:my\s+)?(?:blood\s+sugar|blood\s+glucose|glucose)\s+"
+        r"(?:reading\s+)?(?:is\s+)?\d{2,3}\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:severe|very\s+low|very\s+high|dangerously\s+low|"
+        r"dangerously\s+high)\b.{0,35}\b(?:blood\s+sugar|blood\s+glucose|"
+        r"glucose|hypoglyc?emia|hyperglyc?emia)\b|"
+        r"\b(?:hypoglyc?emia|hyperglyc?emia)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:faint(?:ed|ing)?|unconscious|confused|seizure|cannot\s+wake)\b"
+        r".{0,55}\b(?:diabetes|blood\s+sugar|glucose|insulin)\b|"
+        r"\b(?:diabetes|blood\s+sugar|glucose|insulin)\b.{0,55}"
+        r"\b(?:faint(?:ed|ing)?|unconscious|confused|seizure|cannot\s+wake)\b",
+        re.IGNORECASE,
+    ),
+)
+# The corpus has no clinic-specific booking, portal, leaflet, or session details.
+_CLINIC_PROCESS_PATTERNS = (
+    re.compile(
+        r"\b(?:clinic|appointment|booking|booked\s+visit)\b.{0,70}"
+        r"\b(?:move|reschedule|cancel|confirm|available\s+slot|change)\b|"
+        r"\b(?:move|reschedule|cancel|confirm|change)\b.{0,70}"
+        r"\b(?:clinic|appointment|booking|booked\s+visit)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:clinic|education|preparation)\s+(?:leaflet|handout|brochure)\b|"
+        r"\b(?:download|get|find|access)\b.{0,45}"
+        r"\b(?:clinic|education|preparation)\s+(?:leaflet|handout|brochure)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:clinic|patient)\s+portal\b|\bportal\b.{0,45}"
+        r"\b(?:sign\s*in|log\s*in|download|upload|password|not\s+working)\b|"
+        r"\b(?:sign\s*in|log\s*in|download|upload|password)\b.{0,45}\bportal\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:clinic|diabetes\s+education)\b.{0,45}"
+        r"\b(?:video|group|class|session|link|join)\b|"
+        r"\b(?:video|group|class|session)\b.{0,45}"
+        r"\b(?:clinic|diabetes\s+education)\b",
         re.IGNORECASE,
     ),
 )
 _CITATION_ONLY_PATTERN = re.compile(r"(?:\[[A-Z0-9]+-\d+\]\s*)+")
+_URGENT_REFERRAL_TEXT = (
+    "This may need urgent medical attention. Contact local emergency services "
+    "or follow your clinic’s urgent-care instructions now."
+)
 _ABSTAIN_TEXT = (
     "I can’t answer this safely from the available information. "
     "Please contact your clinic team for guidance."
@@ -65,6 +131,8 @@ class Seq2SeqKnowledgeAnswerer:
         question = question.strip()
         if not question:
             raise ValueError("The question must not be empty.")
+        if self._requires_urgent_care(question):
+            return self._abstain(_URGENT_REFERRAL_TEXT)
         if self._requires_clinician(question):
             return self._abstain()
 
@@ -98,8 +166,26 @@ class Seq2SeqKnowledgeAnswerer:
 
     @staticmethod
     def _requires_clinician(question: str) -> bool:
-        """Route common personal diagnosis and treatment requests to clinic staff."""
-        return any(pattern.search(question) for pattern in _PERSONAL_CARE_PATTERNS)
+        """Route personal-care and clinic-process questions to staff."""
+        return any(
+            pattern.search(question)
+            for pattern in (*_PERSONAL_CARE_PATTERNS, *_CLINIC_PROCESS_PATTERNS)
+        )
+
+    @staticmethod
+    def _requires_urgent_care(question: str) -> bool:
+        """Use an urgent-care response for severe or immediately dangerous signs."""
+        return bool(
+            re.search(
+                r"\b(?:severe|dangerously\s+low|dangerously\s+high)\b.{0,40}"
+                r"\b(?:blood\s+sugar|blood\s+glucose|glucose|hypoglyc?emia|"
+                r"hyperglyc?emia)\b|"
+                r"\b(?:faint(?:ed|ing)?|unconscious|seizure|cannot\s+wake)\b|"
+                r"\bsevere\s+hypoglyc?emia\b",
+                question,
+                re.IGNORECASE,
+            )
+        )
 
     @staticmethod
     def _build_prompt(question: str, sources: list[dict[str, object]]) -> str:
@@ -119,6 +205,6 @@ class Seq2SeqKnowledgeAnswerer:
         )
 
     @staticmethod
-    def _abstain() -> dict[str, object]:
-        """Return a fixed staff-referral message without misleading citations."""
-        return {"answer": _ABSTAIN_TEXT, "abstained": True, "sources": []}
+    def _abstain(message: str = _ABSTAIN_TEXT) -> dict[str, object]:
+        """Return a fixed referral response without misleading citations."""
+        return {"answer": message, "abstained": True, "sources": []}

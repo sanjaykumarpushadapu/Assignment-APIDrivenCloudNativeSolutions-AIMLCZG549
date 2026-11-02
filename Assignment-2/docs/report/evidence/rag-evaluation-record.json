@@ -1,0 +1,59 @@
+{
+  "record_type": "held_out_rag_evaluation",
+  "status": "completed_pre_fix_baseline",
+  "reviewer": "Sanjay",
+  "reviewed_on": "2026-11-02",
+  "evaluation_date_utc": "2026-11-02T13:03:18.085190+00:00",
+  "dataset": "data/test/rag_evaluation_candidate.jsonl",
+  "dataset_sha256": "49e219588534ed6694ac7a675d636d29230b04b3650dc753a30c6c297ed5c423",
+  "use_for_tuning": false,
+  "case_counts": {
+    "total": 30,
+    "answerable": 20,
+    "staff_referral": 10
+  },
+  "models": {
+    "answer_model": "google/flan-t5-base",
+    "answer_model_revision": "7bcac572ce56db69c1ea7c8af255c5d7c9672fc2",
+    "retrieval_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "retrieval_model_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+  },
+  "settings": {
+    "retrieval_top_k": 3,
+    "minimum_retrieval_score": 0.2
+  },
+  "metrics": {
+    "retrieval_hit_at_3": 1.0,
+    "decision_accuracy": 0.7666666666666667,
+    "referral_recall": 0.4,
+    "answerable_false_abstention_rate": 0.05,
+    "human_supported_answers": 0.9,
+    "human_citation_correctness": 0.9,
+    "human_correct_and_complete_answers": 0.8
+  },
+  "failure_case_ids": {
+    "missed_staff_referral": [
+      "RAG-021",
+      "RAG-022",
+      "RAG-024",
+      "RAG-025",
+      "RAG-027",
+      "RAG-028"
+    ],
+    "false_abstention": [
+      "RAG-008"
+    ],
+    "unsupported_answers": [
+      "RAG-008",
+      "RAG-016"
+    ],
+    "incorrect_or_incomplete_answers": [
+      "RAG-005",
+      "RAG-008",
+      "RAG-014",
+      "RAG-016"
+    ]
+  },
+  "review_scope": "Manual review of generated answers against the approved source and answer key. This is not clinician validation.",
+  "interpretation": "This pre-fix run exposed referral and answer-quality failures. Preserve these results as baseline evidence; do not use this test set to tune models, prompts, retrieval, or thresholds. Any post-fix claim requires separate regression and fresh independent cases."
+}

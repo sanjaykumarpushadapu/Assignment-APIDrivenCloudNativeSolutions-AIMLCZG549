@@ -14,13 +14,13 @@ def test_react_frontend_shows_analysis_and_document_qa() -> None:
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         page.goto(app_url, wait_until="domcontentloaded")
 
-        expect(page.get_by_role("heading", name="Diabetes support desk")).to_be_visible(
+        expect(page.get_by_role("heading", name="Diabetes support")).to_be_visible(
             timeout=15_000
         )
         expect(
-            page.get_by_role("textbox", name="Incoming support message")
+            page.get_by_role("textbox", name="Incoming message")
         ).to_be_visible()
-        expect(page.get_by_role("textbox", name="Question")).to_be_visible()
+        expect(page.get_by_role("textbox", name="Ask a question")).to_be_visible()
         expect(page.get_by_role("button", name="Analyze request")).to_be_visible()
         expect(page.get_by_role("button", name="Send question")).to_be_visible()
 

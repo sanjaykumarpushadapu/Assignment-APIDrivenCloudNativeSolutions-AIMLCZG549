@@ -1,0 +1,53 @@
+{
+  "record_type": "classifier fine-tuning and evaluation provenance",
+  "base_model": {
+    "name": "google/flan-t5-base",
+    "revision": "7bcac572ce56db69c1ea7c8af255c5d7c9672fc2"
+  },
+  "training": {
+    "method": "full fine-tuning",
+    "optimizer": "AdamW",
+    "device": "cpu",
+    "epochs": 1,
+    "optimizer_steps": 35,
+    "batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "learning_rate": 0.00005,
+    "seed": 42,
+    "training_examples": 280,
+    "validation_examples": 60,
+    "training_data": "data/training/classification_train.jsonl",
+    "training_data_sha256": "ffd9b00d8db89eeddac3f68435c2e0d7cefc553b93d6fafbf8d0ea26ada29436",
+    "validation_data": "data/validation/classification_validation.jsonl",
+    "validation_data_sha256": "5c1e72250b7f426135b46d170030338e404127f8102568f7ace0243f000755b3",
+    "test_partition_loaded_during_training": false,
+    "validation_accuracy": 0.9833,
+    "validation_macro_f1": 0.9833
+  },
+  "held_out_evaluation": {
+    "dataset": "data/test/classification_test.jsonl",
+    "dataset_sha256": "d43de837be0dd3e0b0fb3a62cf2ea29e6e0c525c15dbef0d5dc01dbc314b371a",
+    "examples": 60,
+    "base_model_accuracy": 0.8667,
+    "base_model_macro_f1": 0.8874,
+    "fine_tuned_accuracy": 0.95,
+    "fine_tuned_macro_f1": 0.9474,
+    "fine_tuned_invalid_outputs": 0,
+    "base_results": "artifacts/evaluation/classification_test_base.json",
+    "fine_tuned_results": "artifacts/evaluation/classification_test_tuned.json",
+    "test_used_for_training_or_model_selection": false
+  },
+  "checkpoint": {
+    "local_directory": "artifacts/models/clinic-support",
+    "model_file": "model.safetensors",
+    "model_file_size_bytes": 990345064,
+    "model_file_sha256": "b95396bb9aeca29216579c6b02685a13d64cc5617b4da6a3b1273ab2bc370b07",
+    "included_in_git": false,
+    "distribution": "Share the complete checkpoint directory through team-approved storage, or recreate it with scripts/train_classifier.py. Verify the model file SHA-256 after transfer."
+  },
+  "limitations": [
+    "The classifier examples are synthetic and the held-out set contains only 60 examples.",
+    "The held-out metrics are not clinical-performance evidence.",
+    "The evaluation JSON files and checkpoint are local artifacts ignored by Git; this tracked record does not contain model weights or per-example predictions."
+  ]
+}

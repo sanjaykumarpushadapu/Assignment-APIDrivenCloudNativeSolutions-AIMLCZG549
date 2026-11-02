@@ -1,0 +1,36 @@
+{
+  "record_type": "held_out_summarization_evaluation",
+  "status": "completed",
+  "reviewer": "Sanjay",
+  "reviewed_on": "2026-11-02",
+  "evaluation_date_utc": "2026-11-02T13:12:25.285569+00:00",
+  "dataset": "data/test/summarization_evaluation_candidate.jsonl",
+  "dataset_sha256": "bcb9dd7ed43809bfd4f4cff9062b348dfbc433bc74d2088ad0eae1d775f34673",
+  "use_for_tuning": false,
+  "model": "google/flan-t5-base",
+  "model_revision": "7bcac572ce56db69c1ea7c8af255c5d7c9672fc2",
+  "device": "cpu",
+  "case_count": 20,
+  "metrics": {
+    "mean_rouge_l_f1": 0.3912,
+    "mean_output_input_word_ratio": 0.7832,
+    "human_input_supported_outputs": 20,
+    "human_outputs_with_all_essential_facts": 10,
+    "human_outputs_missing_essential_facts": 10,
+    "human_outputs_with_unsupported_added_facts": 0
+  },
+  "incomplete_case_ids": [
+    "SUM-TEST-003",
+    "SUM-TEST-004",
+    "SUM-TEST-008",
+    "SUM-TEST-009",
+    "SUM-TEST-013",
+    "SUM-TEST-014",
+    "SUM-TEST-017",
+    "SUM-TEST-018",
+    "SUM-TEST-019",
+    "SUM-TEST-020"
+  ],
+  "review_scope": "AI-drafted synthetic support messages and references. Reviewer checked each generated summary against its source and essential-fact checklist; this is not a workplace or clinical validation.",
+  "interpretation": "ROUGE-L measures lexical overlap, not factual completeness. Several outputs copy the input almost verbatim, while others omit material scheduling, uncertainty, privacy, or follow-up details. Keep staff review required."
+}

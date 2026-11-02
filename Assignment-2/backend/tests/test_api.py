@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from diabetes_support.main import app
+from diabetes_support.infrastructure.seq2seq_knowledge_answerer import (
+    Seq2SeqKnowledgeAnswerer,
+)
 
 client = TestClient(app)
 
@@ -29,7 +33,7 @@ def test_analysis_returns_summary_and_category(monkeypatch) -> None:
     def fake_generate(
         self, prompt: str, *, max_new_tokens: int, **_decoding: int
     ) -> str:
-        if "Create a concise staff handoff summary" in prompt:
+        if "Create a concise, factual staff handoff summary" in prompt:
             return (
                 "Patient requests an appointment change to Friday and help "
                 "downloading the leaflet from the portal."
@@ -64,3 +68,56 @@ def test_chat_abstains_for_personal_medication_advice() -> None:
     assert response.json()["abstained"] is True
     assert response.json()["sources"] == []
     assert "contact your clinic team" in response.json()["answer"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "I missed my diabetes medicine yesterday. Should I take an extra dose now?",
+        "My glucose reading is 280. What should I do right now?",
+        "Can I attend my diabetes education group by video instead of in person?",
+        "Can you move my diabetes education appointment to Friday afternoon?",
+        "Can you tell me whether this insulin is safe with my other medicines?",
+        "What should I do about a severe low blood sugar episode?",
+        "Where can I download the clinic education leaflet?",
+        "The clinic portal will not let me sign in.",
+    ],
+)
+def test_personal_care_and_clinic_process_questions_route_to_staff(
+    question: str,
+) -> None:
+    """Avoid generating advice or workflow instructions outside corpus scope."""
+    assert Seq2SeqKnowledgeAnswerer._requires_clinician(question) is True
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What is diabetes?",
+        "What symptoms might someone with diabetes experience?",
+        "How can type 2 diabetes be prevented or delayed?",
+    ],
+)
+def test_general_corpus_questions_are_not_routed_to_staff_by_keyword_rules(
+    question: str,
+) -> None:
+    """Keep supported general education questions eligible for grounded chat."""
+    assert Seq2SeqKnowledgeAnswerer._requires_clinician(question) is False
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What should I do about a severe low blood sugar episode?",
+        "Someone with diabetes is unconscious and cannot wake up.",
+        "They are having a seizure and have diabetes.",
+    ],
+)
+def test_emergency_wording_uses_urgent_care_path(question: str) -> None:
+    """Return urgent-care wording without generating from unrelated sources."""
+    answerer = object.__new__(Seq2SeqKnowledgeAnswerer)
+    result = answerer.answer(question)
+
+    assert result["abstained"] is True
+    assert result["sources"] == []
+    assert "urgent medical attention" in result["answer"]
