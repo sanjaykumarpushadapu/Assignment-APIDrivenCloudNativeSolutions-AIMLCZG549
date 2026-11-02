@@ -60,7 +60,7 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 ### Observed application examples
 
-The application screenshots in Section IV show a support request classified and summarised, a WHO-sourced general-information answer, and a medication question referred to clinic staff. The screenshots use synthetic inputs and illustrate the application path.
+Figure 2 shows the interactive support-message workflow in the React application. It uses a synthetic request and displays the request category and handoff summary. The later examples in Section IV show how the prototype supports the workplace analogue.
 
 ### API demonstration
 
@@ -69,6 +69,10 @@ The Swagger UI request below demonstrates `POST /analyze`. Its response confirms
 **Figure 1. Swagger request and response for `POST /analyze`.**
 
 ![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)
+
+**Figure 2. Support-message analysis in the interactive application.**
+
+![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
 ## II. Fine-Tuning
 
@@ -110,11 +114,11 @@ The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision 
 
 Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat` returns a staff referral for an individual medication question.
 
-**Figure 2. Swagger response from `POST /retrieve` with ranked WHO passages.**
+**Figure 3. Swagger response from `POST /retrieve` with ranked WHO passages.**
 
 ![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
 
-**Figure 3. Swagger response from `POST /chat` for a medication question.**
+**Figure 4. Swagger response from `POST /chat` for a medication question.**
 
 ![Swagger request and staff referral response](evidence/swagger-chat.png)
 
@@ -146,15 +150,11 @@ The workplace analogue is a diabetes clinic support desk. Staff receive messages
 
 The support-message interface accepts a message and displays its primary category and handoff summary. The knowledge assistant accepts a question, displays an answer, and lists the retrieved WHO passages. In the representative appointment case, the system classified the request as `appointment_support`. Its summary kept the work conflict, requested Friday time, and availability check, but omitted the statement that a new booking was still unconfirmed. This observed omission matches the summary evaluation, where only 10 of 20 outputs retained every essential fact. Staff need to compare a handoff summary with the original message. The prototype does not make or confirm appointments.
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 shows the answer and the opened source passage. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. These examples demonstrate the classifier, summary, retrieval, answer, and referral components using inputs and outputs from the prototype.
+For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 5 shows the answer and the retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources. Figure 2, shown in Part I, documents the support-message flow; Figures 5 and 6 show the two knowledge-assistant outcomes. Together, these examples demonstrate the classifier, summary, retrieval, answer, and referral components using prototype inputs and outputs.
 
-**Figure 4. Appointment request, category, and handoff summary in the web interface.**
+**Figure 5. General-information answer with retrieved WHO source sections listed.**
 
-![Support request classified and summarized in the staff workspace](evidence/02-request-analysis.png)
-
-**Figure 5. General-information answer with its retrieved WHO passage open.**
-
-![Knowledge assistant answer with WHO source passages](evidence/03-source-grounded-answer.png)
+![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
 
 **Figure 6. Medication question referred to clinic staff in the web interface.**
 
