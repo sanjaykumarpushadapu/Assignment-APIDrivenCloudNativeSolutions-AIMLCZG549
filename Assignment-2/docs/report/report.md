@@ -5,7 +5,21 @@
 **Group:** 49
 **Institution:** BITS Pilani, Work Integrated Learning Programmes
 
-## Project Overview
+This report describes the design, implementation, and evaluation of an interactive diabetes-care support prototype. It follows the four assessed areas in Assignment II: API-based AI application, fine-tuning, retrieval-augmented generation, and situated learning in a workplace analogue.
+
+## Team Contribution and Work Allocation
+
+The group agreed to an equal contribution share of 25% per member. The qualitative column identifies each member’s contribution to the assessment work.
+
+| Sl. No. | BITS ID | Name | Contribution of team member (Qualitative) | Percentage Contribution (Out of 100) (Quantitative) |
+|---:|---|---|---|---:|
+| 1 | 2025ae05898 | Pushadapu Sanjay Kumar | Part II: prepared and reviewed the synthetic classification data and labels. Part IV: framed the workplace workflow and reviewed evaluation findings; compiled the report. | 25% |
+| 2 | 2025ae05425 | Sathish Krishnan V | Part III: prepared the WHO diabetes knowledge source and passages, and developed source retrieval for the chatbot. | 25% |
+| 3 | 2025ae05828 | Chezrla Raga Suma | Part II: fine-tuned and evaluated the FLAN-T5 classifier; reviewed the summarisation evaluation results. | 25% |
+| 4 | 2025ae05391 | Bhuvnesh Mishra | Part I: developed the FastAPI and React application. Parts II–III: integrated the configured models and RAG endpoints into the workflow. | 25% |
+| **Total** |  |  |  | **100%** |
+
+## Project and Platform Details
 
 This project is an interactive, staff-facing prototype for a diabetes clinic support desk. It uses three natural language processing tasks to help staff route incoming messages, prepare handoff summaries, and answer general diabetes questions from a selected source. The application has a React and TypeScript interface with a FastAPI backend.
 
@@ -18,6 +32,17 @@ The three tasks share one workflow objective: help support staff understand and 
 | Retrieval-augmented question answering | A question is answered from retrieved WHO passages, with the passages returned as sources | `google/flan-t5-base` answer model and `sentence-transformers/all-MiniLM-L6-v2` retriever |
 
 The base FLAN-T5 model revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The application uses separate model settings for the classifier and summariser. Its API exposes `/health`, `/metadata`, `/analyze`, `/retrieve`, and `/chat`.
+
+## Architecture Overview
+
+The React and TypeScript staff interface sends support messages and questions to the FastAPI service. The analysis endpoint invokes the classifier and summariser. For knowledge questions, the retriever searches the local WHO passage index; the chat endpoint passes retrieved passages to the answer model and returns either a source-grounded response or a staff referral.
+
+```text
+Clinic staff → React interface → FastAPI
+                                  ├─ /analyze → classifier + summariser
+                                  ├─ /retrieve → WHO passage index
+                                  └─ /chat → retriever → answer model → answer + sources or referral
+```
 
 ## I. API-Based AI Application
 
@@ -147,16 +172,9 @@ The prototype uses synthetic support messages and public education material. Bef
 
 The priority improvement before any patient-facing use is an independent, clinician-reviewed evaluation of the full workflow on approved representative cases, focused on summary fact preservation, answer support, and correct staff referral. This is justified by the observed incomplete summaries and missed referrals in the held-out evaluations. The prototype does not connect to clinic scheduling, portal, or records systems; any integration would require approved interfaces and workflow validation.
 
-## Team Contributions
+## Conclusion
 
-The group confirmed an equal overall contribution share of 25% per member. The table records each member’s primary contribution area and the agreed quantitative share.
-
-| Team member | BITS ID | Primary contribution area | Share |
-|---|---|---|---:|
-| Pushadapu Sanjay Kumar | 2025ae05898 | Workplace scenario, synthetic dataset and label review, evaluation review, and report | 25% |
-| Sathish Krishnan V | 2025ae05425 | Diabetes knowledge source, retrieval pipeline, and source-grounded answers | 25% |
-| Chezrla Raga Suma | 2025ae05828 | FLAN-T5 classifier fine-tuning and evaluation; summarisation result review | 25% |
-| Bhuvnesh Mishra | 2025ae05391 | FastAPI and React application; model and retrieval integration | 25% |
+The prototype brings request classification, handoff summarisation, and document-grounded question answering into one staff workflow. Held-out results show strong classification on the synthetic test set, while the summary and baseline RAG evaluations identify where staff review remains necessary.
 
 ## Project Links
 
