@@ -112,7 +112,7 @@ The base and fine-tuned models were then evaluated on the same 60-example held-o
 | Macro-F1 | 88.74% | 94.74% |
 | Invalid category outputs | 4/60 | 0/60 |
 
-The fine-tuned model's three errors involved authorised-contact paperwork, preferred language for clinic letters, and insurance coverage for an appointment fee. The examples are synthetic and the test set contains 60 messages; the results describe this dataset and are not a measure of real clinic performance.
+The fine-tuned model's three errors involved authorised-contact paperwork, preferred language for clinic letters, and insurance coverage for an appointment fee. The examples and test set are synthetic; these scores summarise classification on the 60-message set.
 
 **Figure 3. Fine-tuning method and held-out classifier results.**
 
@@ -148,7 +148,7 @@ Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat
 
 ### Evaluation results
 
-The initial evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. It measured the application before the referral rules were expanded. The baseline results below describe that earlier version, not the current implementation. The displayed final test figures must come from a fresh, independent review of the frozen implementation; development diagnostic results are not reported as final performance.
+The initial evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. It was run before the referral rules were expanded, so the results below are baseline metrics for the earlier application.
 
 | Measure | Result |
 |---|---:|
@@ -162,7 +162,7 @@ The initial evaluation used 30 reviewed cases: 20 answerable from the indexed so
 
 The baseline missed six of ten expected referrals, including missed-dose advice, individual glucose readings, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. One answerable question was incorrectly abstained on; one generated answer did not support its answer key; and four answers were judged incomplete or incorrect. These are results from the earlier version.
 
-The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Regression checks cover selected phrasings; an independent evaluation is required to establish answer support and referral quality for the current version.
+The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Regression checks cover selected phrasings for these rules.
 
 ## IV. Situated Learning - Workplace Application
 
@@ -184,13 +184,13 @@ For a general symptoms question, `/chat` returned an answer based on WHO01-003, 
 
 The classifier's held-out test result was 95.00% accuracy and 94.74% macro-F1 on synthetic messages. For summarisation, 10/20 outputs retained all required facts. In the pre-fix RAG evaluation, a relevant passage was retrieved in all 20 answerable cases, while 4/10 referral cases were correctly referred. Together, these results show that classification performed best on the evaluated examples; summarisation and answer/referral quality still require staff review. The retrieval score alone did not ensure that a generated answer was supported.
 
-The evaluation assessed answer quality and referral outcomes on fixed case sets. No staff-handling times were collected, so efficiency gains are not quantified. The application demonstrates message routing and source inspection; staff continue to complete appointment, portal, and records transactions through clinic workflows.
+The application demonstrates message routing and source inspection; staff continue to complete appointment, portal, and records transactions through clinic workflows.
 
 ### Reflect - Deployment constraints and improvement
 
-The application uses synthetic support messages and public education material. Before any use with real health information, the clinic would need to determine permitted data use, access and retention controls, and applicable privacy and security requirements. The regulatory requirements depend on the organisation and jurisdiction. The model and retrieval components run as a locally configured application. Operating costs would vary with hosting, model storage, inference capacity, monitoring, and maintenance. Clinic-specific appointment, portal, and leaflet instructions would need to come from approved clinic sources before the assistant could answer those questions.
+Evaluation data consists of synthetic support messages and public education material. Handling real health information requires clinic-approved data governance for access, retention, privacy, security, and regulations applicable to the organisation. The model and retrieval components run as a locally configured application. Operating costs depend on hosting, model storage, inference capacity, monitoring, and maintenance. The indexed WHO source covers general diabetes information; answering clinic-specific appointment, portal, and leaflet questions requires approved clinic content.
 
-The single most important improvement before workplace deployment is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. This is justified by the observed incomplete summaries and missed referrals in the baseline evaluation. Integration with clinic scheduling, portal, and records systems would require approved interfaces and workflow validation.
+The most important next step for workplace adoption is an independent, domain-expert-reviewed evaluation of the complete staff workflow on approved representative cases, focused on summary fact preservation, answer support, and correct referral. The baseline evaluation found incomplete summaries and missed referrals, so the next evaluation should measure these outcomes for the current rules. Clinic scheduling, portal, and records integration requires approved interfaces and workflow validation.
 
 ## Conclusion
 
