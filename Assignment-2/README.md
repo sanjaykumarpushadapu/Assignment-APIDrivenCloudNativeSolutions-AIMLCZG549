@@ -147,6 +147,16 @@ The browser workflow test is optional. Install its browser once with `uv run pla
 .venv/bin/python -m pytest -m e2e
 ```
 
+## Record the demonstration video
+
+Assessment 1's recording script describes its narration as synthesized and uses macOS `say` without specifying a named voice. Use the same mode for Assessment 2. Run this command from `Assignment-2`:
+
+```bash
+.venv/bin/python demo_video/record_demo.py --tts say --burn-subtitles
+```
+
+Press Enter once to run the command; it starts the API and frontend if they are not already running, loads the configured model components, and records the narrated video without per-scene keyboard prompts. It uses the current macOS default `say` voice, as the Assessment 1 script did when run on the same Mac. The voice name was not pinned in that script. The recorder requires `ffmpeg` and Google Chrome. Install `ffmpeg` with `brew install ffmpeg` if needed. Services started by the recorder are stopped after it finishes. The MP4, captions, and recording report are saved under `demo_video/output/`.
+
 ## Project structure
 
 ```text

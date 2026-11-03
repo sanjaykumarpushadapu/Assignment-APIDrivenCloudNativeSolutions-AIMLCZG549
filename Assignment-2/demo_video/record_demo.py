@@ -3,16 +3,14 @@
 
 One command produces the finished MP4:
 
-    python demo_video/record_demo.py --tts none --burn-subtitles
+    python demo_video/record_demo.py --tts say --burn-subtitles
 
 What it does, in order:
 
-1. Preflight: checks that the React app, the API docs and the required API
-   endpoints answer HTTP 200, that the classifier, summariser and knowledge
-   index report ready, and runs the tests and the frontend build on this
-   machine so the video shows real, current output. Measured evaluation
-   results are read from the tracked classifier, summary, and RAG records used
-   by the main report.
+1. Startup and preflight: starts the local API and/or React app if they are not
+   already running, warms lazy model components, checks the endpoints and runs
+   tests and the frontend build. Measured evaluation results are read from the
+   tracked classifier, summary, and RAG records used by the main report.
 2. Narration: fills the narration in ``scenes.py`` with the facts gathered in
    step 1 and turns each scene's text into speech (or a silent track).
 3. Recording: drives Chromium with Playwright, one clip per scene: title cards,
@@ -28,6 +26,7 @@ See ``demo_video/README.md`` for setup and options.
 from __future__ import annotations
 
 import argparse
+import atexit
 import ast
 import base64
 import html
@@ -37,12 +36,15 @@ import os
 import platform
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
@@ -63,6 +65,7 @@ TAIL = 0.75  # seconds of picture after the narrator stops
 DEFAULT_OUT = "Group49_AIMLCZG549_Assignment2_Demo.mp4"
 HOLD_MS = 2800  # minimum time a live result stays on screen after it appears
 RESULT_TIMEOUT_MS = 180000  # model inference on a laptop can be slow
+SERVICE_START_TIMEOUT = 180  # allow Vite and Uvicorn to start on a laptop
 
 
 for _stream in (sys.stdout, sys.stderr):
@@ -163,6 +166,228 @@ def http_json(url: str, timeout: int = 45):
         return None
 
 
+def post_json(url: str, body: dict, timeout: int = 45) -> tuple[int, object]:
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(
+            request, timeout=timeout, context=_ssl_context()
+        ) as response:
+            return response.status, json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = json.loads(exc.read().decode("utf-8"))
+        except Exception:  # noqa: BLE001
+            detail = str(exc)
+        return exc.code, detail
+    except Exception as exc:  # noqa: BLE001
+        return 0, f"{exc.__class__.__name__}: {exc}"
+
+
+class ManagedServices:
+    """Start missing local services and stop only the processes started here."""
+
+    def __init__(self) -> None:
+        self.processes: list[tuple[str, subprocess.Popen, object]] = []
+        self.stopped = False
+
+    @staticmethod
+    def local_target(url: str, name: str) -> tuple[str, int]:
+        parsed = urlsplit(url)
+        if parsed.scheme != "http" or parsed.hostname not in {
+            "127.0.0.1",
+            "localhost",
+        }:
+            fail(
+                f"Cannot start the {name} automatically for {url}. "
+                "Automatic startup supports local HTTP URLs on 127.0.0.1 or localhost."
+            )
+        return parsed.hostname, parsed.port or 80
+
+    def start(
+        self,
+        name: str,
+        command: list[str],
+        cwd: Path,
+        url: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        log(f"{name} is not running; starting it now.")
+        log_file = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                text=True,
+                start_new_session=(os.name != "nt"),
+            )
+        except OSError as exc:
+            log_file.close()
+            fail(f"Could not start {name}: {exc}")
+        self.processes.append((name, process, log_file))
+        atexit.register(self.stop_all)
+
+        deadline = time.monotonic() + SERVICE_START_TIMEOUT
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                log_file.seek(0)
+                details = log_file.read().splitlines()[-20:]
+                fail(
+                    f"{name} exited before becoming ready. "
+                    + ("\n" + "\n".join(details) if details else "")
+                )
+            status = http_status(url, timeout=2)
+            if status == 200:
+                log(f"{name} is ready at {url}.")
+                return
+            time.sleep(0.5)
+
+        log_file.seek(0)
+        details = log_file.read().splitlines()[-20:]
+        fail(
+            f"{name} did not become ready at {url} within "
+            f"{SERVICE_START_TIMEOUT} seconds."
+            + ("\n" + "\n".join(details) if details else "")
+        )
+
+    def stop_all(self) -> None:
+        if self.stopped:
+            return
+        self.stopped = True
+        for name, process, log_file in reversed(self.processes):
+            if process.poll() is None:
+                log(f"Stopping {name} started by the video recorder.")
+                try:
+                    if os.name == "nt":
+                        process.terminate()
+                    else:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    process.wait(timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    try:
+                        if os.name == "nt":
+                            process.kill()
+                        else:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        process.wait(timeout=5)
+                    except (OSError, subprocess.TimeoutExpired):
+                        log(f"Could not fully stop {name}; process id {process.pid} remains.")
+            log_file.close()
+
+
+def ensure_local_services(args, services: ManagedServices) -> None:
+    """Reuse running services and launch either local service when it is absent."""
+    api_health = args.api_url + "/health"
+    if http_status(api_health, timeout=2) != 200:
+        host, port = services.local_target(args.api_url, "API")
+        python = repo_python()
+        env = dict(os.environ)
+        current_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = os.pathsep.join(
+            part
+            for part in (str(REPO / "backend" / "src"), current_pythonpath)
+            if part
+        )
+        command = [
+            python,
+            "-m",
+            "uvicorn",
+            "diabetes_support.main:app",
+            "--app-dir",
+            "backend/src",
+            "--host",
+            host,
+            "--port",
+            str(port),
+        ]
+        services.start("API", command, REPO, api_health, env)
+    else:
+        log(f"API is already running at {args.api_url}.")
+
+    if http_status(args.app_url, timeout=2) != 200:
+        host, port = services.local_target(args.app_url, "React frontend")
+        npm = shutil.which("npm")
+        if not npm:
+            fail("npm was not found. Install Node.js and npm before recording.")
+        vite = REPO / "frontend" / "node_modules" / ".bin" / "vite"
+        if not vite.exists():
+            fail(
+                "Frontend dependencies are missing. Run `npm ci` from the frontend directory, "
+                "then start the video recorder again."
+            )
+        command = [
+            npm,
+            "run",
+            "dev",
+            "--",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--strictPort",
+        ]
+        services.start("React frontend", command, REPO / "frontend", args.app_url)
+    else:
+        log(f"React frontend is already running at {args.app_url}.")
+
+
+def warm_local_models(api_url: str) -> None:
+    """Load lazy model and retrieval runtimes before the readiness check."""
+    metadata = http_json(api_url + "/metadata", timeout=10)
+    if not isinstance(metadata, dict):
+        fail("The API started, but /metadata did not return valid JSON.")
+    required = ("classifier", "summarizer", "knowledge_index")
+    if all(
+        isinstance(metadata.get(name), dict)
+        and metadata[name].get("ready") is True
+        for name in required
+    ):
+        return
+
+    log("Loading configured model and retrieval components for the recording.")
+    warmups = [
+        (
+            "/analyze",
+            {
+                "message": (
+                    "Please move my diabetes education appointment to Friday. "
+                    "I cannot download the education leaflet from the portal."
+                )
+            },
+        ),
+        ("/retrieve", {"question": "What is diabetes?"}),
+        ("/chat", {"question": "What is diabetes?"}),
+    ]
+    for path, body in warmups:
+        log(f"    loading components through POST {path}; this can take a few minutes.")
+        status, result = post_json(
+            api_url + path,
+            body,
+            timeout=max(45, RESULT_TIMEOUT_MS // 1000),
+        )
+        if status != 200:
+            fail(f"Model warm-up POST {path} returned HTTP {status}: {result}")
+
+    metadata = http_json(api_url + "/metadata", timeout=10)
+    not_ready = [
+        name
+        for name in required
+        if not isinstance(metadata, dict)
+        or not isinstance(metadata.get(name), dict)
+        or metadata[name].get("ready") is not True
+    ]
+    if not_ready:
+        fail("Components did not become ready: " + ", ".join(not_ready))
+
+
 def repo_python() -> str:
     for candidate in (REPO / ".venv/bin/python", REPO / ".venv/Scripts/python.exe"):
         if candidate.exists():
@@ -212,7 +437,8 @@ def preflight(args, work: Path) -> dict:
         fail(
             "these URLs did not return HTTP 200:\n  "
             + "\n  ".join(bad)
-            + "\nStart the API and the React app (see README.md), or pass --allow-non-200 to record anyway."
+            + "\nThe recorder tried to start missing local services. Check the startup error above, "
+            "or pass --allow-non-200 only for a test recording."
         )
 
     # ---- 2. model and index readiness -----------------------------------
@@ -1464,6 +1690,11 @@ def parse_args():
         help="record even if a model or the knowledge index is not ready (test runs only)",
     )
     ap.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="start missing services, warm models, and run preflight checks without recording a video",
+    )
+    ap.add_argument(
         "--skip-commands",
         action="store_true",
         help="optional: reuse the previous run's terminal output; omit for a fresh run",
@@ -1560,8 +1791,16 @@ def main() -> None:
     if not scenes:
         fail("no scenes selected; see --list")
 
+    services = ManagedServices()
+    ensure_local_services(args, services)
+    if not args.allow_not_ready:
+        warm_local_models(args.api_url)
+
     pre = preflight(args, work)
     facts, terminal = pre["facts"], pre["terminal"]
+    if args.preflight_only:
+        log("Preflight passed; video recording was not started (--preflight-only).")
+        return
 
     # ---- narration --------------------------------------------------------
     log(f"Generating narration ({args.tts})")
