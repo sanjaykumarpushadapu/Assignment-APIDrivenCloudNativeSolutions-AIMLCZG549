@@ -65,6 +65,9 @@ ANALYZE_BODY = (
 CHAT_BODY = (
     '{\n  "question": "What symptoms might someone with diabetes experience?"\n}'
 )
+RETRIEVE_BODY = (
+    '{\n  "question": "What symptoms might someone with diabetes experience?"\n}'
+)
 
 
 def part_card(number, title, member, say):
@@ -94,19 +97,13 @@ SCENES = [
     },
     {
         "id": "architecture",
-        "kind": "card",
-        "eyebrow": "Application architecture",
-        "title": "React + TypeScript · FastAPI · three connected NLP tasks",
-        "lines": [
-            "Support message → fine-tuned FLAN-T5 classifier → category",
-            "Support message → FLAN-T5 summariser → staff handoff summary",
-            "Question → referral rules → WHO passage retrieval → grounded answer and sources",
-            "Staff review before information is shared",
-        ],
+        "kind": "mermaid",
+        "caption": "System architecture: three NLP tasks, local WHO retrieval, and staff review",
         "say": (
-            "The architecture: a React and TypeScript interface calls a FastAPI backend. The backend runs a "
-            "fine-tuned request classifier, the base FLAN-T5 summariser, and a retrieval-augmented question-"
-            "answering service over curated World Health Organization material. Staff review every output."
+            "This flowchart shows the React and TypeScript interface calling the FastAPI service. For support "
+            "messages, the fine-tuned classifier returns a category and the base FLAN-T5 model prepares a "
+            "handoff summary. For questions, referral rules either return a staff response or allow retrieval "
+            "from the local WHO passage index and a grounded answer. Staff review the results."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -271,6 +268,16 @@ SCENES = [
         "say": "The analyse endpoint returns the category and the handoff summary.",
     },
     {
+        "id": "api_retrieve",
+        "kind": "swagger",
+        "path": "/retrieve",
+        "body": RETRIEVE_BODY,
+        "say": (
+            "The retrieve endpoint returns ranked source passages before answer generation, allowing staff "
+            "to inspect which information the knowledge assistant selected."
+        ),
+    },
+    {
         "id": "api_chat",
         "kind": "swagger",
         "path": "/chat",
@@ -355,6 +362,7 @@ SELF_SCRIPTS = {
     "swagger_intro": "The same features are available through our documented API.",
     "api_metadata": "The metadata endpoint shows which model and index versions are loaded.",
     "api_analyze": "The analyse endpoint returns the category and the handoff summary.",
+    "api_retrieve": "The retrieve endpoint returns the ranked source passages before answer generation.",
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
     "workplace": "In this workplace scenario, a personal medication question is referred to clinic staff.",
     "closing": (
