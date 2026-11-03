@@ -2,8 +2,8 @@
 
 These scripts record the Group 49 Assignment II demonstration video: Playwright
 records each scene in Chromium, and ffmpeg joins the clips with narration and captions.
-The recorder supports macOS `say` and Microsoft Edge TTS (`edge-tts`). On macOS,
-`say` uses the current system voice. Edge TTS defaults to `en-US-AriaNeural`.
+The recorder selects macOS `say` on Mac and Microsoft Edge TTS (`edge-tts`) on
+Windows and Linux. Edge TTS uses `en-US-AriaNeural` by default.
 The video covers the workplace
 problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
 React app (analysis, source-backed chat and a clinical referral), Swagger "Try it out →
@@ -15,9 +15,8 @@ Run everything from the `Assignment-2` folder. The scripts work on Windows, macO
 
 | Command | What it does |
 |---|---|
-| `.venv/bin/python demo_video/record_demo.py --tts say --burn-subtitles` | Records and assembles the full narrated video with the macOS default `say` voice; no per-scene prompts. |
-| `.venv/bin/python demo_video/record_demo.py --tts edge --voice en-US-AriaNeural --burn-subtitles` | Records with Microsoft Edge's default neural voice; install `edge-tts` first. |
-| `pip install -r demo_video/requirements.txt` | One-time install of video recording and caption dependencies. |
+| `python demo_video/record_demo.py --burn-subtitles` | Records and assembles the full narrated video using the OS default voice; no per-scene prompts. |
+| `pip install -r demo_video/requirements.txt` | One-time install of video, caption, and voice dependencies in the active project environment. |
 | `python demo_video/record_demo.py --tts none --burn-subtitles` | Records the full video with no voice and captions drawn on screen. |
 | `python demo_video/record_demo.py --list` | Lists the scenes and who narrates each part. |
 | `.venv/bin/python scripts/capture_report_evidence.py` | Refreshes the report's Swagger and React screenshots after the API and app are running. |
@@ -56,7 +55,8 @@ python demo_video/record_demo.py --tts none --allow-not-ready --only title label
 ## One-time setup
 
 Install ffmpeg (`winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS,
-`sudo apt install ffmpeg libportaudio2` on Linux), then, with the project virtual environment active:
+`sudo apt install ffmpeg` on Linux), then activate the project virtual environment
+(`source .venv/bin/activate` on macOS/Linux or `.venv\\Scripts\\activate` on Windows):
 
 ```bash
 pip install -e ".[dev]"
@@ -72,7 +72,7 @@ Services started by the recorder are stopped when the recording command exits. A
 
 | Option | Effect |
 |---|---|
-| `--tts say` / `--tts edge --voice en-US-AriaNeural` | Select macOS system speech or Microsoft Edge's default neural voice. |
+| `--tts say` / `--tts edge --voice en-US-AriaNeural` | Override the OS default to select macOS system speech or Microsoft Edge's default neural voice. |
 | `--burn-subtitles` | Draw captions on the picture; Google Drive's player ignores embedded caption tracks. |
 | `--only <scene ids>` | Record only some scenes. |
 | `--skip-commands` | Reuse the previous run's terminal output. |
