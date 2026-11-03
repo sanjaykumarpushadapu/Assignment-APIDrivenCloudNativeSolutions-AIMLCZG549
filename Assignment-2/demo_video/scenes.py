@@ -114,9 +114,9 @@ SCENES = [
         1,
         "Workplace Problem, Labels & Data",
         MEMBERS[3],
-        "Part one: the workplace problem. A fictional diabetes clinic's support "
-        "desk reads, routes and answers routine messages by hand. The prototype assists with that workflow and sends "
-        "clinical decisions to qualified staff.",
+        "Part one outlines the workplace scenario: a fictional diabetes clinic "
+        "support desk handles requests about appointments, education, portal access, records and clinical questions. "
+        "The application demonstrates message classification, handoff summaries and source-based answers for staff.",
     ),
     {
         "id": "label_guide",
@@ -190,8 +190,8 @@ SCENES = [
         "id": "tests_terminal",
         "kind": "terminal",
         "commands": ["pytest", "build"],
-        "caption": "Tests and the production frontend build, run on this machine moments ago",
-        "say": "The backend tests and the production frontend build were run just before recording: {pytest_summary}.",
+        "caption": "Backend tests and frontend build, run on this machine moments ago",
+        "say": "The backend tests and frontend build were run just before recording: {pytest_summary}.",
     },
     {
         "id": "app_analysis",
@@ -217,7 +217,7 @@ SCENES = [
         "kind": "app",
         "steps": [
             {
-                "fill": "Question",
+                "fill": "Ask a question",
                 "text": "What symptoms might someone with diabetes experience?",
             },
             {"click": "Send question"},
@@ -283,22 +283,18 @@ SCENES = [
         "kind": "image",
         "images": ["04-staff-referral.png"],
         "caption": "Workplace example: a personal medication question is referred to clinic staff",
-        "say": (
-            "In this workplace analogue, a personal medication question receives a staff referral. The prototype "
-            "does not make clinic decisions, and no handling-time reduction has been measured."
-        ),
+        "say": "In this workplace scenario, a personal medication question is referred to clinic staff.",
     },
     {
         "id": "closing",
         "kind": "card",
         "eyebrow": "Group 49 · AIMLCZG549 Assignment II",
-        "title": "A staff-facing prototype, not a clinical decision system",
+        "title": "Three connected NLP tasks for clinic support",
         "lines": MEMBERS,
         "say": (
-            "To summarise: three connected N.L.P. tasks, a fine-tuned classifier, the base summariser, and a "
-            "retrieval-augmented chatbot support a clinic's routine requests. Before any patient-facing use, "
-            "clinicians must validate answer "
-            "correctness and referral behaviour. Thank you for watching."
+            "To summarise: the application combines a fine-tuned support classifier, handoff summarisation, "
+            "and source-grounded question answering for a diabetes clinic support desk. Staff can inspect "
+            "categories, summaries, answers, and source passages in the application. Thank you for watching."
         ),
     },
 ]
@@ -320,9 +316,9 @@ SELF_SCRIPTS = {
         "service over curated WHO material. Staff review every output."
     ),
     "part1_card": (
-        "Part one is the workplace problem. A fictional diabetes clinic's support desk reads, "
-        "routes and answers routine messages by hand. Our prototype assists with that workflow and sends clinical "
-        "decisions to qualified staff."
+        "Part one outlines the workplace scenario: a fictional diabetes clinic support desk handles requests "
+        "about appointments, education, portal access, records, and clinical questions. The application "
+        "demonstrates message classification, handoff summaries, and source-based answers for staff."
     ),
     "label_guide": (
         "We route requests into five categories: appointments, education resources, portal support, records "
@@ -343,7 +339,7 @@ SELF_SCRIPTS = {
         "are the pre-fix baseline, retained to document the failures that prompted referral-rule changes."
     ),
     "part4_card": "Part four demonstrates the interactive application, API, and workplace workflow.",
-    "tests_terminal": "We ran our backend tests and the production frontend build just before recording.",
+    "tests_terminal": "We ran our backend tests and frontend build just before recording.",
     "app_analysis": (
         "In our live app, a staff member pastes a support message. The fine-tuned classifier gives the primary "
         "category, and the base summariser prepares a handoff note for staff review."
@@ -360,14 +356,10 @@ SELF_SCRIPTS = {
     "api_metadata": "The metadata endpoint shows which model and index versions are loaded.",
     "api_analyze": "The analyse endpoint returns the category and the handoff summary.",
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
-    "workplace": (
-        "In this workplace analogue, a personal medication question is referred to clinic staff. We have not "
-        "measured a handling-time reduction."
-    ),
+    "workplace": "In this workplace scenario, a personal medication question is referred to clinic staff.",
     "closing": (
-        "To wrap up: three connected NLP tasks, a fine-tuned classifier, the base summariser, and a "
-        "retrieval-augmented chatbot support a clinic's routine requests. Before any patient-facing use, "
-        "clinicians must validate the "
-        "answers and referrals. Thank you!"
+        "To summarise: our application combines a fine-tuned support classifier, handoff summarisation, "
+        "and source-grounded question answering for a diabetes clinic support desk. Staff can inspect "
+        "categories, summaries, answers, and source passages in the application. Thank you!"
     ),
 }
