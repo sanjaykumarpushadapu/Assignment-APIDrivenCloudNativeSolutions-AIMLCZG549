@@ -226,13 +226,21 @@ class Seq2SeqKnowledgeAnswerer:
             re.IGNORECASE,
         )
         for match in pattern.finditer(question):
-            preceding = question[max(0, match.start() - 24) : match.start()]
+            prefix = question[: match.start()]
+            boundaries = list(
+                re.finditer(
+                    r"[.!?;,:]|\b(?:and|but|however|although)\b",
+                    prefix,
+                    re.IGNORECASE,
+                )
+            )
+            preceding = prefix[boundaries[-1].end() :] if boundaries else prefix
             negated = re.search(
                 r"\b(?:not|never|no|without|denies?)\b", preceding, re.I
             )
             explanatory = re.search(
-                r"\b(?:what\s+(?:is|are)|symptoms\s+of|define)\b",
-                question,
+                r"\b(?:what\s+(?:is|are)|symptoms?\s+of|define)\b.{0,50}$",
+                preceding,
                 re.I,
             )
             if not negated and not explanatory:

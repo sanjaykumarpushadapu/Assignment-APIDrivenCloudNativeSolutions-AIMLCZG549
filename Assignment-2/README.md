@@ -8,7 +8,7 @@ The assessment report is in [docs/report/report.md](docs/report/report.md).
 
 ### Requirements
 
-- macOS with Python 3.10 or newer
+- Windows, macOS, or Linux with Python 3.10 or newer
 - Node.js 20.19 or newer
 - `uv` and `npm`
 
@@ -22,7 +22,7 @@ cp .env.example .env
 Start the API:
 
 ```bash
-.venv/bin/python -m uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
+uv run --extra inference uvicorn diabetes_support.main:app --app-dir backend/src --reload --port 8001
 ```
 
 In a second terminal, start the web interface:
@@ -70,20 +70,20 @@ See `.env.example` for the full list, including token limits, retrieval threshol
 
 ## Model training and evaluation
 
-Training data, validation data, and held-out evaluation data are stored separately under `data/`. Evaluation scripts use the test partitions for measurement; do not use them to select prompts, thresholds, or checkpoints.
+Training data, validation data, and evaluation data are stored separately under `data/`. Do not use held-out cases to select prompts, thresholds, or checkpoints. The recorded RAG results are a pre-fix baseline; the same cases are now used by routing regression checks, so they cannot measure post-fix performance. The available `rag_post_fix*` files are development diagnostics and are not held-out evaluation sets.
 
 ### Classifier
 
 The fine-tuned classifier checkpoint is stored under `artifacts/models/clinic-support/`. Model weights and downloaded caches are excluded from Git. To create a separate candidate checkpoint from the tracked training data:
 
 ```bash
-.venv/bin/python scripts/train_classifier.py --epochs 1 --output-dir artifacts/models/clinic-support-candidate
+uv run --extra inference python scripts/train_classifier.py --epochs 1 --output-dir artifacts/models/clinic-support-candidate
 ```
 
 The evaluation script uses the classifier selected by `CLASSIFIER_MODEL_NAME`. Run it without `--final-test` for validation results. After model and prompt choices are frozen, run the held-out test once:
 
 ```bash
-.venv/bin/python scripts/evaluate_classifier.py --final-test
+uv run --extra inference python scripts/evaluate_classifier.py --final-test
 ```
 
 To use or share a checkpoint, set `CLASSIFIER_MODEL_NAME` to its directory in `.env`, or transfer the complete model directory through team-approved storage. Each team member keeps their own `.env` and model files locally.
@@ -93,19 +93,19 @@ To use or share a checkpoint, set `CLASSIFIER_MODEL_NAME` to its directory in `.
 The application currently uses the model set by `SUMMARIZER_MODEL_NAME`. To fine-tune a candidate checkpoint and save it to a separate directory:
 
 ```bash
-.venv/bin/python scripts/train_summarizer.py --output-dir artifacts/models/clinic-summary-candidate
+uv run --extra inference python scripts/train_summarizer.py --output-dir artifacts/models/clinic-summary-candidate
 ```
 
 To run the one-example smoke check without saving a checkpoint:
 
 ```bash
-.venv/bin/python scripts/train_summarizer.py --smoke
+uv run --extra inference python scripts/train_summarizer.py --smoke
 ```
 
 Evaluate summary outputs with:
 
 ```bash
-.venv/bin/python scripts/evaluate_summarizer.py --model google/flan-t5-base
+uv run --extra inference python scripts/evaluate_summarizer.py --model google/flan-t5-base
 ```
 
 The held-out summary cases are in `data/test/summarization_evaluation_candidate.jsonl`; they are for evaluation, not model tuning. To use a reviewed summariser checkpoint in the application, set `SUMMARIZER_MODEL_NAME` to its directory in `.env` and restart the API.
@@ -115,23 +115,33 @@ The held-out summary cases are in `data/test/summarization_evaluation_candidate.
 The retrieval corpus is built from reviewed local notes in `data/knowledge/`. The source URL, source details, and content checks are recorded in `data/knowledge/manifest.json`. To rebuild the chunks after editing the notes:
 
 ```bash
-.venv/bin/python scripts/prepare_knowledge.py
+uv run --extra inference python scripts/prepare_knowledge.py
 ```
 
 If the reviewed WHO snapshot is not present locally, use `--download` to retrieve and verify it:
 
 ```bash
-.venv/bin/python scripts/prepare_knowledge.py --download
+uv run --extra inference python scripts/prepare_knowledge.py --download
 ```
 
 The script checks the source content before writing `data/knowledge/chunks.jsonl`. Review changes to the source and notes before rebuilding the corpus.
+
+### RAG evaluation
+
+The recorded RAG result in `docs/report/evidence/rag-evaluation-record.json` is a pre-fix baseline. Do not rerun that case set to claim post-fix performance. Prepare a fresh, independently reviewed JSONL set with `use_for_tuning: false`, then pass its path explicitly:
+
+```bash
+uv run --extra inference python scripts/evaluate_rag.py --dataset data/test/rag-post-fix-reviewed.jsonl --output artifacts/evaluation/rag-post-fix.json
+```
+
+The evaluator records retrieval and referral decisions. A human must still review whether each answer is supported, complete, and correctly cited. Keep the pre-fix record unchanged as baseline evidence.
 
 ## Checks
 
 Run backend tests:
 
 ```bash
-.venv/bin/python -m pytest
+uv run --extra inference --extra dev pytest
 ```
 
 Build the frontend:
@@ -141,10 +151,10 @@ cd frontend
 npm run build
 ```
 
-The browser workflow test is optional. Install its browser once with `uv run playwright install chromium`, then start the API and frontend before running:
+The browser workflow test is optional. It mocks the API responses and checks the UI flow, so only the frontend needs to be running. Install its browser once with `uv run --extra dev playwright install chromium`, start Vite, then run:
 
 ```bash
-.venv/bin/python -m pytest -m e2e
+uv run --extra inference --extra dev pytest -m e2e
 ```
 
 ## Record the demonstration video
@@ -171,3 +181,4 @@ scripts/                       Training, evaluation, and corpus preparation
 docs/report/                   Assessment report and supporting evidence
 artifacts/                     Local model weights and evaluation outputs; ignored by Git
 ```
+python demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles

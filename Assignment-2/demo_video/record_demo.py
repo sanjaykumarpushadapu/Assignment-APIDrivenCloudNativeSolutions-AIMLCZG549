@@ -26,10 +26,11 @@ See ``demo_video/README.md`` for setup and options.
 from __future__ import annotations
 
 import argparse
-import atexit
 import ast
+import atexit
 import base64
 import html
+import importlib.util
 import json
 import mimetypes
 import os
@@ -113,6 +114,18 @@ def refresh_windows_path() -> None:
     os.environ["PATH"] = os.pathsep.join(
         part for part in (user_path, current_path) if part
     )
+
+
+def require_inference_dependencies() -> None:
+    """Fail before service startup when this interpreter cannot load the model stack."""
+    required = ("torch", "transformers", "sentencepiece")
+    missing = [name for name in required if importlib.util.find_spec(name) is None]
+    if missing:
+        fail(
+            "The demo starts the API automatically, but its Python environment is "
+            f"missing: {', '.join(missing)}. From Assignment-2, run "
+            "`uv sync --extra inference --extra dev`, then rerun the recorder."
+        )
 
 
 # ======================================================================
@@ -1806,6 +1819,8 @@ def main() -> None:
         )
         log(f"Done: {out_path}")
         return
+
+    require_inference_dependencies()
 
     work = Path(args.work)
     (work / "audio").mkdir(parents=True, exist_ok=True)

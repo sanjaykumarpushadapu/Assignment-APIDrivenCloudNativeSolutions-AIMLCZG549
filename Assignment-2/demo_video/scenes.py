@@ -126,7 +126,8 @@ SCENES = [
         "say": (
         "Requests are routed into five categories: appointment support, education resource request, portal "
             "technical support, records and insurance administration, and clinical staff referral. Any personal clinical question overrides the other "
-            "labels and is referred to staff, without advice or an urgency assessment."
+            "labels and is referred to staff. Separate chat rules handle selected urgent phrases; neither "
+            "component replaces clinical triage."
         ),
     },
     # ------------------------------------------------------------- Part 2
@@ -244,6 +245,29 @@ SCENES = [
         ),
     },
     {
+        "id": "app_urgent_care",
+        "kind": "app",
+        "steps": [
+            {
+                "fill": "Ask a question",
+                "text": "My father is unconscious, what is the next step?",
+            },
+            {"click": "Send question"},
+            {
+                "expect": (
+                    "This may need urgent medical attention. Contact local emergency "
+                    "services or follow your clinic’s urgent-care instructions now."
+                )
+            },
+        ],
+        "say": (
+            "For this recognized urgent phrase, the chat returns a fixed message to "
+            "contact local emergency services or follow the clinic’s urgent-care "
+            "instructions before retrieval. This narrow text rule is not comprehensive "
+            "emergency detection or clinical triage."
+        ),
+    },
+    {
         "id": "swagger_intro",
         "kind": "url",
         "url": API_URL + "/docs",
@@ -358,6 +382,11 @@ SELF_SCRIPTS = {
     "app_referral": (
         "A personal medication question is routed to clinical staff. Our assistant doesn't give clinical "
         "advice."
+    ),
+    "app_urgent_care": (
+        "For this recognized urgent phrase, the chat returns a fixed message to contact local emergency "
+        "services or follow the clinic's urgent-care instructions before retrieval. This narrow text rule "
+        "is not comprehensive emergency detection or clinical triage."
     ),
     "swagger_intro": "The same features are available through our documented API.",
     "api_metadata": "The metadata endpoint shows which model and index versions are loaded.",

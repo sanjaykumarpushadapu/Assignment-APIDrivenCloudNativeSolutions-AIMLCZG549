@@ -133,6 +133,10 @@ def test_general_corpus_questions_are_not_routed_to_staff_by_keyword_rules(
         "What should I do about a severe low blood sugar episode?",
         "Someone with diabetes is unconscious and cannot wake up.",
         "They are having a seizure and have diabetes.",
+        "My father is unconscious, what is the next step?",
+        "My father is unconscious. What is the next step?",
+        "What is diabetes and my father is unconscious?",
+        "A person is not unconscious, but my father is unconscious.",
     ],
 )
 def test_emergency_wording_uses_urgent_care_path(question: str) -> None:
@@ -151,6 +155,7 @@ def test_emergency_wording_uses_urgent_care_path(question: str) -> None:
         "I am not unconscious. What is diabetes?",
         "What are symptoms of a seizure?",
         "I do not have severe hypoglycemia. What is a normal symptom?",
+        "What is severe hypoglycemia?",
     ],
 )
 def test_negated_or_general_emergency_terms_do_not_trigger_urgent_path(

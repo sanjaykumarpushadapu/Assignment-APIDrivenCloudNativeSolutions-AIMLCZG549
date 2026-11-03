@@ -6,8 +6,9 @@ Use Microsoft Edge TTS (`edge-tts`) with `en-IN-PrabhatNeural` for the same narr
 voice on macOS, Windows, and Linux.
 The video covers the workplace
 problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
-React app (analysis, source-backed chat and a clinical referral), Swagger "Try it out →
-Execute" on the API, and the workplace results. Every video has captions (CC).
+React app (analysis, source-backed chat, clinical referral, and the limited urgent-care
+response), Swagger "Try it out → Execute" on the API, and the workplace results. Every
+video has captions (CC).
 
 Run everything from the `Assignment-2` folder. The scripts work on Windows, macOS and Linux.
 
@@ -59,9 +60,13 @@ Install ffmpeg (`winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` o
 (`source .venv/bin/activate` on macOS/Linux or `.venv\\Scripts\\activate` on Windows):
 
 ```bash
-pip install -e ".[dev]"
+uv sync --extra inference --extra dev
 pip install -r demo_video/requirements.txt
 ```
+
+The `inference` extra installs PyTorch, Transformers, and SentencePiece needed by
+the API. The recorder starts the API automatically, but it does not install
+application dependencies.
 
 The recorder uses installed Google Chrome by default. Use `--channel msedge`, or run
 `python -m playwright install chromium` and use `--channel chromium`.

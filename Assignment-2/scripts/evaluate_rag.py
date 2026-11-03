@@ -1,8 +1,9 @@
-"""Score the reviewed RAG evaluation set against a running local API.
+"""Score an explicitly selected reviewed RAG set against a running local API.
 
-This script is for final evaluation only. It refuses candidate/unreviewed data,
-does not change model or retrieval settings, and leaves answer-quality judgments
-for a human reviewer.
+Pass a fresh, independent held-out set for post-fix evaluation. The recorded
+pre-fix baseline must not be reused to claim post-fix performance. The script
+refuses candidate/unreviewed data, does not change model or retrieval settings,
+and leaves answer-quality judgments for a human reviewer.
 """
 
 from __future__ import annotations
@@ -17,7 +18,6 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATASET_PATH = PROJECT_ROOT / "data" / "test" / "rag_evaluation_candidate.jsonl"
 DEFAULT_OUTPUT = PROJECT_ROOT / "artifacts" / "evaluation" / "rag_test_results.json"
 TEAM_REVIEWERS = {
     "Sanjay",
@@ -171,7 +171,10 @@ def main() -> int:
         "--api-url", default="http://127.0.0.1:8001", help="Running API base URL."
     )
     parser.add_argument(
-        "--dataset", type=Path, default=DATASET_PATH, help="Approved evaluation JSONL."
+        "--dataset",
+        type=Path,
+        required=True,
+        help="Explicitly selected, independently reviewed evaluation JSONL.",
     )
     parser.add_argument(
         "--output", type=Path, default=DEFAULT_OUTPUT, help="JSON results path."

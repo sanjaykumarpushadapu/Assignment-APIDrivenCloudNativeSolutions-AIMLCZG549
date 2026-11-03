@@ -90,6 +90,8 @@ The Swagger UI request below demonstrates `POST /analyze`. The response shows th
 
 ![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
+A Playwright UI smoke test passed on 3 November 2026 using deterministic mocked responses for `/analyze` and `/chat`. It verified that the interface displays a category and summary, renders a chat answer, opens the cited source passage, and displays the fixed urgent-care referral. Because the API responses were mocked, this confirms the frontend flow only; it is not a live API or model integration test.
+
 ## II. Fine-Tuning
 
 ### Dataset and method
@@ -162,7 +164,11 @@ The initial evaluation used 30 reviewed cases: 20 answerable from the indexed so
 
 The baseline missed six of ten expected referrals, including missed-dose advice, individual glucose readings, clinic appointment and education-session logistics, medication interaction advice, and a severe low-blood-sugar question. One answerable question was incorrectly abstained on; one generated answer did not support its answer key; and four answers were judged incomplete or incorrect. These are results from the earlier version.
 
-The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Automated checks exercise personal-care and clinic-process referrals, keep general WHO questions eligible for answers, and cover urgent and negated-emergency wording.
+The current implementation includes routing rules for personal-care, clinic-process, and urgent-symptom questions. Development diagnostic cases informed those changes and are excluded from performance claims. Automated checks exercise personal-care and clinic-process referrals, keep general WHO questions eligible for answers, and cover urgent and negated-emergency wording. Several baseline question phrasings also appear in the routing regression tests (including RAG-021, RAG-022, RAG-024, RAG-025, RAG-027, and RAG-028). Therefore, retain these metrics as **pre-fix baseline results only**; they are not an independent evaluation of the current rules. The available `rag_post_fix*` files are marked as development diagnostics and must not be presented as held-out post-fix results. No post-fix RAG score is claimed; fresh, independently reviewed cases are required for one.
+
+On 3 November 2026, 10 focused urgent-routing regression cases passed. They check urgent events alongside explanatory wording, negation, and general definitions. These checks cover known rule behavior only; they do not establish comprehensive emergency detection or RAG answer quality.
+
+For example, “My father is unconscious, what is the next step?” returns a fixed message to contact local emergency services or follow the clinic’s urgent-care instructions before retrieval or generation. This is a limited text-pattern safeguard, not emergency assessment or clinical triage.
 
 ## IV. Situated Learning - Workplace Application
 
@@ -176,6 +182,8 @@ The support-message interface accepts a message and displays its primary categor
 
 For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 6 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 7. Figure 2 in Part I shows the request-analysis flow. Together, these examples demonstrate the fine-tuned classifier, summariser, retrieval, answer generation, and referral workflow.
 
+The urgent-care rule is separate from the classifier: for selected phrases such as “My father is unconscious, what is the next step?”, `/chat` returns the fixed urgent-care response before retrieval. This tested behavior is narrow and must not be presented as reliable emergency detection.
+
 **Figure 7. Medication question referred to clinic staff in the web interface.**
 
 ![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
@@ -186,9 +194,11 @@ On the synthetic held-out set, the classifier achieved 95.00% accuracy and 94.74
 
 The application classifies messages, prepares summaries, and displays retrieved sources. It does not call scheduling, portal, or records APIs; staff complete those transactions through clinic workflows.
 
+No manual-versus-assisted task timing study was performed, so this report makes no claim that the prototype reduces handling time or staff effort.
+
 ### Reflect - Deployment constraints and improvement
 
-Evaluation uses synthetic support messages and public education material; no real patient messages are included. Before using real messages, a clinic would need to define access roles, retention periods, and applicable privacy, security, and regulatory controls. The application uses configured model checkpoints and a local WHO passage index. Hosting and operating costs were not measured; they would depend on deployment choices and usage. The indexed WHO source covers general diabetes information. Clinic-specific appointment, portal, and leaflet answers require clinic-approved content.
+Evaluation uses synthetic support messages and public education material; no real patient messages are included. Before using real messages, a clinic would need to define access roles, retention periods, and applicable privacy, security, and regulatory controls. For a possible deployment in India, the organisation should assess whether the Digital Personal Data Protection Act, 2023, and rules in force at deployment apply, with qualified privacy/legal review. Other regimes, including GDPR or HIPAA, are relevant only where the deployment context brings them into scope. This prototype makes no legal applicability or compliance determination. The application uses configured model checkpoints and a local WHO passage index. Hosting and operating costs were not measured; they would depend on deployment choices and usage. The indexed WHO source covers general diabetes information. Clinic-specific appointment, portal, and leaflet answers require clinic-approved content.
 
 The next step is an independent review by clinic subject-matter experts using representative, approved cases. It should score summary fact preservation, answer support, and referral correctness under the current rules; the reported RAG baseline predates the rule changes. The current application does not call scheduling, portal, or records APIs. Connecting those systems would require authorised interfaces and checks against clinic workflows.
 
@@ -199,3 +209,11 @@ The diabetes-care support application combines request classification, handoff s
 ## Demonstration Video
 
 **Demonstration video:** Google Drive link to be added after the required project demonstration is uploaded.
+
+## References
+
+1. Google Research / Hugging Face, [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base).
+2. Hugging Face, [T5 model documentation](https://huggingface.co/docs/transformers/en/model_doc/t5).
+3. Sentence Transformers, [all-MiniLM-L6-v2 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
+4. World Health Organization, [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes), accessed 31 October 2026.
+5. Ministry of Electronics and Information Technology, Government of India, [Data Protection Framework](https://www.meity.gov.in/data-protection-framework). Consult qualified institutional privacy/legal reviewers to determine applicability and current requirements; this report is not a compliance assessment.
