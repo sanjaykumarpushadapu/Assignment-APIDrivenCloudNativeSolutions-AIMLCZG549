@@ -131,6 +131,10 @@ def capture_analysis(page: Page, app_url: str, target: Path) -> None:
     page.get_by_role("button", name="Analyze request").click()
     result = page.locator(".analysis-result")
     expect(result).to_be_visible(timeout=180_000)
+    expect(page.get_by_role("button", name="Analyze request")).to_be_enabled(
+        timeout=10_000
+    )
+    expect(page.locator(".handoff")).to_have_attribute("aria-busy", "false")
     expect(result).not_to_contain_text("Unable to connect")
     expect(page.locator(".error-message")).to_have_count(0)
     if "confirm" not in result.inner_text().lower():
@@ -138,6 +142,7 @@ def capture_analysis(page: Page, app_url: str, target: Path) -> None:
             "The current appointment summary no longer mentions booking confirmation. "
             "Review the report wording before refreshing its screenshots."
         )
+    compact_app_capture(page)
     page.locator(".support-panel").screenshot(path=str(target), animations="disabled")
 
 
@@ -147,6 +152,28 @@ def submit_question(page: Page, question: str) -> None:
     expect(page.locator(".exchange .chat-entry--assistant")).to_be_visible(
         timeout=180_000
     )
+    expect(page.locator(".conversation")).to_have_attribute("aria-busy", "false")
+    expect(page.locator(".searching")).to_have_count(0)
+
+
+def compact_app_capture(page: Page) -> None:
+    """Collapse the fixed-height workspace so report figures frame their results."""
+    page.add_style_tag(
+        content="""
+        html, body, #root { height: auto !important; min-height: 0 !important; }
+        .app-shell { height: auto !important; min-height: 0 !important; }
+        .workspace { flex: 0 0 auto !important; min-height: 0 !important; }
+        .workflow-grid { min-height: 0 !important; }
+        .panel { height: auto !important; min-height: 0 !important; }
+        .support-layout { flex: 0 0 auto !important; grid-template-rows: auto auto !important; }
+        .analysis-form textarea { flex: 0 0 auto !important; height: 150px !important; }
+        .handoff { min-height: 0 !important; }
+        .analysis-result { overflow: visible !important; }
+        .conversation { flex: 0 0 auto !important; min-height: 0 !important; overflow: visible !important; }
+        .exchange { min-height: 0 !important; overflow: visible !important; }
+        .question-form { flex: 0 0 auto !important; }
+        """
+    )
 
 
 def capture_grounded_answer(page: Page, app_url: str, target: Path) -> None:
@@ -155,6 +182,7 @@ def capture_grounded_answer(page: Page, app_url: str, target: Path) -> None:
     answer = page.locator(".exchange .chat-entry--assistant")
     expect(answer).to_contain_text("symptoms")
     expect(answer.locator(".source-chip").first).to_be_visible()
+    compact_app_capture(page)
     page.locator(".knowledge-panel").screenshot(path=str(target), animations="disabled")
 
 
@@ -164,6 +192,7 @@ def capture_referral(page: Page, app_url: str, target: Path) -> None:
     answer = page.locator(".exchange .chat-entry--assistant")
     expect(answer).to_contain_text("contact your clinic team")
     expect(answer.locator(".source-chip")).to_have_count(0)
+    compact_app_capture(page)
     page.locator(".knowledge-panel").screenshot(path=str(target), animations="disabled")
 
 

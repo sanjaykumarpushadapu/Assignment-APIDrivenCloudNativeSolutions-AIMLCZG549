@@ -82,14 +82,14 @@ SCENES = [
     {
         "id": "title",
         "kind": "card",
-        "eyebrow": "AIMLCZG549 · API-Driven Cloud-Native Solutions · Assignment II",
+        "eyebrow": "AIMLCZG549 · API-Driven Cloud-Native Solutions · Assignment II · Group 49",
         "title": "Diabetes Care Support Assistant",
-        "subtitle": "Request routing, handoff summaries and document-grounded Q&A · Group 49",
+        "subtitle": "Request routing · staff handoffs · source-grounded Q&A",
         "lines": MEMBERS,
         "footnote": "Automated screen recording · synthesized narration",
         "say": (
-            "Group 49 presents the Diabetes Care Support Assistant, for A.I.M.L. C.Z.G. 5 4 9, Assignment Two. "
-            "The team: Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra."
+            "Group 49 presents the Diabetes Care Support Assistant for A.I.M.L. C.Z.G. five four nine, Assignment Two. "
+            "The team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra."
         ),
     },
     {
@@ -112,7 +112,7 @@ SCENES = [
     # ------------------------------------------------------------- Part 1
     part_card(
         1,
-        "Workplace Problem, Labels & Data",
+        "API-Based AI Application",
         MEMBERS[3],
         "Part one outlines the workplace scenario: a fictional diabetes clinic "
         "support desk handles requests about appointments, education, portal access, records and clinical questions. "
@@ -127,17 +127,17 @@ SCENES = [
         "highlight": r"clinical_staff_referral",
         "caption": "Five routing labels and the clinical-referral override",
         "say": (
-            "Requests are routed into five categories: appointment support, education resources, portal support, "
-            "records and billing, and clinical-staff referral. Any personal clinical question overrides the other "
+        "Requests are routed into five categories: appointment support, education resource request, portal "
+            "technical support, records and insurance administration, and clinical staff referral. Any personal clinical question overrides the other "
             "labels and is referred to staff, without advice or an urgency assessment."
         ),
     },
     # ------------------------------------------------------------- Part 2
     part_card(
         2,
-        "Fine-Tuning & Summary Evaluation",
+        "Fine-Tuning",
         MEMBERS[2],
-        "Part two: full fine-tuning of the request classifier and evaluation of the configured base summariser.",
+        "Part two covers full fine-tuning of the request classifier and the summary-quality evaluation.",
     ),
     {
         "id": "fine_tuning",
@@ -163,7 +163,7 @@ SCENES = [
     # ------------------------------------------------------------- Part 3
     part_card(
         3,
-        "Retrieval-Augmented Q&A",
+        "RAG Model",
         MEMBERS[1],
         "Part three: retrieval-augmented Q&A grounded in curated World Health Organization diabetes information.",
     ),
@@ -182,7 +182,7 @@ SCENES = [
     # ------------------------------------------------------------- Part 4
     part_card(
         4,
-        "Application, API & Workplace Workflow",
+        "Situated Learning – Workplace Application",
         MEMBERS[0],
         "Part four: the interactive application, documented API, and workplace workflow demonstration.",
     ),
@@ -321,11 +321,11 @@ SELF_SCRIPTS = {
         "demonstrates message classification, handoff summaries, and source-based answers for staff."
     ),
     "label_guide": (
-        "We route requests into five categories: appointments, education resources, portal support, records "
-        "and billing, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
+        "We route requests into five categories: appointment support, education resource request, portal "
+        "technical support, records and insurance administration, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
         "to staff."
     ),
-    "part2_card": "Part two covers full fine-tuning of the classifier and evaluation of the configured base summariser.",
+    "part2_card": "Part two covers full fine-tuning of the classifier and summary-quality evaluation.",
     "fine_tuning": (
         "We fully fine-tuned our classifier on synthetic support messages. The held-out results compare the "
         "base model with the fine-tuned checkpoint."
@@ -333,12 +333,12 @@ SELF_SCRIPTS = {
     "summaries": (
         "We evaluated the configured base summariser on held-out messages for essential-fact retention and unsupported additions."
     ),
-    "part3_card": "Part three is retrieval-augmented Q&A over curated WHO diabetes information.",
+    "part3_card": "Part three is the RAG model, grounded in curated WHO diabetes information.",
     "rag_pipeline": (
         "Our index contains curated passages from the WHO diabetes questions-and-answers page. The results shown "
         "are the pre-fix baseline, retained to document the failures that prompted referral-rule changes."
     ),
-    "part4_card": "Part four demonstrates the interactive application, API, and workplace workflow.",
+    "part4_card": "Part four applies the AI solution in a diabetes-clinic workplace scenario.",
     "tests_terminal": "We ran our backend tests and frontend build just before recording.",
     "app_analysis": (
         "In our live app, a staff member pastes a support message. The fine-tuned classifier gives the primary "

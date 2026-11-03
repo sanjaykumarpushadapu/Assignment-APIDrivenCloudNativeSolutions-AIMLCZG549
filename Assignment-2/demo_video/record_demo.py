@@ -63,7 +63,7 @@ OUT_W, OUT_H = 1920, 1080
 LEAD_IN = 0.35  # seconds of picture before the narrator starts
 TAIL = 0.75  # seconds of picture after the narrator stops
 DEFAULT_OUT = "Group49_AIMLCZG549_Assignment2_Demo.mp4"
-HOLD_MS = 2800  # minimum time a live result stays on screen after it appears
+HOLD_MS = 5000  # keep completed app and Swagger results readable after they appear
 RESULT_TIMEOUT_MS = 180000  # model inference on a laptop can be slow
 SERVICE_START_TIMEOUT = 180  # allow Vite and Uvicorn to start on a laptop
 
@@ -670,10 +670,10 @@ def card_html(scene: dict, dur: float) -> str:
     css = """
 body{display:flex;align-items:center;justify-content:center;
  background:radial-gradient(circle at 30% 20%,#174737 0%,#0f172a 60%)}
-.card{max-width:1250px;text-align:center;animation:fadein .8s ease both}
+.card{width:min(1400px,calc(100vw - 96px));text-align:center;animation:fadein .8s ease both}
 .eyebrow{font-size:22px;letter-spacing:3px;text-transform:uppercase;color:#86efac;margin-bottom:28px}
 h1{font-size:60px;line-height:1.15;font-weight:750;color:#fff}
-h2{font-size:34px;font-weight:500;color:#bbf7d0;margin-top:26px}
+h2{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:clamp(25px,2.1vw,34px);line-height:1.28;font-weight:500;color:#bbf7d0;text-wrap:balance;overflow-wrap:anywhere}
 ul{list-style:none;margin-top:40px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px 34px}
 li{font-size:27px;color:#e2e8f0;animation:fadein .8s ease both}
 li:nth-child(1){animation-delay:.4s}li:nth-child(2){animation-delay:.6s}
