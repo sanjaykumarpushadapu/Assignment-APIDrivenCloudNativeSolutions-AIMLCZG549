@@ -111,6 +111,8 @@ The Swagger UI request below demonstrates `POST /analyze` with a synthetic resch
 
 ![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
+Functional validation covered support-message analysis, question answering with displayed sources, and the urgent-care response. Ten urgent-routing checks passed, and the frontend production build succeeded.
+
 ## II. Fine-Tuning
 
 ### Dataset and method
