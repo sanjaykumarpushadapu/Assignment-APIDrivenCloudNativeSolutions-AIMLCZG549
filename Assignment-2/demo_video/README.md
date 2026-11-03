@@ -9,18 +9,18 @@ RAG pipeline, team responsibilities, the live React app (analysis, source-backed
 clinical referral, and the urgent-care response), Swagger API examples, and workplace
 application. Every video has captions (CC).
 
-Run everything from the `Assignment-2` folder. The scripts work on Windows, macOS and Linux.
+Run these commands from the `Assignment-2` folder. Use the interpreter path for your operating system so the project virtual environment is used.
 
 ## Quick reference
 
-| Command | What it does |
-|---|---|
-| `python demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles` | Records and assembles the full video with the same narrated voice across operating systems; no per-scene prompts. |
-| `pip install -r demo_video/requirements.txt` | One-time install of video, caption, and voice dependencies in the active project environment. |
-| `python demo_video/record_demo.py --tts none --burn-subtitles` | Records the full video with no voice and captions drawn on screen. |
-| `python demo_video/record_demo.py --list` | Lists the scenes and who narrates each part. |
-| `.venv/bin/python scripts/capture_report_evidence.py` | Refreshes the report's Swagger and React screenshots after the API and app are running. |
-| `python demo_video/record_demo.py --clean-all` | Last step only, after upload: deletes generated videos and voice recordings (asks first). |
+| Task | macOS/Linux | Windows PowerShell |
+|---|---|---|
+| Record with Prabhat voice and captions | `.venv/bin/python demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles` | `.\.venv\Scripts\python.exe demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles` |
+| Install video and voice dependencies | `uv pip install --python .venv/bin/python -r demo_video/requirements.txt` | `uv pip install --python .venv\Scripts\python.exe -r demo_video/requirements.txt` |
+| Record without voice | `.venv/bin/python demo_video/record_demo.py --tts none --burn-subtitles` | `.\.venv\Scripts\python.exe demo_video/record_demo.py --tts none --burn-subtitles` |
+| List scenes | `.venv/bin/python demo_video/record_demo.py --list` | `.\.venv\Scripts\python.exe demo_video/record_demo.py --list` |
+| Refresh report screenshots | `.venv/bin/python scripts/capture_report_evidence.py` | `.\.venv\Scripts\python.exe scripts/capture_report_evidence.py` |
+| Remove generated videos and voice recordings | `.venv/bin/python demo_video/record_demo.py --clean-all` | `.\.venv\Scripts\python.exe demo_video/record_demo.py --clean-all` |
 
 ## Before recording
 
@@ -49,26 +49,27 @@ Missing evidence stops the build instead of producing a video with invented numb
 recorder before the models are ready, record only scenes that need no results, for example:
 
 ```bash
-python demo_video/record_demo.py --tts none --allow-not-ready --only title label_guide swagger_intro
+.venv/bin/python demo_video/record_demo.py --tts none --allow-not-ready --only title label_guide swagger_intro
 ```
+
+On Windows PowerShell, use `.\.venv\Scripts\python.exe` in place of `.venv/bin/python` in that example.
 
 ## One-time setup
 
 Install ffmpeg (`winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS,
-`sudo apt install ffmpeg` on Linux), then activate the project virtual environment
-(`source .venv/bin/activate` on macOS/Linux or `.venv\\Scripts\\activate` on Windows):
+`sudo apt install ffmpeg` on Linux), then create and sync the project virtual environment:
 
 ```bash
 uv sync --extra inference --extra dev
-pip install -r demo_video/requirements.txt
 ```
+
+Then install `demo_video/requirements.txt` using the operating-system command in the table above.
 
 The `inference` extra installs PyTorch, Transformers, and SentencePiece needed by
 the API. The recorder starts the API automatically, but it does not install
 application dependencies.
 
-The recorder uses installed Google Chrome by default. Use `--channel msedge`, or run
-`python -m playwright install chromium` and use `--channel chromium`.
+The recorder uses installed Google Chrome by default. Use `--channel msedge`, or install Playwright's Chromium using the project's virtual-environment Python and use `--channel chromium`.
 
 Services started by the recorder are stopped when the recording command exits. Any API or frontend that was already running is left untouched.
 

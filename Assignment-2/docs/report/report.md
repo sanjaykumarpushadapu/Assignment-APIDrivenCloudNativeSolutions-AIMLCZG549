@@ -40,20 +40,20 @@ The React and TypeScript interface sends support messages and questions to FastA
 flowchart LR
     Staff[Clinic staff] --> UI[React and TypeScript UI]
     UI --> API[FastAPI]
+    APIResponse[FastAPI response] --> UI
+    GenerationRuntime[Shared base FLAN T5 runtime]
 
     subgraph Analysis[Support message analysis]
         Message[Natural language support message]
         Classifier[Fine tuned FLAN T5 classifier]
         Category[Support category]
-        Summarizer[FLAN T5 summarizer]
         Summary[Handoff summary]
         Message --> Classifier --> Category
-        Message --> Summarizer --> Summary
     end
 
     API -->|POST /analyze| Message
-    Category --> UI
-    Summary --> UI
+    Category --> APIResponse
+    Summary --> APIResponse
 
     subgraph QuestionAnswering[Question answering with RAG]
         Question[Natural language question]
@@ -61,10 +61,9 @@ flowchart LR
         Urgent[Urgent care response]
         Referral[Staff referral]
         RetrievalQuery[Retrieval query]
-        Retriever[MiniLM embedding retrieval, cosine top 3]
+        Retriever[all MiniLM L6 v2 retrieval, cosine top 3]
         Index[Curated WHO passage index]
         Context[Question and retrieved passages]
-        Generator[FLAN T5 answer generation]
         Answer[Answer and source passages]
         Question --> Guard
         Guard -->|Urgent phrase| Urgent
@@ -72,16 +71,19 @@ flowchart LR
         Guard -->|General question| Retriever
         Question --> Context
         Index --> Retriever
-        Retriever --> Context --> Generator --> Answer
+        Retriever --> Context
         RetrievalQuery --> Retriever
     end
 
+    Message --> GenerationRuntime --> Summary
+    Context --> GenerationRuntime --> Answer
+
     API -->|POST /chat| Question
     API -->|POST /retrieve| RetrievalQuery
-    Urgent --> UI
-    Referral --> UI
-    Answer --> UI
-    Retriever -->|Ranked passages| UI
+    Urgent --> APIResponse
+    Referral --> APIResponse
+    Answer --> APIResponse
+    Retriever -->|Ranked passages| APIResponse
 ```
 
 ## I. API-Based AI Application
@@ -210,9 +212,7 @@ The three task evaluations show complementary workplace value. Classification pr
 
 ### Reflect - Project constraints and improvement
 
-The evaluation used synthetic support messages and public WHO material, so the project dataset contains no real patient messages. A real staff workflow should apply role-based access, secure handling, and defined retention for message data, while meeting the requirements relevant to the organisation and its location. The application uses local model checkpoints and a local passage index, requiring storage and compute for inference. FastAPI exposes the NLP functions through documented endpoints; the demonstrated integration is between the React interface and the API.
-
-The priority improvement is independent, expert-led evaluation on a larger set of representative cases before wider use. This is the highest priority because the current results use small synthetic datasets; expert review can assess summary fact preservation, source support, and referral decisions in realistic staff scenarios.
+The evaluations used synthetic support messages and public WHO information. Their results describe model behaviour on the reviewed cases; they do not measure staff time or establish performance in a live clinic workflow. A follow-up evaluation could use a broader, independently reviewed set of representative cases and measure the staff workflow directly.
 
 ## Conclusion
 
@@ -221,10 +221,3 @@ The project successfully demonstrates an API-driven NLP application for a diabet
 ## Demonstration Video
 
 **Demonstration video:** Google Drive link to be added after the required project demonstration is uploaded.
-
-## References
-
-1. Google Research / Hugging Face, [FLAN-T5 Base model card](https://huggingface.co/google/flan-t5-base).
-2. Hugging Face, [T5 model documentation](https://huggingface.co/docs/transformers/en/model_doc/t5).
-3. Sentence Transformers, [all-MiniLM-L6-v2 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
-4. World Health Organization, [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes), accessed 31 October 2026.

@@ -88,8 +88,8 @@ _PERSONAL_CARE_PATTERNS = (
     re.compile(
         r"\b(?:severe|very\s+low|very\s+high|dangerously\s+low|"
         r"dangerously\s+high)\b.{0,35}\b(?:blood\s+sugar|blood\s+glucose|"
-        r"glucose|hypoglyc?emia|hyperglyc?emia)\b|"
-        r"\b(?:hypoglyc?emia|hyperglyc?emia)\b",
+        r"glucose|hypoglyc(?:a)?emia|hyperglyc(?:a)?emia)\b|"
+        r"\b(?:hypoglyc(?:a)?emia|hyperglyc(?:a)?emia)\b",
         re.IGNORECASE,
     ),
     re.compile(
@@ -218,11 +218,11 @@ class Seq2SeqKnowledgeAnswerer:
         """Use an urgent-care response for severe or immediately dangerous signs."""
         pattern = re.compile(
             r"\b(?:severe|dangerously\s+low|dangerously\s+high)\b.{0,40}"
-            r"\b(?:blood\s+sugar|blood\s+glucose|glucose|hypoglyc?emia|"
-            r"hyperglyc?emia)\b|"
+            r"\b(?:blood\s+sugar|blood\s+glucose|glucose|hypoglyc(?:a)?emia|"
+            r"hyperglyc(?:a)?emia)\b|"
             r"\b(?:faint(?:ed|ing)?|unconscious|cannot\s+wake)\b|"
             r"\b(?:having|experiencing)\s+(?:a\s+)?seizure\b|"
-            r"\bsevere\s+hypoglyc?emia\b",
+            r"\bsevere\s+hypoglyc(?:a)?emia\b",
             re.IGNORECASE,
         )
         for match in pattern.finditer(question):
