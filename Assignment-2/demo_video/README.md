@@ -2,8 +2,8 @@
 
 These scripts record the Group 49 Assignment II demonstration video: Playwright
 records each scene in Chromium, and ffmpeg joins the clips with narration and captions.
-The recorder selects macOS `say` on Mac and Microsoft Edge TTS (`edge-tts`) on
-Windows and Linux. Edge TTS uses `en-US-AriaNeural` by default.
+Use Microsoft Edge TTS (`edge-tts`) with `en-IN-PrabhatNeural` for the same narrated
+voice on macOS, Windows, and Linux.
 The video covers the workplace
 problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
 React app (analysis, source-backed chat and a clinical referral), Swagger "Try it out →
@@ -15,7 +15,7 @@ Run everything from the `Assignment-2` folder. The scripts work on Windows, macO
 
 | Command | What it does |
 |---|---|
-| `python demo_video/record_demo.py --burn-subtitles` | Records and assembles the full narrated video using the OS default voice; no per-scene prompts. |
+| `python demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles` | Records and assembles the full video with the same narrated voice across operating systems; no per-scene prompts. |
 | `pip install -r demo_video/requirements.txt` | One-time install of video, caption, and voice dependencies in the active project environment. |
 | `python demo_video/record_demo.py --tts none --burn-subtitles` | Records the full video with no voice and captions drawn on screen. |
 | `python demo_video/record_demo.py --list` | Lists the scenes and who narrates each part. |
@@ -72,7 +72,7 @@ Services started by the recorder are stopped when the recording command exits. A
 
 | Option | Effect |
 |---|---|
-| `--tts say` / `--tts edge --voice en-US-AriaNeural` | Override the OS default to select macOS system speech or Microsoft Edge's default neural voice. |
+| `--tts say` / `--tts edge --voice en-IN-PrabhatNeural` | Select macOS system speech or the shared Edge neural voice. |
 | `--burn-subtitles` | Draw captions on the picture; Google Drive's player ignores embedded caption tracks. |
 | `--only <scene ids>` | Record only some scenes. |
 | `--skip-commands` | Reuse the previous run's terminal output. |

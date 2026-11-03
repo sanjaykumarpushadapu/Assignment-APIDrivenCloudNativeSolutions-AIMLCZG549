@@ -149,10 +149,10 @@ The browser workflow test is optional. Install its browser once with `uv run pla
 
 ## Record the demonstration video
 
-Install the video dependencies in the project environment with `pip install -r demo_video/requirements.txt`. Activate `.venv` with `source .venv/bin/activate` on macOS/Linux or `.venv\\Scripts\\activate` on Windows. The recorder selects macOS `say` on Mac and Microsoft Edge TTS on Windows or Linux. With the virtual environment active, use this same command on either platform:
+Install the video dependencies in the project environment with `pip install -r demo_video/requirements.txt`. Activate `.venv` with `source .venv/bin/activate` on macOS/Linux or `.venv\\Scripts\\activate` on Windows. Use the same Edge neural voice on either platform:
 
 ```bash
-python demo_video/record_demo.py --burn-subtitles
+python demo_video/record_demo.py --tts edge --voice en-IN-PrabhatNeural --burn-subtitles
 ```
 
 The command starts the API and frontend if they are not already running, loads the configured model components, and records without per-scene prompts. It requires `ffmpeg` and Google Chrome. On macOS, install `ffmpeg` with `brew install ffmpeg`; on Windows, install it with `winget install Gyan.FFmpeg`. Services started by the recorder are stopped after it finishes. The MP4, captions, and recording report are saved under `demo_video/output/`.
