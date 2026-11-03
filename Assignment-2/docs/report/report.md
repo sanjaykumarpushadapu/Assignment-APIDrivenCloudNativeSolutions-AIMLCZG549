@@ -39,26 +39,50 @@ The React and TypeScript interface sends support messages and questions to FastA
 
 ```mermaid
 flowchart LR
-    Staff[Clinic staff] --> UI[React interface]
+    Staff[Clinic staff] --> UI[React and TypeScript UI]
     UI --> API[FastAPI]
 
-    API -->|/analyze| Analyze[Analyze message]
-    Analyze --> Classifier[Fine-tuned FLAN-T5 classifier<br/>separate runtime]
-    Analyze --> Summary[FLAN-T5 summariser<br/>shared generation runtime]
+    subgraph Analysis[Support message analysis]
+        Message[Natural language support message]
+        Classifier[Fine tuned FLAN T5 classifier]
+        Category[Support category]
+        Summarizer[FLAN T5 summarizer]
+        Summary[Handoff summary]
+        Message --> Classifier --> Category
+        Message --> Summarizer --> Summary
+    end
 
-    API -->|/retrieve| Retriever[Passage retrieval]
-    API -->|/chat| Guard[Urgent and referral rules]
-    Guard -->|Urgent phrase| Urgent[Fixed urgent-care response]
-    Guard -->|Personal or clinic-specific request| Handoff[Fixed staff referral]
-    Guard -->|Otherwise| Retriever
-    Retriever --> Embed[Embedding model]
-    Embed --> Index[Local WHO passage index]
-    Index --> Context[Ranked source passages]
-    Context --> Answer[FLAN-T5 answer generation<br/>shared with summarisation]
-    Answer --> Result[Answer with retrieved sources]
-    Result --> Staff
-    Urgent --> Staff
-    Handoff --> Staff
+    API -->|POST /analyze| Message
+    Category --> UI
+    Summary --> UI
+
+    subgraph QuestionAnswering[Question answering with RAG]
+        Question[Natural language question]
+        Guard[Urgent and referral routing]
+        Urgent[Urgent care response]
+        Referral[Staff referral]
+        RetrievalQuery[Retrieval query]
+        Retriever[MiniLM embedding retrieval, cosine top 3]
+        Index[Curated WHO passage index]
+        Context[Question and retrieved passages]
+        Generator[FLAN T5 answer generation]
+        Answer[Answer and source passages]
+        Question --> Guard
+        Guard -->|Urgent phrase| Urgent
+        Guard -->|Personal or clinic request| Referral
+        Guard -->|General question| Retriever
+        Question --> Context
+        Index --> Retriever
+        Retriever --> Context --> Generator --> Answer
+        RetrievalQuery --> Retriever
+    end
+
+    API -->|POST /chat| Question
+    API -->|POST /retrieve| RetrievalQuery
+    Urgent --> UI
+    Referral --> UI
+    Answer --> UI
+    Retriever -->|Ranked passages| UI
 ```
 
 ## I. API-Based AI Application

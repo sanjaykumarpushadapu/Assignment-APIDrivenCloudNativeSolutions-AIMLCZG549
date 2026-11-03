@@ -6,9 +6,7 @@ length follows the narration, then joins them in order.
 
 Narration placeholders such as ``{macro_f1_tuned}`` are filled from facts
 collected during preflight: live test results, ``/metadata`` versions, and the
-tracked run records in ``docs/report/evidence``. RAG figures are explicitly
-labelled as a pre-fix baseline; no current post-fix RAG score or workplace time
-study is claimed.
+tracked run records in ``docs/report/evidence``.
 
 Scene kinds: card, image, code, terminal, json, links, url, app, swagger.
 ``app`` scenes type into the live React app using its visible labels.
@@ -98,12 +96,12 @@ SCENES = [
     {
         "id": "architecture",
         "kind": "mermaid",
-        "caption": "System architecture: three NLP tasks, local WHO retrieval, and staff review",
+        "caption": "NLP workflow: classification, summarisation, RAG-based QA, and staff review",
         "say": (
-            "This flowchart shows the React and TypeScript interface calling the FastAPI service. For support "
-            "messages, the fine-tuned classifier returns a category and the base FLAN-T5 model prepares a "
-            "handoff summary. For questions, referral rules either return a staff response or allow retrieval "
-            "from the local WHO passage index and a grounded answer. Staff review the results."
+            "This is an NLP application because it takes unstructured messages and questions and transforms "
+            "them into a category, a handoff summary, or a source-backed answer. The React and TypeScript "
+            "interface calls FastAPI. Classification and summarisation support incoming messages; question "
+            "answering uses RAG to retrieve WHO passages before FLAN-T5 generates an answer."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -113,7 +111,8 @@ SCENES = [
         MEMBERS[3],
         "Part one outlines the workplace scenario: a fictional diabetes clinic "
         "support desk handles requests about appointments, education, portal access, records and clinical questions. "
-        "The application demonstrates message classification, handoff summaries and source-based answers for staff.",
+        "The NLP application demonstrates text classification, text summarisation, and question answering grounded "
+        "with retrieved WHO passages.",
     ),
     {
         "id": "label_guide",
@@ -135,7 +134,7 @@ SCENES = [
         2,
         "Fine-Tuning",
         MEMBERS[2],
-        "Part two covers full fine-tuning of the request classifier and the summary-quality evaluation.",
+        "Part two explains why the general base model was adapted to the clinic's five-label routing task through supervised fine-tuning.",
     ),
     {
         "id": "fine_tuning",
@@ -143,9 +142,10 @@ SCENES = [
         "images": ["03-classifier-fine-tuning.png"],
         "caption": "Classifier full fine-tuning method and held-out test results",
         "say": (
-            "The classifier, {classifier_model}, was fine-tuned on reviewed synthetic support messages. On "
-            "{test_messages} held-out test messages, macro F1 moved from {macro_f1_base} for the base model to "
-            "{macro_f1_tuned} after fine-tuning."
+            "Each training input combined the classification instruction with a support message; its target "
+            "was the reviewed category name. This supervised full fine-tuning adapted {classifier_model} to "
+            "the clinic's local taxonomy. On {test_messages} held-out messages, macro F1 increased from "
+            "{macro_f1_base} for the prompted base model to {macro_f1_tuned}."
         ),
     },
     {
@@ -154,8 +154,9 @@ SCENES = [
         "images": ["02-request-analysis.png"],
         "caption": "Example support-message analysis and handoff summary",
         "say": (
-            "Handoff summaries kept every essential request in {summary_ok} of {summary_total} held-out messages, "
-            "as checked by a reviewer."
+            "The base FLAN-T5 summariser turns the support message into a handoff field. In a separate "
+            "{summary_total}-message review, all outputs were supported by their inputs and {summary_ok} "
+            "retained every essential fact."
         ),
     },
     # ------------------------------------------------------------- Part 3
@@ -163,7 +164,7 @@ SCENES = [
         3,
         "RAG Model",
         MEMBERS[1],
-        "Part three: retrieval-augmented Q&A grounded in curated World Health Organization diabetes information.",
+        "Part three demonstrates question answering with RAG over curated WHO diabetes information.",
     ),
     {
         "id": "rag_pipeline",
@@ -171,10 +172,12 @@ SCENES = [
         "images": ["03-source-grounded-answer.png"],
         "caption": "Grounded answer with retrieved WHO source sections",
         "say": (
-            "The index contains curated passages from the WHO diabetes questions-and-answers page. In the "
-            "pre-fix baseline, a relevant passage appeared in the top three for {retrieval_hits} of "
-            "{retrieval_total} answerable questions; {answers_supported} generated answers were judged source-"
-            "supported. That baseline also identified referral cases for improvement."
+            "A pretrained language model can produce fluent text without showing which approved source supports "
+            "it. Our RAG pipeline embeds the question, ranks WHO passages by similarity, and gives the top three "
+            "to FLAN-T5 as context. The answer is returned with its source passages. In the {rag_cases}-case "
+            "RAG baseline, retrieval found relevant evidence for {retrieval_hits} of {retrieval_total} "
+            "answerable questions; reviewers judged {answers_supported} answers supported and {answers_complete} "
+            "both correct and complete."
         ),
     },
     # ------------------------------------------------------------- Part 4
@@ -182,7 +185,7 @@ SCENES = [
         4,
         "Situated Learning – Workplace Application",
         MEMBERS[0],
-        "Part four: the interactive application, documented API, and workplace workflow demonstration.",
+        "Part four applies NLP classification, staff handoffs, and source-backed answers to a workplace workflow.",
     ),
     {
         "id": "tests_terminal",
@@ -206,8 +209,8 @@ SCENES = [
             {"expect": "appointment support"},
         ],
         "say": (
-            "In the live app, a staff member pastes a support message. The fine-tuned classifier returns the "
-            "primary category, and the configured base summariser prepares a handoff note for staff review."
+            "A staff member enters a natural-language request. The fine-tuned classifier maps it to a primary "
+            "clinic category, and the base summariser prepares a handoff field for staff review."
         ),
     },
     {
@@ -222,8 +225,8 @@ SCENES = [
             {"expect": "Sources"},
         ],
         "say": (
-            "The knowledge assistant answers from retrieved passages and lists its sources, so staff can check "
-            "the evidence."
+            "The question-answering task uses RAG: the system retrieves WHO passages, conditions answer generation "
+            "on that context, and displays the passages so staff can verify the source."
         ),
     },
     {
@@ -261,10 +264,8 @@ SCENES = [
             },
         ],
         "say": (
-            "For this recognized urgent phrase, the chat returns a fixed message to "
-            "contact local emergency services or follow the clinic’s urgent-care "
-            "instructions before retrieval. This narrow text rule is not comprehensive "
-            "emergency detection or clinical triage."
+            "For this selected urgent phrase, the chat returns a predefined urgent-care "
+            "response before retrieval or answer generation."
         ),
     },
     {
@@ -320,12 +321,12 @@ SCENES = [
         "id": "closing",
         "kind": "card",
         "eyebrow": "Group 49 · AIMLCZG549 Assignment II",
-        "title": "Three connected NLP tasks for clinic support",
+        "title": "NLP for diabetes-clinic support",
         "lines": MEMBERS,
         "say": (
-            "To summarise: the application combines a fine-tuned support classifier, handoff summarisation, "
-            "and source-grounded question answering for a diabetes clinic support desk. Staff can inspect "
-            "categories, summaries, answers, and source passages in the application. Thank you for watching."
+            "To summarise: this API-driven NLP application combines text classification, text summarisation, "
+            "and question answering implemented with RAG. The classifier is fully fine-tuned for clinic-support "
+            "labels, and staff can inspect answers alongside their retrieved WHO sources. Thank you for watching."
         ),
     },
 ]
@@ -342,51 +343,56 @@ SELF_SCRIPTS = {
         "and Bhuvnesh Mishra."
     ),
     "architecture": (
-        "Here's our architecture. A React and TypeScript interface calls our FastAPI backend, which runs a "
-        "fine-tuned classifier, the base FLAN-T5 summariser, and a retrieval-augmented question-answering "
-        "service over curated WHO material. Staff review every output."
+        "Our NLP application processes unstructured support messages and questions. A React and TypeScript "
+        "interface calls FastAPI for text classification, handoff summarisation, and question answering with "
+        "retrieval-augmented generation over curated WHO material."
     ),
     "part1_card": (
         "Part one outlines the workplace scenario: a fictional diabetes clinic support desk handles requests "
         "about appointments, education, portal access, records, and clinical questions. The application "
-        "demonstrates message classification, handoff summaries, and source-based answers for staff."
+        "demonstrates text classification, text summarisation, and question answering grounded in retrieved sources."
     ),
     "label_guide": (
         "We route requests into five categories: appointment support, education resource request, portal "
         "technical support, records and insurance administration, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
         "to staff."
     ),
-    "part2_card": "Part two covers full fine-tuning of the classifier and summary-quality evaluation.",
+    "part2_card": (
+        "Part two explains why a general base model was adapted to the clinic's five-label routing taxonomy. "
+        "Supervised fine-tuning pairs each message and task instruction with its reviewed category label."
+    ),
     "fine_tuning": (
-        "We fully fine-tuned our classifier on synthetic support messages. The held-out results compare the "
-        "base model with the fine-tuned checkpoint."
+        "We fully fine-tuned the pretrained FLAN-T5 model on reviewed synthetic support-message and category "
+        "pairs. This adapts its general language understanding to the clinic's exact routing labels."
     ),
     "summaries": (
-        "We evaluated the configured base summariser on held-out messages for essential-fact retention and unsupported additions."
+        "The base summariser was reviewed on 20 messages. All outputs were supported by their input, and 10 retained every essential fact."
     ),
-    "part3_card": "Part three is the RAG model, grounded in curated WHO diabetes information.",
+    "part3_card": (
+        "Part three demonstrates question answering with RAG, using curated WHO diabetes information as the evidence source."
+    ),
     "rag_pipeline": (
-        "Our index contains curated passages from the WHO diabetes questions-and-answers page. The results shown "
-        "are the pre-fix baseline, retained to document the failures that prompted referral-rule changes."
+        "A pretrained model alone may generate an answer without showing its evidence. Our retriever ranks the "
+        "WHO passages for each question, passes the top three into FLAN-T5, and returns those sources with the "
+        "answer. In the reviewed baseline, retrieval found relevant passages for all 20 answerable questions; "
+        "reviewers judged 18 answers supported and 16 correct and complete."
     ),
-    "part4_card": "Part four applies the AI solution in a diabetes-clinic workplace scenario.",
+    "part4_card": "Part four applies NLP classification, handoffs, and source-backed answers in a workplace scenario.",
     "tests_terminal": "We ran our backend tests and frontend build just before recording.",
     "app_analysis": (
-        "In our live app, a staff member pastes a support message. The fine-tuned classifier gives the primary "
-        "category, and the base summariser prepares a handoff note for staff review."
+        "In our live app, a staff member enters a support message. The fine-tuned classifier returns a clinic "
+        "category, and the base summariser prepares a handoff field."
     ),
     "app_chat": (
-        "Our knowledge assistant answers from retrieved passages and shows its sources, so staff can check "
-        "the evidence."
+        "Our RAG question-answering flow retrieves WHO passages, generates an answer using that context, and "
+        "shows the sources for staff review."
     ),
     "app_referral": (
         "A personal medication question is routed to clinical staff. Our assistant doesn't give clinical "
         "advice."
     ),
     "app_urgent_care": (
-        "For this recognized urgent phrase, the chat returns a fixed message to contact local emergency "
-        "services or follow the clinic's urgent-care instructions before retrieval. This narrow text rule "
-        "is not comprehensive emergency detection or clinical triage."
+        "For this selected urgent phrase, the chat returns a predefined urgent-care response before retrieval or answer generation."
     ),
     "swagger_intro": "The same features are available through our documented API.",
     "api_metadata": "The metadata endpoint shows which model and index versions are loaded.",
@@ -395,8 +401,8 @@ SELF_SCRIPTS = {
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
     "workplace": "In this workplace scenario, a personal medication question is referred to clinic staff.",
     "closing": (
-        "To summarise: our application combines a fine-tuned support classifier, handoff summarisation, "
-        "and source-grounded question answering for a diabetes clinic support desk. Staff can inspect "
-        "categories, summaries, answers, and source passages in the application. Thank you!"
+        "To summarise: our API-driven NLP application combines text classification, text summarisation, and "
+        "question answering implemented with RAG. It applies supervised fine-tuning to clinic-support labels "
+        "and returns WHO passages alongside answers. Thank you!"
     ),
 }

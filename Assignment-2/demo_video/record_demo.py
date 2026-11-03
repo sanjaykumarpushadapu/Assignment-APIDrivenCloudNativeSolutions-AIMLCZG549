@@ -540,9 +540,16 @@ def preflight(args, work: Path) -> dict:
                 )
             ),
             "retrieval_total": str(rag_record["case_counts"]["answerable"]),
+            "rag_cases": str(rag_record["case_counts"]["total"]),
             "answers_supported": str(
                 round(
                     rag["human_supported_answers"]
+                    * rag_record["case_counts"]["answerable"]
+                )
+            ),
+            "answers_complete": str(
+                round(
+                    rag["human_correct_and_complete_answers"]
                     * rag_record["case_counts"]["answerable"]
                 )
             ),
