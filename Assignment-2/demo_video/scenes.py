@@ -233,7 +233,7 @@ SCENES = [
         "kind": "app",
         "steps": [
             {
-                "fill": "Incoming support message",
+                "fill": "Incoming message",
                 "text": (
                     "I started a new medicine and now feel sick. Should I stop taking it?"
                 ),
