@@ -2,8 +2,8 @@
 
 These scripts record the Group 49 Assignment II demonstration video: Playwright
 records each scene in Chromium, and ffmpeg joins the clips with narration and captions.
-Assessment 2 uses the macOS `say` system voice, matching Assessment 1's synthesized
-narration mode. The voice name is not pinned, so macOS uses its current default.
+The recorder supports macOS `say` and Microsoft Edge TTS (`edge-tts`). On macOS,
+`say` uses the current system voice. Edge TTS defaults to `en-US-AriaNeural`.
 The video covers the workplace
 problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
 React app (analysis, source-backed chat and a clinical referral), Swagger "Try it out →
@@ -16,6 +16,7 @@ Run everything from the `Assignment-2` folder. The scripts work on Windows, macO
 | Command | What it does |
 |---|---|
 | `.venv/bin/python demo_video/record_demo.py --tts say --burn-subtitles` | Records and assembles the full narrated video with the macOS default `say` voice; no per-scene prompts. |
+| `.venv/bin/python demo_video/record_demo.py --tts edge --voice en-US-AriaNeural --burn-subtitles` | Records with Microsoft Edge's default neural voice; install `edge-tts` first. |
 | `pip install -r demo_video/requirements.txt` | One-time install of video recording and caption dependencies. |
 | `python demo_video/record_demo.py --tts none --burn-subtitles` | Records the full video with no voice and captions drawn on screen. |
 | `python demo_video/record_demo.py --list` | Lists the scenes and who narrates each part. |
@@ -71,7 +72,7 @@ Services started by the recorder are stopped when the recording command exits. A
 
 | Option | Effect |
 |---|---|
-| `--tts say` | Use the macOS default synthesized voice, matching the Assessment 1 narration mode. |
+| `--tts say` / `--tts edge --voice en-US-AriaNeural` | Select macOS system speech or Microsoft Edge's default neural voice. |
 | `--burn-subtitles` | Draw captions on the picture; Google Drive's player ignores embedded caption tracks. |
 | `--only <scene ids>` | Record only some scenes. |
 | `--skip-commands` | Reuse the previous run's terminal output. |
