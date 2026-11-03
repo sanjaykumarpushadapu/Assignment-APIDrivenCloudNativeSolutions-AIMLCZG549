@@ -48,15 +48,17 @@ flowchart LR
     Analyze --> Summary[FLAN-T5 summariser<br/>shared generation runtime]
 
     API -->|/retrieve| Retriever[Passage retrieval]
-    API -->|/chat| Guard[Referral rules]
-    Guard -->|Refer| Handoff[Fixed staff referral]
-    Guard -->|Continue| Retriever
+    API -->|/chat| Guard[Urgent and referral rules]
+    Guard -->|Urgent phrase| Urgent[Fixed urgent-care response]
+    Guard -->|Personal or clinic-specific request| Handoff[Fixed staff referral]
+    Guard -->|Otherwise| Retriever
     Retriever --> Embed[Embedding model]
     Embed --> Index[Local WHO passage index]
     Index --> Context[Ranked source passages]
     Context --> Answer[FLAN-T5 answer generation<br/>shared with summarisation]
     Answer --> Result[Answer with retrieved sources]
     Result --> Staff
+    Urgent --> Staff
     Handoff --> Staff
 ```
 
@@ -70,23 +72,19 @@ For example, one message may request an appointment change and help finding an e
 
 ### Application and API
 
-The React interface collects support messages and knowledge questions. FastAPI validates the requests and calls the configured model and retrieval components. `POST /analyze` returns the support-message classification and summary. `POST /retrieve` returns ranked source passages so retrieval can be inspected. `POST /chat` returns a source-grounded answer or a staff-referral response. `/metadata` reports component readiness and model or index versions.
+The React interface collects support messages and knowledge questions. FastAPI validates the requests and calls the configured model and retrieval components. `POST /analyze` returns the support-message classification and summary. `POST /retrieve` returns ranked source passages so retrieval can be inspected. `POST /chat` returns a generated answer, a staff referral, or an urgent-care response. `/metadata` reports component readiness and model or index versions.
 
 The classifier uses the Hugging Face Transformers sequence-to-sequence interface. The application loads the tokenizer and model from the configured Hub model or local checkpoint. Classification uses a fixed task instruction and returns the generated label only when it matches one of the five supported categories: appointment support, education resource request, portal technical support, records/insurance administration, or clinical staff referral.
 
-### Observed application examples
-
-Figure 2 shows the React interface classifying a synthetic support request and displaying its handoff summary.
-
 ### API demonstration
 
-The Swagger UI request below demonstrates `POST /analyze`. The response shows the predicted category and generated handoff summary for a synthetic rescheduling request. In this run, the summary retained that the new booking had not yet been confirmed.
+The Swagger UI request below demonstrates `POST /analyze`. The response shows the predicted category and summary-field output for a synthetic rescheduling request. This captured output largely repeats the message with a `Message:` prefix, so it demonstrates the API flow but not effective condensation.
 
 **Figure 1. Swagger request and response for `POST /analyze`.**
 
 ![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)
 
-**Figure 2. Support-message analysis in the interactive application.**
+**Figure 2. Live support-message analysis; the summary output largely repeats the input.**
 
 ![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
@@ -114,7 +112,7 @@ The base and fine-tuned models were then evaluated on the same 60-example held-o
 | Macro-F1 | 88.74% | 94.74% |
 | Invalid category outputs | 4/60 | 0/60 |
 
-The fine-tuned model's three errors involved authorised-contact paperwork, preferred language for clinic letters, and insurance coverage for an appointment fee. The examples and test set are synthetic; these scores summarise classification on the 60-message set.
+The examples and test set are synthetic; these scores summarise classification on the 60-message set.
 
 **Figure 3. Fine-tuning method and held-out classifier results.**
 
@@ -130,7 +128,7 @@ The configured base summariser was evaluated on 20 reviewed synthetic message/su
 
 The indexed corpus is prepared from one public source: the WHO page *Diabetes: Questions and Answers* (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in the local source manifest. The corpus contains eight curated passages covering diabetes basics, common symptoms, prevention, and high-level education and self-management support. Each passage carries its source title, section, URL, and chunk ID.
 
-The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, and returns the three highest-ranked passages. The answer model receives the question and retrieved passages. `/chat` includes the retrieved passages with a generated answer; requests identified by referral rules as personal clinical advice, urgent symptoms, or clinic-specific processes receive a fixed staff referral.
+The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, and returns the three highest-ranked passages. The answer model receives the question and retrieved passages. `/chat` includes the retrieved passages with a generated answer; personal-care and clinic-specific requests receive a fixed staff referral, while selected urgent phrases receive a separate fixed urgent-care response.
 
 ### API demonstration
 
@@ -192,15 +190,15 @@ The urgent-care rule is separate from the classifier: for selected phrases such 
 
 On the synthetic held-out set, the classifier achieved 95.00% accuracy and 94.74% macro-F1. In the 20-case summary review, 10 outputs retained every checklist fact. In the 30-case RAG baseline, retrieval returned a relevant passage in all 20 answerable cases, while 4 of 10 cases expected to be referred were correctly referred. These measures assess different tasks and should be read separately. The baseline also shows that retrieving a relevant passage did not always produce a supported, complete answer.
 
-The application classifies messages, prepares summaries, and displays retrieved sources. It does not call scheduling, portal, or records APIs; staff complete those transactions through clinic workflows.
+The application classifies messages, prepares summaries, and displays retrieved sources.
 
-No manual-versus-assisted task timing study was performed, so this report makes no claim that the prototype reduces handling time or staff effort.
+No manual-versus-assisted timing study was performed, so no handling-time or staff-effort improvement is claimed.
 
-### Reflect - Deployment constraints and improvement
+### Reflect - Project constraints and improvement
 
-Evaluation uses synthetic support messages and public education material; no real patient messages are included. Before using real messages, a clinic would need to define access roles, retention periods, and applicable privacy, security, and regulatory controls. For a possible deployment in India, the organisation should assess whether the Digital Personal Data Protection Act, 2023, and rules in force at deployment apply, with qualified privacy/legal review. Other regimes, including GDPR or HIPAA, are relevant only where the deployment context brings them into scope. This prototype makes no legal applicability or compliance determination. The application uses configured model checkpoints and a local WHO passage index. Hosting and operating costs were not measured; they would depend on deployment choices and usage. The indexed WHO source covers general diabetes information. Clinic-specific appointment, portal, and leaflet answers require clinic-approved content.
+Evaluation uses synthetic support messages and public education material; no real patient messages are included.
 
-The next step is an independent review by clinic subject-matter experts using representative, approved cases. It should score summary fact preservation, answer support, and referral correctness under the current rules; the reported RAG baseline predates the rule changes. The current application does not call scheduling, portal, or records APIs. Connecting those systems would require authorised interfaces and checks against clinic workflows.
+The main improvement is to conduct an independent review using representative cases that assess summary fact preservation, answer support, and referral correctness. The reported RAG results are from before the rule changes.
 
 ## Conclusion
 
@@ -216,4 +214,3 @@ The diabetes-care support application combines request classification, handoff s
 2. Hugging Face, [T5 model documentation](https://huggingface.co/docs/transformers/en/model_doc/t5).
 3. Sentence Transformers, [all-MiniLM-L6-v2 model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
 4. World Health Organization, [Diabetes: Questions and Answers](https://www.who.int/news-room/questions-and-answers/item/diabetes), accessed 31 October 2026.
-5. Ministry of Electronics and Information Technology, Government of India, [Data Protection Framework](https://www.meity.gov.in/data-protection-framework). Consult qualified institutional privacy/legal reviewers to determine applicability and current requirements; this report is not a compliance assessment.
