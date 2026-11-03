@@ -85,7 +85,7 @@ SCENES = [
         "kind": "card",
         "eyebrow": "AIMLCZG549 · API-Driven Cloud-Native Solutions · Assignment II · Group 49",
         "title": "Diabetes Care Support Assistant",
-        "subtitle": "Request routing · staff handoffs · source-grounded Q&A",
+        "subtitle": "Classification · Handoff Summaries · Source-Grounded Answers",
         "lines": MEMBERS,
         "footnote": "Automated screen recording · synthesized narration",
         "say": (
@@ -96,12 +96,12 @@ SCENES = [
     {
         "id": "architecture",
         "kind": "mermaid",
-        "caption": "NLP workflow: classification, summarisation, RAG-based QA, and staff review",
+        "caption": "Application Architecture",
         "say": (
-            "This is an NLP application because it takes unstructured messages and questions and transforms "
-            "them into a category, a handoff summary, or a source-backed answer. The React and TypeScript "
-            "interface calls FastAPI. Classification and summarisation support incoming messages; question "
-            "answering uses RAG to retrieve WHO passages before FLAN-T5 generates an answer."
+            "The application provides three language tasks. The analyze endpoint classifies support messages "
+            "and prepares handoff summaries. The chat endpoint uses RAG to answer general questions from WHO "
+            "passages, while selected requests receive a staff referral. The React interface calls these "
+            "services through FastAPI."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -111,8 +111,8 @@ SCENES = [
         MEMBERS[3],
         "Part one outlines the workplace scenario: a fictional diabetes clinic "
         "support desk handles requests about appointments, education, portal access, records and clinical questions. "
-        "Bhuvnesh built the React and FastAPI application connecting text classification, text summarisation, "
-        "and question answering grounded with retrieved WHO passages.",
+        "Bhuvnesh built the React and FastAPI application integrating text classification, text summarisation, "
+        "and question answering grounded in retrieved WHO passages.",
     ),
     {
         "id": "label_guide",
@@ -121,12 +121,11 @@ SCENES = [
         "regex": r"^## Labels",
         "window": [0, 24],
         "highlight": r"clinical_staff_referral",
-        "caption": "Five routing labels and the clinical-referral override",
+        "caption": "Five Support Categories and the Clinical Referral Rule",
         "say": (
         "Requests are routed into five categories: appointment support, education resource request, portal "
             "technical support, records and insurance administration, and clinical staff referral. Any personal clinical question overrides the other "
-            "labels and is referred to staff. Separate chat rules handle selected urgent phrases; neither "
-            "component replaces clinical triage."
+            "labels and is referred to staff. Selected urgent phrases receive a fixed urgent-care response."
         ),
     },
     # ------------------------------------------------------------- Part 2
@@ -162,7 +161,7 @@ SCENES = [
     # ------------------------------------------------------------- Part 3
     part_card(
         3,
-        "RAG Model",
+        "Retrieval-Augmented Generation (RAG)",
         MEMBERS[1],
         "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and RAG question answering.",
     ),
@@ -172,9 +171,9 @@ SCENES = [
         "images": ["03-source-grounded-answer.png"],
         "caption": "Grounded answer with retrieved WHO source sections",
         "say": (
-            "A pretrained language model can produce fluent text without showing which approved source supports "
-            "it. Our RAG pipeline embeds the question, ranks WHO passages by similarity, and gives the top three "
-            "to FLAN-T5 as context. The answer is returned with its source passages. In the {rag_cases}-case "
+            "For each general question, the retriever ranks the WHO passages by embedding similarity and returns "
+            "the top three. FLAN-T5 uses those passages as context, and the API returns the answer with its "
+            "sources. In the {rag_cases}-case "
             "RAG baseline, retrieval found relevant evidence for {retrieval_hits} of {retrieval_total} "
             "answerable questions; the reviewer judged {answers_supported} answers supported and {answers_complete} "
             "both correct and complete."
@@ -183,7 +182,7 @@ SCENES = [
     # ------------------------------------------------------------- Part 4
     part_card(
         4,
-        "Situated Learning – Workplace Application",
+        "Situated Learning: Workplace Application",
         MEMBERS[0],
         "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow.",
     ),
@@ -257,8 +256,8 @@ SCENES = [
             },
         ],
         "say": (
-            "For this selected urgent phrase, the chat returns a predefined urgent-care "
-            "response before retrieval or answer generation."
+            "When the question describes someone unconscious, the chat returns a fixed urgent-care response "
+            "before retrieval or answer generation."
         ),
     },
     {
@@ -307,23 +306,24 @@ SCENES = [
         "id": "workplace",
         "kind": "image",
         "images": ["04-staff-referral.png"],
-        "caption": "Workplace example: a personal medication question is referred to clinic staff",
+        "caption": "Staff referral for a personal medication question",
         "say": (
-            "In this clinic analogue, staff manually identify requests, prepare handoffs, and consult education "
-            "material. The application brings categories, summaries, and retrieved sources into one review flow. "
-            "Evaluation used synthetic cases; the priority next step is expert review of representative outputs."
+            "In this example, the assistant refers a personal medication question to clinic staff. The wider "
+            "staff workflow brings request categories, handoff summaries, and source passages into one place. "
+            "The evaluation used synthetic cases."
         ),
     },
     {
         "id": "closing",
         "kind": "card",
         "eyebrow": "Group 49 · AIMLCZG549 Assignment II",
-        "title": "NLP for diabetes-clinic support",
+        "title": "Project Summary",
+        "subtitle": "Classification · Handoff Summaries · Question Answering with RAG",
         "lines": MEMBERS,
         "say": (
-            "To summarise: this API-driven NLP application combines text classification, text summarisation, "
-            "and question answering implemented with RAG. The classifier is fully fine-tuned for clinic-support "
-            "labels, and staff can inspect answers alongside their retrieved WHO sources. Thank you for watching."
+            "The diabetes care support assistant provides classification, handoff summarisation, and question "
+            "answering with RAG. The classifier is fully fine-tuned for clinic-support labels, and staff can "
+            "inspect answers alongside their retrieved WHO sources. Thank you for watching."
         ),
     },
 ]
@@ -340,19 +340,19 @@ SELF_SCRIPTS = {
         "and Bhuvnesh Mishra."
     ),
     "architecture": (
-        "Our NLP application processes unstructured support messages and questions. A React and TypeScript "
-        "interface calls FastAPI for text classification, handoff summarisation, and question answering with "
-        "retrieval-augmented generation over curated WHO material."
+        "The application provides three language tasks. The analyse endpoint classifies support messages and "
+        "prepares handoff summaries. The chat endpoint uses retrieval-augmented generation to answer general "
+        "questions from WHO passages. The React interface calls these services through FastAPI."
     ),
     "part1_card": (
         "Part one outlines the workplace scenario: a fictional diabetes clinic support desk handles requests "
         "about appointments, education, portal access, records, and clinical questions. Bhuvnesh built the "
-        "React and FastAPI application connecting classification, summarisation, and source-grounded answers."
+        "React and FastAPI application integrating classification, summarisation, and source-grounded answers."
     ),
     "label_guide": (
         "We route requests into five categories: appointment support, education resource request, portal "
         "technical support, records and insurance administration, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
-        "to staff."
+        "to staff. Selected urgent phrases receive a fixed urgent-care response."
     ),
     "part2_card": (
         "Part two covers Chezrla's reviewed classification data, supervised fine-tuning, and base-versus-tuned evaluation."
@@ -365,13 +365,13 @@ SELF_SCRIPTS = {
         "The base summariser was reviewed on 20 messages. All outputs were supported by their input, and 10 retained every essential fact."
     ),
     "part3_card": (
-        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and RAG question answering."
+        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and question answering with RAG."
     ),
     "rag_pipeline": (
-        "A pretrained model alone may generate an answer without showing its evidence. Our retriever ranks the "
-        "WHO passages for each question, passes the top three into FLAN-T5, and returns those sources with the "
-        "answer. In the reviewed baseline, retrieval found relevant passages for all 20 answerable questions; "
-        "the reviewer judged 18 answers supported and 16 correct and complete."
+        "For each general question, the retriever ranks the WHO passages by embedding similarity and returns "
+        "the top three. FLAN-T5 uses those passages as context, and the API returns the answer with its sources. "
+        "In the reviewed baseline, retrieval found relevant passages for all 20 answerable questions; the reviewer "
+        "judged 18 answers supported and 16 correct and complete."
     ),
     "part4_card": (
         "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow."
@@ -389,7 +389,7 @@ SELF_SCRIPTS = {
         "advice."
     ),
     "app_urgent_care": (
-        "For this selected urgent phrase, the chat returns a predefined urgent-care response before retrieval or answer generation."
+        "When a question describes someone unconscious, the chat returns a fixed urgent-care response before retrieval or answer generation."
     ),
     "swagger_intro": "The same features are available through our documented API.",
     "api_metadata": "The metadata endpoint shows which model and index versions are loaded.",
@@ -397,13 +397,13 @@ SELF_SCRIPTS = {
     "api_retrieve": "The retrieve endpoint returns the ranked source passages before answer generation.",
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
     "workplace": (
-        "In this clinic analogue, staff manually identify requests, prepare handoffs, and consult education "
-        "material. The application brings categories, summaries, and retrieved sources into one review flow. "
-        "Evaluation used synthetic cases; the priority next step is expert review of representative outputs."
+        "In this example, the assistant refers a personal medication question to clinic staff. The wider staff "
+        "workflow brings request categories, handoff summaries, and source passages into one place. The evaluation "
+        "used synthetic cases."
     ),
     "closing": (
-        "To summarise: our API-driven NLP application combines text classification, text summarisation, and "
-        "question answering implemented with RAG. It applies supervised fine-tuning to clinic-support labels "
-        "and returns WHO passages alongside answers. Thank you!"
+        "Our diabetes care support assistant provides classification, handoff summarisation, and question "
+        "answering with RAG. The classifier is fully fine-tuned for clinic-support labels, and staff can inspect "
+        "answers with their WHO sources. Thank you!"
     ),
 }

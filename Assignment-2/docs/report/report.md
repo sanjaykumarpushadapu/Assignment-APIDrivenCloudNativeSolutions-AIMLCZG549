@@ -14,7 +14,7 @@ The group agreed on equal 25% contribution shares. The table below records each 
 
 | Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
 |---:|---|---|---|---:|
-| 1 | 2025ae05391 | Bhuvnesh Mishra | **Part I – API-Based AI Application:** built the FastAPI and React application and connected classification, summarisation, and question answering in the staff workflow. | 25% |
+| 1 | 2025ae05391 | Bhuvnesh Mishra | **Part I – API-Based AI Application:** built the FastAPI and React application and integrated classification, summarisation, and question answering in the staff workflow. | 25% |
 | 2 | 2025ae05828 | Chezrla Raga Suma | **Part II – Fine-Tuning:** prepared and reviewed classification examples and labels, fine-tuned the FLAN-T5 classifier, and evaluated the base and tuned checkpoints. | 25% |
 | 3 | 2025ae05425 | Sathish Krishnan V | **Part III – RAG:** selected and checked the WHO source, prepared the local knowledge passages, and implemented retrieval for question answering. | 25% |
 | 4 | 2025ae05898 | Pushadapu Sanjay Kumar | **Part IV – Situated Learning:** defined the diabetes clinic support-desk workflow, selected representative synthetic cases, and analysed the evaluation against workplace needs. | 25% |
@@ -22,7 +22,7 @@ The group agreed on equal 25% contribution shares. The table below records each 
 
 ## Project and Platform Details
 
-**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a category, a handoff summary, or a generated answer with source passages. It connects three NLP tasks: text classification, text summarisation, and question answering. The question-answering task uses retrieval-augmented generation (RAG) to ground responses in retrieved documents. The React and TypeScript interface with a FastAPI backend connects these tasks in one staff workflow.
+**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a category, a handoff summary, or a generated answer with source passages. It provides three NLP tasks: text classification, text summarisation, and question answering. The question-answering task uses retrieval-augmented generation (RAG) to ground responses in retrieved documents. The React and TypeScript interface presents the three tasks through one FastAPI-backed staff workflow.
 
 | NLP task | Natural-language input and output | Method/model |
 |---|---|---|
@@ -34,7 +34,7 @@ The base FLAN-T5 revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. Classif
 
 ## Architecture Overview
 
-The React and TypeScript interface sends support messages and questions to FastAPI. The diagram shows how the three tasks connect to the local models and WHO passages. The classifier has a separate runtime; summarisation and answer generation share a FLAN-T5 runtime. Chat routing can return a staff referral or an urgent-care response before generation.
+The React and TypeScript interface sends support messages and questions to FastAPI. The diagram traces the API routes through classification, summarisation, and RAG question answering. The classifier has a separate runtime; summarisation and answer generation share a FLAN-T5 runtime. Chat routing can return a staff referral or an urgent-care response before generation.
 
 ```mermaid
 flowchart LR
