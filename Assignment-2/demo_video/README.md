@@ -4,11 +4,10 @@ These scripts record the Group 49 Assignment II demonstration video: Playwright
 records each scene in Chromium, and ffmpeg joins the clips with narration and captions.
 Use Microsoft Edge TTS (`edge-tts`) with `en-IN-PrabhatNeural` for the same narrated
 voice on macOS, Windows, and Linux.
-The video covers the workplace
-problem and labels, fine-tuning and summaries, the RAG pipeline, the tests, the live
-React app (analysis, source-backed chat, clinical referral, and the limited urgent-care
-response), Swagger "Try it out → Execute" on the API, and the workplace results. Every
-video has captions (CC).
+The video covers the NLP workflow and labels, fine-tuning and summary evaluation, the
+RAG pipeline, team responsibilities, the live React app (analysis, source-backed chat,
+clinical referral, and the urgent-care response), Swagger API examples, and workplace
+application. Every video has captions (CC).
 
 Run everything from the `Assignment-2` folder. The scripts work on Windows, macOS and Linux.
 
@@ -50,7 +49,7 @@ Missing evidence stops the build instead of producing a video with invented numb
 recorder before the models are ready, record only scenes that need no results, for example:
 
 ```bash
-python demo_video/record_demo.py --tts none --allow-not-ready --only title label_guide tests_terminal swagger_intro
+python demo_video/record_demo.py --tts none --allow-not-ready --only title label_guide swagger_intro
 ```
 
 ## One-time setup

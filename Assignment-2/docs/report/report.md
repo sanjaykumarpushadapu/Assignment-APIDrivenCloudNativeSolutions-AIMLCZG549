@@ -22,14 +22,13 @@ The group agreed on equal 25% contribution shares. The table below records each 
 
 ## Project and Platform Details
 
-**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a text category, a handoff summary, or a generated answer with source passages. It demonstrates four related NLP capabilities: text classification, text summarisation, question answering, and retrieval-augmented generation (RAG), which grounds the question-answering response in retrieved documents. The React and TypeScript interface with a FastAPI backend connects these capabilities in one staff workflow.
+**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a category, a handoff summary, or a generated answer with source passages. It connects three NLP tasks: text classification, text summarisation, and question answering. The question-answering task uses retrieval-augmented generation (RAG) to ground responses in retrieved documents. The React and TypeScript interface with a FastAPI backend connects these tasks in one staff workflow.
 
-| NLP capability | Natural-language input and output | Method/model |
+| NLP task | Natural-language input and output | Method/model |
 |---|---|---|
 | Text classification | Support message → one of five clinic-support labels | Supervised fine-tuning of `google/flan-t5-base` |
 | Text summarisation | Support message → staff handoff summary | `google/flan-t5-base` text generation |
-| Question answering | Staff question → natural-language answer and source passages | Context-conditioned generation with `google/flan-t5-base` |
-| Retrieval-augmented generation (RAG) | Question → relevant WHO passages → answer grounded in the passages | `sentence-transformers/all-MiniLM-L6-v2` retrieval and FLAN-T5 generation |
+| Question answering using RAG | Staff question → answer grounded in relevant WHO passages, returned with sources | `sentence-transformers/all-MiniLM-L6-v2` retrieval and FLAN-T5 generation |
 
 The base FLAN-T5 revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. Classification uses a separate runtime; summarisation and answer generation share one FLAN-T5 runtime. Retrieval uses the separately configured embedding model. The API exposes `/health`, `/metadata`, `/analyze`, `/retrieve`, and `/chat`.
 
@@ -121,7 +120,7 @@ The classifier uses five support categories. The dataset contains 280 synthetic 
 
 FLAN-T5 provides general instruction-following and text-generation ability, but the application needs a specific five-label clinic-support taxonomy and a clinical-referral override. General language understanding alone does not teach the model this operational label set or guarantee the exact category format. Supervised fine-tuning adapts the pretrained model by using the classification instruction and support message as input and the reviewed category name as the target text. This trains the model to map domain messages to the clinic's routing labels rather than merely generate a plausible response.
 
-The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint was saved locally and used by the application. The comparison below measures the effect of this task-specific adaptation against the prompted base model.
+The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint was saved locally and used by the application in the evaluated setup. For reproduction, the separately shared checkpoint must be placed at `artifacts/models/clinic-support`, the path configured in `.env.example`. The comparison below measures the effect of this task-specific adaptation against the prompted base model.
 
 ### Validation and held-out results
 
@@ -217,7 +216,7 @@ The priority improvement is independent, expert-led evaluation on a larger set o
 
 ## Conclusion
 
-The project successfully demonstrates an API-driven NLP application for a diabetes-clinic support workflow. It combines text classification, text summarisation, question answering, and RAG, with a fully fine-tuned classifier and source-backed responses through the React/FastAPI application. The held-out evaluations show improved classifier performance after fine-tuning, supported summaries, and relevant WHO passages for answerable questions. Screenshots and evidence records document the application and its workplace use. The project demonstrates how supervised domain adaptation, retrieval-grounded generation, and task-specific evaluation can be integrated into a practical staff-support workflow.
+The project successfully demonstrates an API-driven NLP application for a diabetes-clinic support workflow. It combines text classification, text summarisation, and question answering using RAG, with a fully fine-tuned classifier and source-backed responses through the React/FastAPI application. The held-out evaluations compare the base and fine-tuned classifier and assess summary fact retention, retrieval relevance, answer support, and referrals. Screenshots and evidence records document the application and its workplace use. The project demonstrates how supervised domain adaptation and retrieval-grounded generation support a practical staff workflow.
 
 ## Demonstration Video
 

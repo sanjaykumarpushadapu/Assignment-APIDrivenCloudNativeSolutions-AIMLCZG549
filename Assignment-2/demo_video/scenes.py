@@ -111,8 +111,8 @@ SCENES = [
         MEMBERS[3],
         "Part one outlines the workplace scenario: a fictional diabetes clinic "
         "support desk handles requests about appointments, education, portal access, records and clinical questions. "
-        "The NLP application demonstrates text classification, text summarisation, and question answering grounded "
-        "with retrieved WHO passages.",
+        "Bhuvnesh built the React and FastAPI application connecting text classification, text summarisation, "
+        "and question answering grounded with retrieved WHO passages.",
     ),
     {
         "id": "label_guide",
@@ -134,7 +134,7 @@ SCENES = [
         2,
         "Fine-Tuning",
         MEMBERS[2],
-        "Part two explains why the general base model was adapted to the clinic's five-label routing task through supervised fine-tuning.",
+        "Part two covers Chezrla's reviewed classification data, supervised fine-tuning, and base-versus-tuned evaluation.",
     ),
     {
         "id": "fine_tuning",
@@ -164,7 +164,7 @@ SCENES = [
         3,
         "RAG Model",
         MEMBERS[1],
-        "Part three demonstrates question answering with RAG over curated WHO diabetes information.",
+        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and RAG question answering.",
     ),
     {
         "id": "rag_pipeline",
@@ -176,7 +176,7 @@ SCENES = [
             "it. Our RAG pipeline embeds the question, ranks WHO passages by similarity, and gives the top three "
             "to FLAN-T5 as context. The answer is returned with its source passages. In the {rag_cases}-case "
             "RAG baseline, retrieval found relevant evidence for {retrieval_hits} of {retrieval_total} "
-            "answerable questions; reviewers judged {answers_supported} answers supported and {answers_complete} "
+            "answerable questions; the reviewer judged {answers_supported} answers supported and {answers_complete} "
             "both correct and complete."
         ),
     },
@@ -185,15 +185,8 @@ SCENES = [
         4,
         "Situated Learning – Workplace Application",
         MEMBERS[0],
-        "Part four applies NLP classification, staff handoffs, and source-backed answers to a workplace workflow.",
+        "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow.",
     ),
-    {
-        "id": "tests_terminal",
-        "kind": "terminal",
-        "commands": ["pytest", "build"],
-        "caption": "Backend tests and frontend build, run on this machine moments ago",
-        "say": "The backend tests and frontend build were run just before recording: {pytest_summary}.",
-    },
     {
         "id": "app_analysis",
         "kind": "app",
@@ -315,7 +308,11 @@ SCENES = [
         "kind": "image",
         "images": ["04-staff-referral.png"],
         "caption": "Workplace example: a personal medication question is referred to clinic staff",
-        "say": "In this workplace scenario, a personal medication question is referred to clinic staff.",
+        "say": (
+            "In this clinic analogue, staff manually identify requests, prepare handoffs, and consult education "
+            "material. The application brings categories, summaries, and retrieved sources into one review flow. "
+            "Evaluation used synthetic cases; the priority next step is expert review of representative outputs."
+        ),
     },
     {
         "id": "closing",
@@ -349,8 +346,8 @@ SELF_SCRIPTS = {
     ),
     "part1_card": (
         "Part one outlines the workplace scenario: a fictional diabetes clinic support desk handles requests "
-        "about appointments, education, portal access, records, and clinical questions. The application "
-        "demonstrates text classification, text summarisation, and question answering grounded in retrieved sources."
+        "about appointments, education, portal access, records, and clinical questions. Bhuvnesh built the "
+        "React and FastAPI application connecting classification, summarisation, and source-grounded answers."
     ),
     "label_guide": (
         "We route requests into five categories: appointment support, education resource request, portal "
@@ -358,8 +355,7 @@ SELF_SCRIPTS = {
         "to staff."
     ),
     "part2_card": (
-        "Part two explains why a general base model was adapted to the clinic's five-label routing taxonomy. "
-        "Supervised fine-tuning pairs each message and task instruction with its reviewed category label."
+        "Part two covers Chezrla's reviewed classification data, supervised fine-tuning, and base-versus-tuned evaluation."
     ),
     "fine_tuning": (
         "We fully fine-tuned the pretrained FLAN-T5 model on reviewed synthetic support-message and category "
@@ -369,16 +365,17 @@ SELF_SCRIPTS = {
         "The base summariser was reviewed on 20 messages. All outputs were supported by their input, and 10 retained every essential fact."
     ),
     "part3_card": (
-        "Part three demonstrates question answering with RAG, using curated WHO diabetes information as the evidence source."
+        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and RAG question answering."
     ),
     "rag_pipeline": (
         "A pretrained model alone may generate an answer without showing its evidence. Our retriever ranks the "
         "WHO passages for each question, passes the top three into FLAN-T5, and returns those sources with the "
         "answer. In the reviewed baseline, retrieval found relevant passages for all 20 answerable questions; "
-        "reviewers judged 18 answers supported and 16 correct and complete."
+        "the reviewer judged 18 answers supported and 16 correct and complete."
     ),
-    "part4_card": "Part four applies NLP classification, handoffs, and source-backed answers in a workplace scenario.",
-    "tests_terminal": "We ran our backend tests and frontend build just before recording.",
+    "part4_card": (
+        "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow."
+    ),
     "app_analysis": (
         "In our live app, a staff member enters a support message. The fine-tuned classifier returns a clinic "
         "category, and the base summariser prepares a handoff field."
@@ -399,7 +396,11 @@ SELF_SCRIPTS = {
     "api_analyze": "The analyse endpoint returns the category and the handoff summary.",
     "api_retrieve": "The retrieve endpoint returns the ranked source passages before answer generation.",
     "api_chat": "And the chat endpoint returns a grounded answer with its sources.",
-    "workplace": "In this workplace scenario, a personal medication question is referred to clinic staff.",
+    "workplace": (
+        "In this clinic analogue, staff manually identify requests, prepare handoffs, and consult education "
+        "material. The application brings categories, summaries, and retrieved sources into one review flow. "
+        "Evaluation used synthetic cases; the priority next step is expert review of representative outputs."
+    ),
     "closing": (
         "To summarise: our API-driven NLP application combines text classification, text summarisation, and "
         "question answering implemented with RAG. It applies supervised fine-tuning to clinic-support labels "
