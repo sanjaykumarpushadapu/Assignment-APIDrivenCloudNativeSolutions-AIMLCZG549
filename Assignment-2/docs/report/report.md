@@ -10,7 +10,7 @@ This report presents the design, implementation, and evaluation of an interactiv
 
 ## Team Contribution and Work Allocation
 
-Each member contributed 25% of the group work. The qualitative contributions below are organised around the four assessed parts in the assignment brief; the percentage records the group’s agreed equal share of the overall work.
+The group agreed on equal 25% contribution shares. The table below records each member’s primary responsibility across the assessed parts.
 
 | Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
 |---:|---|---|---|---:|
@@ -91,7 +91,7 @@ flowchart LR
 
 This NLP application supports a fictional diabetes-clinic support desk. In this workflow, staff read incoming messages, route requests, prepare handoffs, and consult education material when responding to general questions. Staff review the assistant's outputs before using them.
 
-For example, one message may request an appointment change and help finding an education leaflet. The classifier selects the primary queue; the summary preserves the relevant requests for a staff handoff. A separate question about general diabetes information can be submitted to the knowledge assistant, which displays its answer and source passages.
+For example, one message may request an appointment change and help finding an education leaflet. `/analyze` returns a primary category and handoff-summary field; the summary evaluation is reported in Part II. A separate question about general diabetes information can be submitted to the knowledge assistant, which displays its answer and source passages.
 
 ### Application and API
 
@@ -171,7 +171,7 @@ Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat
 
 ### Evaluation results
 
-The RAG evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. Retrieval relevance, answer support, source citations, completeness, and expected answer/referral decisions were reviewed.
+The RAG evaluation used 30 reviewed cases: 20 answerable from the indexed source and 10 expected to be referred to staff. Retrieval relevance, answer support, source citations, completeness, and expected answer/referral decisions were checked against the WHO passages and answer key. These metrics describe the initial routing-rule configuration, before subsequent routing refinements.
 
 | Measure | Result |
 |---|---:|
@@ -183,7 +183,7 @@ The RAG evaluation used 30 reviewed cases: 20 answerable from the indexed source
 | Answerable cases with a correct source citation | 18/20 (90%) |
 | Answerable cases with a correct and complete response | 16/20 (80%) |
 
-The results show that retrieval returned relevant passages for all 20 answerable questions. Human review found 18 supported answers and 16 answers that were both correct and complete. Expected answer/referral decisions matched in 23 of 30 cases. These figures describe the evaluated RAG baseline.
+The results show that retrieval returned relevant passages for all 20 answerable questions. Review found 18 supported answers and 16 answers that were both correct and complete. Expected answer/referral decisions matched in 23 of 30 cases. These figures describe the evaluated baseline, not a post-refinement evaluation.
 
 ## IV. Situated Learning - Workplace Application
 
@@ -205,11 +205,11 @@ For selected urgent phrases, `/chat` returns the fixed urgent-care response befo
 
 ### Analyse - Evaluate workplace relevance
 
-The three task evaluations show complementary workplace value. Classification presents a primary queue label with each message, giving staff a structured starting point for first-pass triage. Summarisation places the request in a handoff field, supporting transfer and review; the 20-case evaluation found all outputs supported by the message and all essential facts retained in 10 cases. RAG makes relevant WHO passages available alongside a generated answer; retrieval found a relevant passage in all 20 answerable cases, and human review judged 18 answers supported and 16 correct and complete. Bringing these functions together reduces task switching between message routing, handoff preparation, and source lookup. The category set and source display also make decisions easier to review consistently. These are workflow benefits demonstrated by the integrated interface; no measured time-saving claim is made. A key lesson is that retrieval relevance, answer support, and summary completeness are distinct outcomes and should be evaluated separately.
+The three task evaluations show complementary workplace value. Classification presents a primary queue label as a structured starting point for first-pass triage. Summarisation places the request in a handoff field for staff review; the 20-case evaluation found all outputs supported by the message, with all checklist facts retained in 10 cases. RAG makes relevant WHO passages available alongside generated answers; retrieval found a relevant passage in all 20 answerable cases, and review judged 18 answers supported and 16 correct and complete. Presenting categories, summaries, and sources in one interface consolidates these workflow steps. The evaluations measure model outputs rather than staff time. A key lesson is that retrieval relevance, answer support, and summary completeness are distinct outcomes and should be evaluated separately.
 
 ### Reflect - Project constraints and improvement
 
-The evaluation used synthetic support messages and public WHO material, protecting personal information in the project dataset. A real staff workflow should apply role-based access, secure handling, and defined retention for message data, while meeting the regulatory requirements relevant to the organisation and its location. The application uses local model checkpoints and a local passage index, so deployment infrastructure must provide storage and suitable compute for inference. Its API provides integration points for approved clinic workflows and existing systems.
+The evaluation used synthetic support messages and public WHO material, so the project dataset contains no real patient messages. A real staff workflow should apply role-based access, secure handling, and defined retention for message data, while meeting the requirements relevant to the organisation and its location. The application uses local model checkpoints and a local passage index, requiring storage and compute for inference. FastAPI exposes the NLP functions through documented endpoints; the demonstrated integration is between the React interface and the API.
 
 The priority improvement is independent, expert-led evaluation on a larger set of representative cases before wider use. This is the highest priority because the current results use small synthetic datasets; expert review can assess summary fact preservation, source support, and referral decisions in realistic staff scenarios.
 
