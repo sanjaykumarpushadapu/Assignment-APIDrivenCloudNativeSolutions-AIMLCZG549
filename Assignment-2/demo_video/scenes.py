@@ -89,19 +89,20 @@ SCENES = [
         "lines": MEMBERS,
         "footnote": "Automated screen recording · synthesized narration",
         "say": (
-            "Group 49 presents the Diabetes Care Support Assistant for A.I.M.L. C.Z.G. five four nine, Assignment Two. "
+            "Group 49 presents the Diabetes Care Support Assistant: a clinic-support application for classification, "
+            "handoff summaries, and source-grounded answers. This is our A.I.M.L. C.Z.G. five four nine, Assignment Two project. "
             "The team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra."
         ),
     },
     {
         "id": "architecture",
         "kind": "mermaid",
-        "caption": "Application Architecture",
+        "caption": "Architecture Overview",
         "say": (
-            "The application provides three language tasks. The analyze endpoint classifies support messages "
-            "and prepares handoff summaries. The chat endpoint uses RAG to answer general questions from WHO "
-            "passages, while selected requests receive a staff referral. The React interface calls these "
-            "services through FastAPI."
+            "The architecture overview shows how the application connects three language tasks. The analyze endpoint "
+            "classifies support messages and prepares handoff summaries. The chat endpoint uses RAG to answer general "
+            "questions from WHO passages, while selected requests receive a staff referral. The React interface calls "
+            "these services through FastAPI."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -109,7 +110,7 @@ SCENES = [
         1,
         "API-Based AI Application",
         MEMBERS[3],
-        "Part one outlines the workplace scenario: a fictional diabetes clinic "
+        "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic "
         "support desk handles requests about appointments, education, portal access, records and clinical questions. "
         "Bhuvnesh built the React and FastAPI application integrating text classification, text summarisation, "
         "and question answering grounded in retrieved WHO passages.",
@@ -133,7 +134,7 @@ SCENES = [
         2,
         "Fine-Tuning",
         MEMBERS[2],
-        "Part two covers Chezrla's reviewed classification data, supervised fine-tuning, and base-versus-tuned evaluation.",
+        "Part two, fine-tuning, covers Chezrla's reviewed classification data, supervised training, and base-versus-tuned evaluation.",
     ),
     {
         "id": "fine_tuning",
@@ -163,7 +164,7 @@ SCENES = [
         3,
         "Retrieval-Augmented Generation (RAG)",
         MEMBERS[1],
-        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and RAG question answering.",
+        "Part three, retrieval-augmented generation, covers Sathish's WHO source preparation, curated passages, retrieval, and question answering.",
     ),
     {
         "id": "rag_pipeline",
@@ -184,7 +185,7 @@ SCENES = [
         4,
         "Situated Learning: Workplace Application",
         MEMBERS[0],
-        "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow.",
+        "Part four, situated learning in the workplace, covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow.",
     ),
     {
         "id": "app_analysis",
@@ -321,7 +322,7 @@ SCENES = [
         "subtitle": "Classification · Handoff Summaries · Question Answering with RAG",
         "lines": MEMBERS,
         "say": (
-            "The diabetes care support assistant provides classification, handoff summarisation, and question "
+            "Project summary: the Diabetes Care Support Assistant provides classification, handoff summaries, and question "
             "answering with RAG. The classifier is fully fine-tuned for clinic-support labels, and staff can "
             "inspect answers alongside their retrieved WHO sources. Thank you for watching."
         ),
@@ -335,17 +336,17 @@ SCENES = [
 # ---------------------------------------------------------------------------
 SELF_SCRIPTS = {
     "title": (
-        "Hello everyone! We're Group 49, and this is our project for AIMLCZG549, Assignment Two: the Diabetes "
-        "Care Support Assistant. Our team is Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, "
+        "Hello everyone! We're Group 49, and this is our AIMLCZG549, Assignment Two project: the Diabetes "
+        "Care Support Assistant for classification, handoff summaries, and source-grounded answers. Our team is Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, "
         "and Bhuvnesh Mishra."
     ),
     "architecture": (
-        "The application provides three language tasks. The analyse endpoint classifies support messages and "
-        "prepares handoff summaries. The chat endpoint uses retrieval-augmented generation to answer general "
-        "questions from WHO passages. The React interface calls these services through FastAPI."
+        "The architecture overview shows how the application connects three language tasks. The analyse endpoint "
+        "classifies support messages and prepares handoff summaries. The chat endpoint uses retrieval-augmented "
+        "generation to answer general questions from WHO passages. The React interface calls these services through FastAPI."
     ),
     "part1_card": (
-        "Part one outlines the workplace scenario: a fictional diabetes clinic support desk handles requests "
+        "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic support desk handles requests "
         "about appointments, education, portal access, records, and clinical questions. Bhuvnesh built the "
         "React and FastAPI application integrating classification, summarisation, and source-grounded answers."
     ),
@@ -355,7 +356,7 @@ SELF_SCRIPTS = {
         "to staff. Selected urgent phrases receive a fixed urgent-care response."
     ),
     "part2_card": (
-        "Part two covers Chezrla's reviewed classification data, supervised fine-tuning, and base-versus-tuned evaluation."
+        "Part two, fine-tuning, covers Chezrla's reviewed classification data, supervised training, and base-versus-tuned evaluation."
     ),
     "fine_tuning": (
         "We fully fine-tuned the pretrained FLAN-T5 model on reviewed synthetic support-message and category "
@@ -365,7 +366,7 @@ SELF_SCRIPTS = {
         "The base summariser was reviewed on 20 messages. All outputs were supported by their input, and 10 retained every essential fact."
     ),
     "part3_card": (
-        "Part three covers Sathish's WHO source preparation, curated passages, retrieval, and question answering with RAG."
+        "Part three, retrieval-augmented generation, covers Sathish's WHO source preparation, curated passages, retrieval, and question answering."
     ),
     "rag_pipeline": (
         "For each general question, the retriever ranks the WHO passages by embedding similarity and returns "
@@ -374,7 +375,7 @@ SELF_SCRIPTS = {
         "judged 18 answers supported and 16 correct and complete."
     ),
     "part4_card": (
-        "Part four covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow."
+        "Part four, situated learning in the workplace, covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow."
     ),
     "app_analysis": (
         "In our live app, a staff member enters a support message. The fine-tuned classifier returns a clinic "
@@ -402,7 +403,7 @@ SELF_SCRIPTS = {
         "used synthetic cases."
     ),
     "closing": (
-        "Our diabetes care support assistant provides classification, handoff summarisation, and question "
+        "Project summary: our Diabetes Care Support Assistant provides classification, handoff summaries, and question "
         "answering with RAG. The classifier is fully fine-tuned for clinic-support labels, and staff can inspect "
         "answers with their WHO sources. Thank you!"
     ),

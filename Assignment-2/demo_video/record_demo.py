@@ -1882,7 +1882,19 @@ def main() -> None:
         log(f"    {sc['id']:22s} {dur:5.1f}s")
 
     # ---- recording --------------------------------------------------------
-    report = {"facts": facts, "scenes": []}
+    # Record the synthesizer and selected voice alongside the scene transcript so
+    # the delivered audio can be checked against the intended narration settings.
+    default_voice = {
+        "edge": "en-US-AriaNeural",
+        "say": "macOS system default",
+        "files": "team recording",
+        "none": "none",
+    }[args.tts]
+    report = {
+        "facts": facts,
+        "narration": {"engine": args.tts, "voice": args.voice or default_voice},
+        "scenes": [],
+    }
     log("Recording scenes")
     with sync_playwright() as pw:
         try:
