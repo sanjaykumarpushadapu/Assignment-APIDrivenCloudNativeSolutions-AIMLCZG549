@@ -97,12 +97,13 @@ SCENES = [
     {
         "id": "architecture",
         "kind": "mermaid",
+        "title": "Architecture Overview",
         "caption": "Architecture Overview",
         "say": (
-            "The architecture overview shows how the application connects three language tasks. The analyze endpoint "
-            "classifies support messages and prepares handoff summaries. The chat endpoint uses RAG to answer general "
-            "questions from WHO passages, while selected requests receive a staff referral. The React interface calls "
-            "these services through FastAPI."
+            "The architecture overview traces the React interface and its FastAPI routes. The analyze endpoint sends a support message "
+            "to the fine-tuned classifier and shared FLAN-T5 runtime for a category and handoff summary. The retrieve endpoint returns "
+            "ranked WHO passages. The chat endpoint checks for urgent or personal requests first; general questions use the same retriever "
+            "and shared model runtime to return an answer with sources."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -183,9 +184,9 @@ SCENES = [
     # ------------------------------------------------------------- Part 4
     part_card(
         4,
-        "Situated Learning: Workplace Application",
+        "Situated Learning – Workplace Application",
         MEMBERS[0],
-        "Part four, situated learning in the workplace, covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow.",
+        "Part four, Situated Learning – Workplace Application, presents Sanjay's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow.",
     ),
     {
         "id": "app_analysis",
@@ -315,6 +316,21 @@ SCENES = [
         ),
     },
     {
+        "id": "workplace_analysis",
+        "kind": "card",
+        "eyebrow": "Situated Learning · Part IV",
+        "title": "Analyse and Reflect",
+        "subtitle": "Workplace Evidence and Priority Improvement",
+        "say": (
+            "Under Analyse, the reviewed cases assess classification accuracy, summary fact retention, retrieval relevance, and answer support. "
+            "They do not measure staff time, request throughput, or live-clinic performance. Under Reflect, the demonstration uses synthetic "
+            "messages and public WHO text; its API has no authentication and it is not integrated with scheduling, the patient portal, or records. "
+            "Use with identifiable health information would require privacy and security controls, health-data and clinical review, approved "
+            "computing, cost planning, and system integration. The single priority before any live workflow is a clinic-approved, access-controlled "
+            "pilot with deidentified representative cases and staff review."
+        ),
+    },
+    {
         "id": "closing",
         "kind": "card",
         "eyebrow": "Group 49 · AIMLCZG549 Assignment II",
@@ -341,9 +357,10 @@ SELF_SCRIPTS = {
         "and Bhuvnesh Mishra."
     ),
     "architecture": (
-        "The architecture overview shows how the application connects three language tasks. The analyse endpoint "
-        "classifies support messages and prepares handoff summaries. The chat endpoint uses retrieval-augmented "
-        "generation to answer general questions from WHO passages. The React interface calls these services through FastAPI."
+        "The architecture overview traces the React interface and its FastAPI routes. The analyse endpoint sends a support message "
+        "to the fine-tuned classifier and shared FLAN-T5 runtime for a category and handoff summary. The retrieve endpoint returns "
+        "ranked WHO passages. The chat endpoint checks for urgent or personal requests first; general questions use the same retriever "
+        "and shared model runtime to return an answer with sources."
     ),
     "part1_card": (
         "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic support desk handles requests "
@@ -375,7 +392,7 @@ SELF_SCRIPTS = {
         "judged 18 answers supported and 16 correct and complete."
     ),
     "part4_card": (
-        "Part four, situated learning in the workplace, covers Sanjay's workplace scenario, representative cases, and analysis of the staff workflow."
+        "Part four, Situated Learning – Workplace Application, presents Sanjay's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow."
     ),
     "app_analysis": (
         "In our live app, a staff member enters a support message. The fine-tuned classifier returns a clinic "
@@ -401,6 +418,14 @@ SELF_SCRIPTS = {
         "In this example, the assistant refers a personal medication question to clinic staff. The wider staff "
         "workflow brings request categories, handoff summaries, and source passages into one place. The evaluation "
         "used synthetic cases."
+    ),
+    "workplace_analysis": (
+        "Under Analyse, the reviewed cases assess classification accuracy, summary fact retention, retrieval relevance, and answer support. "
+        "They do not measure staff time, request throughput, or live-clinic performance. Under Reflect, the demonstration uses synthetic "
+        "messages and public WHO text; its API has no authentication and it is not integrated with scheduling, the patient portal, or records. "
+        "Use with identifiable health information would require privacy and security controls, health-data and clinical review, approved "
+        "computing, cost planning, and system integration. The single priority before any live workflow is a clinic-approved, access-controlled "
+        "pilot with deidentified representative cases and staff review."
     ),
     "closing": (
         "Project summary: our Diabetes Care Support Assistant provides classification, handoff summaries, and question "

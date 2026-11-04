@@ -40,50 +40,37 @@ The React and TypeScript interface sends support messages and questions to FastA
 flowchart LR
     Staff[Clinic staff] --> UI[React and TypeScript UI]
     UI --> API[FastAPI]
-    APIResponse[FastAPI response] --> UI
-    GenerationRuntime[Shared base FLAN T5 runtime]
+    APIResponse[API response] --> UI
 
-    subgraph Analysis[Support message analysis]
-        Message[Natural language support message]
-        Classifier[Fine tuned FLAN T5 classifier]
-        Category[Support category]
-        Summary[Handoff summary]
-        Message --> Classifier --> Category
-    end
-
-    API -->|POST /analyze| Message
+    API -->|POST /analyze · message| Classifier[Fine-tuned FLAN-T5 classifier]
+    Classifier --> Category[Support category]
+    API -->|POST /analyze · message| BaseModel[Shared base FLAN-T5 runtime]
+    BaseModel --> Summary[Handoff summary]
     Category --> APIResponse
     Summary --> APIResponse
 
-    subgraph QuestionAnswering[Question answering with RAG]
-        Question[Natural language question]
-        Guard[Urgent and referral routing]
-        Urgent[Urgent care response]
-        Referral[Staff referral]
-        RetrievalQuery[Retrieval query]
-        Retriever[all MiniLM L6 v2 retrieval, cosine top 3]
-        Index[Curated WHO passage index]
-        Context[Question and retrieved passages]
-        Answer[Answer and source passages]
-        Question --> Guard
-        Guard -->|Urgent phrase| Urgent
-        Guard -->|Personal or clinic request| Referral
-        Guard -->|General question| Retriever
-        Question --> Context
-        Index --> Retriever
-        Retriever --> Context
-        RetrievalQuery --> Retriever
-    end
-
-    Message --> GenerationRuntime --> Summary
-    Context --> GenerationRuntime --> Answer
-
-    API -->|POST /chat| Question
-    API -->|POST /retrieve| RetrievalQuery
+    API -->|POST /chat · question| Guard[Urgent and staff-referral checks]
+    Guard -->|Urgent| Urgent[Urgent-care response]
+    Guard -->|Personal or clinic-specific| Referral[Staff referral]
+    Guard -->|General information question| Retriever[all-MiniLM-L6-v2 retrieval · cosine top 3]
+    API -->|POST /retrieve · question| Retriever
+    WHO[Curated local WHO passages] --> Retriever
+    Retriever -->|POST /retrieve result| RetrievalResult[Ranked passages]
+    Retriever -->|Top three for /chat| Context[Question plus retrieved passages]
+    Guard -->|General question| Context
+    Context --> BaseModel
+    BaseModel --> GroundedAnswer[Answer with source passages]
+    GroundedAnswer --> APIResponse
+    RetrievalResult --> APIResponse
     Urgent --> APIResponse
     Referral --> APIResponse
-    Answer --> APIResponse
-    Retriever -->|Ranked passages| APIResponse
+
+    classDef api fill:#e9f2ff,stroke:#5479ad,color:#17243a,stroke-width:2px
+    classDef model fill:#f2edff,stroke:#8068b0,color:#17243a,stroke-width:2px
+    classDef data fill:#eaf6ee,stroke:#548b65,color:#17243a,stroke-width:2px
+    class API,APIResponse api
+    class Classifier,BaseModel,Retriever model
+    class WHO data
 ```
 
 ## I. API-Based AI Application
@@ -188,11 +175,11 @@ The RAG evaluation used 30 reviewed cases: 20 answerable from the indexed source
 
 The results show that retrieval returned relevant passages for all 20 answerable questions. Review found 18 supported answers and 16 answers that were both correct and complete. Expected answer/referral decisions matched in 23 of 30 cases. These figures describe the evaluated baseline, not a post-refinement evaluation.
 
-## IV. Situated Learning - Workplace Application
+## IV. Situated Learning – Workplace Application
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes clinic support desk. Staff receive messages about appointments, education resources, the patient portal, records, and clinical questions. In the scenario, staff classify each request, prepare a handoff, and consult education material for general questions. The application supports these tasks with message classification, handoff summaries, and source-backed answers. Evaluation uses synthetic messages and public education material.
+The workplace analogue is a diabetes-clinic support desk. In the scenario, staff read incoming messages, identify whether they concern appointments, education, portal access, records, or personal clinical care, and route them to the relevant team. They prepare a handoff and separately consult education material for general questions. The proposed benefit is to bring first-pass categories, handoff summaries, and source passages into one staff workflow. The scenario uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
@@ -208,11 +195,13 @@ For selected urgent phrases, `/chat` returns the fixed urgent-care response befo
 
 ### Analyse - Evaluate workplace relevance
 
-The three task evaluations show complementary workplace value. Classification presents a primary queue label as a structured starting point for first-pass triage. Summarisation places the request in a handoff field for staff review; the 20-case evaluation found all outputs supported by the message, with all checklist facts retained in 10 cases. RAG makes relevant WHO passages available alongside generated answers; retrieval found a relevant passage in all 20 answerable cases, and review judged 18 answers supported and 16 correct and complete. Presenting categories, summaries, and sources in one interface consolidates these workflow steps. The evaluations measure model outputs rather than staff time. A key lesson is that retrieval relevance, answer support, and summary completeness are distinct outcomes and should be evaluated separately.
+On the held-out classification set, the tuned model achieved 95.00% accuracy; the 20-case summary review found every output supported by its input and all checklist facts retained in 10 cases. For RAG, retrieval found a relevant passage in all 20 answerable cases, with 18 answers judged supported and 16 judged correct and complete. These results address output quality on the reviewed cases. They do not measure staff time, request throughput, or performance under a clinic workload. The prototype also has no connection to appointment scheduling, the patient portal, or records systems, so staff-workflow efficiency and integration have not been evaluated.
 
-### Reflect - Project constraints and improvement
+### Reflect - Deployment Constraints and Improvements
 
-The evaluations used synthetic support messages and public WHO information. Their results describe model behaviour on the reviewed cases; they do not measure staff time or establish performance in a live clinic workflow. A follow-up evaluation could use a broader, independently reviewed set of representative cases and measure the staff workflow directly.
+The demonstration uses synthetic support messages and public WHO information. The API has no authentication, and the application is not connected to clinic systems. Before using identifiable patient messages, a clinic would need to set privacy and security controls for access, transfer, storage, and retention, and review applicable health-data regulations and clinical governance. Hosting the models and retrieval index also requires approved computing and storage, ongoing cost planning, and integration with the staff workflow.
+
+The single priority improvement is a clinic-approved, access-controlled validation pilot using deidentified representative cases and staff review before any live workflow connection. This would allow the clinic to verify output quality and workflow fit while establishing the required data-handling and review process.
 
 ## Conclusion
 

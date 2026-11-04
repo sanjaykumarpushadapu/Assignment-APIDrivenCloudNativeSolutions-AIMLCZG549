@@ -694,24 +694,26 @@ def mermaid_html(scene: dict) -> str:
     if not match:
         fail("could not find the Mermaid architecture diagram in docs/report/report.md")
     diagram = html.escape(match.group(1).strip())
+    title = html.escape(scene.get("title") or scene.get("caption", ""))
     css = """
 body{background:#f1f5f9}
-.diagram-shell{position:fixed;inset:0 0 64px;display:grid;place-items:center;padding:26px}
+.diagram-title{position:fixed;top:22px;left:0;right:0;z-index:2;text-align:center;
+ color:#17243a;font-size:30px;line-height:1.25;font-weight:700}
+.diagram-shell{position:fixed;inset:72px 0 64px;display:grid;place-items:center;padding:26px}
 .mermaid{width:100%;height:100%;display:grid;place-items:center;background:#fff;border:1px solid #d8e1ec;border-radius:20px;padding:24px;box-sizing:border-box}
 .mermaid svg{max-width:100%;max-height:100%;font-family:Arial,sans-serif}
-.caption{z-index:2}
 """
     script = """
 mermaid.initialize({startOnLoad:false,theme:'base',themeVariables:{
   primaryColor:'#edf3ff',primaryTextColor:'#17243a',primaryBorderColor:'#7d9bd1',
   lineColor:'#52627a',secondaryColor:'#edf7f1',tertiaryColor:'#fff5e7',
-  fontFamily:'Arial, sans-serif',fontSize:'22px'
+  fontFamily:'Arial, sans-serif',fontSize:'26px'
 },flowchart:{htmlLabels:true,curve:'linear',nodeSpacing:46,rankSpacing:64,useMaxWidth:true}});
 mermaid.run({querySelector:'.mermaid'}).then(()=>{window.diagramReady=true;});
 """
     body = (
+        f"<h1 class='diagram-title'>{title}</h1>"
         f"<main class='diagram-shell'><pre class='mermaid'>{diagram}</pre></main>"
-        f"<div class='caption'>{html.escape(scene.get('caption', ''))}</div>"
         "<script src='https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js'></script>"
     )
     return page_html(body, css, script)
