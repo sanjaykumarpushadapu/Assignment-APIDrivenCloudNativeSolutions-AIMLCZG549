@@ -1,9 +1,9 @@
-"""Score an explicitly selected reviewed RAG set against a running local API.
+"""Score a reviewed RAG set against a running local API.
 
-Pass a fresh, independent held-out set for post-fix evaluation. The recorded
-pre-fix baseline must not be reused to claim post-fix performance. The script
-refuses candidate/unreviewed data, does not change model or retrieval settings,
-and leaves answer-quality judgments for a human reviewer.
+The default mode requires held-out cases excluded from tuning. Use
+--development-regression explicitly for existing development diagnostics;
+these results are labelled as regression evidence. Neither mode changes
+runtime settings or automatically judges answer support and completeness.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ TEAM_REVIEWERS = {
 }
 
 
-def read_reviewed_cases(path: Path) -> list[dict[str, Any]]:
+def read_reviewed_cases(path: Path, *, development_regression: bool = False) -> list[dict[str, Any]]:
     """Load cases only after a named human reviewer approves the held-out set."""
     rows = [
         json.loads(line)
@@ -66,7 +66,11 @@ def read_reviewed_cases(path: Path) -> list[dict[str, Any]]:
             raise ValueError(
                 f"{row['case_id']} is not approved by a named human reviewer."
             )
-        if row["use_for_tuning"] is not False:
+        if development_regression:
+            # Development cases measure known behaviour, never held-out performance.
+            if row.get("purpose") != "development_diagnostic":
+                raise ValueError(f"{row['case_id']} must be a development diagnostic.")
+        elif row["use_for_tuning"] is not False:
             raise ValueError(f"{row['case_id']} must remain unused for tuning.")
         if row["expected_action"] not in {"answer_from_corpus", "refer_to_staff"}:
             raise ValueError(f"Unsupported expected_action in {row['case_id']}.")
@@ -179,12 +183,23 @@ def main() -> int:
     parser.add_argument(
         "--output", type=Path, default=DEFAULT_OUTPUT, help="JSON results path."
     )
+    parser.add_argument(
+        "--development-regression", action="store_true",
+        help="Check existing development cases; label results as regression evidence.",
+    )
     args = parser.parse_args()
     dataset_path = args.dataset.resolve()
 
     # Never call the model while the question set is still a draft.
-    cases = read_reviewed_cases(dataset_path)
+    cases = read_reviewed_cases(dataset_path, development_regression=args.development_regression)
     result = evaluate_cases(args.api_url, cases)
+    result["record_type"] = (
+        "development_regression" if args.development_regression else "held_out_evaluation"
+    )
+    result["interpretation"] = (
+        "Existing development cases; results are regression evidence, not independent final evaluation."
+        if args.development_regression else "Held-out cases excluded from tuning."
+    )
     result["dataset"] = str(dataset_path.relative_to(PROJECT_ROOT))
     result["dataset_sha256"] = hashlib.sha256(dataset_path.read_bytes()).hexdigest()
     args.output.parent.mkdir(parents=True, exist_ok=True)

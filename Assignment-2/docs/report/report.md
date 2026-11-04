@@ -10,7 +10,7 @@ This report presents the design, implementation, and evaluation of an interactiv
 
 ## Team Contribution and Work Allocation
 
-The group agreed on equal 25% contribution shares. The table below records each member’s primary responsibility across the assessed parts.
+The group agreed on equal contribution shares of 25% each. The qualitative descriptions identify each member’s primary responsibility across the assessed parts; they do not indicate unequal effort.
 
 | Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
 |---:|---|---|---|---:|
@@ -38,61 +38,42 @@ The React interface sends JSON HTTP requests to the FastAPI application and rece
 
 ```mermaid
 flowchart LR
-    Staff[Clinic staff] --> UI[React UI]
-    UI -->|HTTP JSON request| Routes
-    HttpResponse[HTTP JSON response] --> UI
-
-    subgraph Service[FastAPI application process]
-        direction LR
-        Routes[FastAPI route handlers]
-        Routes --> AnalyzeRoute[POST /analyze]
-        Routes --> RetrieveRoute[POST /retrieve]
-        Routes --> ChatRoute[POST /chat]
-        Routes --> StatusRoute[GET /health and GET /metadata]
-
-        AnalyzeRoute --> AnalyzeUseCase[Analyze support request]
-        AnalyzeUseCase -->|in-process model call| Classifier[Fine-tuned FLAN-T5 classifier]
-        AnalyzeUseCase -->|in-process model call| BaseRuntime[Shared base FLAN-T5 runtime]
-        Classifier --> Category[Support category]
-        BaseRuntime --> Summary[Handoff summary]
-        Category --> AnalyzeResult[Classification and summary]
-        Summary --> AnalyzeResult
-        AnalyzeResult --> HttpResponse
-
-        RetrieveRoute --> RetrieveUseCase[Retrieve knowledge]
-        RetrieveUseCase --> Retriever[Shared passage retriever]
-        WHO[Curated local WHO passages] --> Retriever
-        Embedder[all-MiniLM-L6-v2 embeddings] --> Retriever
-        Retriever --> Ranked[Top three ranked passages]
-        Ranked --> RetrieveResult[Question and source passages]
-        RetrieveResult --> HttpResponse
-
-        ChatRoute --> AnswerUseCase[Answer question]
-        AnswerUseCase --> Guard[Urgent and staff-referral checks]
-        Guard -->|urgent| Urgent[Fixed urgent-care response]
-        Guard -->|personal or clinic-specific| Referral[Staff referral]
-        Guard -->|general question| Retriever
-        Guard --> Context[Question and retrieved passages]
-        Ranked --> Context
-        Context -->|in-process model call| BaseRuntime
-        BaseRuntime --> Generated[Grounded answer]
-        Generated --> ChatResult[Answer and source passages]
-        Ranked --> ChatResult
-        ChatResult --> HttpResponse
-        Urgent --> HttpResponse
-        Referral --> HttpResponse
-
-        StatusRoute --> Status[Health status or component metadata]
-        Status --> HttpResponse
+    UI[React interface] -->|JSON HTTP request| API
+    API -->|JSON HTTP response| UI
+    subgraph Backend[FastAPI application process]
+        API[Request validation and route handlers]
+        API --> A[POST /analyze]
+        API --> R[POST /retrieve]
+        API --> C[POST /chat]
+        API --> S[GET /health and /metadata]
+        A --> Classifier[Fine-tuned classifier runtime]
+        A --> Base[Shared base FLAN-T5 runtime]
+        R --> Retriever[Shared embedding retriever]
+        C --> Checks[Routing and answer checks]
+        Checks --> Retriever
+        Checks --> Base
+        WHO[Local WHO passages] --> Retriever
     end
-
-    classDef api fill:#e9f2ff,stroke:#5479ad,color:#17243a,stroke-width:2px
-    classDef model fill:#f2edff,stroke:#8068b0,color:#17243a,stroke-width:2px
-    classDef data fill:#eaf6ee,stroke:#548b65,color:#17243a,stroke-width:2px
-    class Routes,AnalyzeRoute,RetrieveRoute,ChatRoute,StatusRoute,HttpResponse api
-    class Classifier,BaseRuntime,Embedder,Retriever model
-    class WHO data
 ```
+
+The arrows within FastAPI show Python component calls and data dependencies. `/analyze` combines the classifier output and summary; `/retrieve` returns ranked passages; `/chat` returns an answer with passages or a fixed referral response. The following flow expands the chat checks implemented by the knowledge answerer.
+
+```mermaid
+flowchart LR
+    Q[Validated question] --> U{Urgent pattern matched?}
+    U -->|Yes| Urgent[Fixed urgent-care response]
+    U -->|No| P{Personal or clinic request?}
+    P -->|Yes| Referral[Staff referral with no sources]
+    P -->|No| R[Retrieve top three WHO passages]
+    R --> Score{Passages pass score check?}
+    Score -->|No| Referral
+    Score -->|Yes| G[Generate using question and retrieved context]
+    G --> Valid{Output passes format checks?}
+    Valid -->|No| Referral
+    Valid -->|Yes| Answer[Answer with retrieved passages]
+```
+
+The score check requires at least one passage and a top similarity score at or above the configured threshold. The output check rejects empty text, an ABSTAIN prefix, and citation-only text. These checks handle the listed conditions; they do not establish that every generated statement is supported. Answer support is assessed separately against the retrieved text.
 
 ## I. API-Based AI Application
 
@@ -130,7 +111,7 @@ The classifier uses five support categories. The dataset contains 280 synthetic 
 
 FLAN-T5 provides general instruction-following and text-generation ability, but the application needs a specific five-label clinic-support taxonomy and a clinical-referral override. General language understanding alone does not teach the model this operational label set or guarantee the exact category format. Supervised fine-tuning adapts the pretrained model by using the classification instruction and support message as input and the reviewed category name as the target text. This trains the model to map domain messages to the clinic's routing labels rather than merely generate a plausible response.
 
-The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint was saved locally and used by the application in the evaluated setup. For reproduction, the separately shared checkpoint must be placed at `artifacts/models/clinic-support`, the path configured in `.env.example`. The comparison below measures the effect of this task-specific adaptation against the prompted base model.
+The classifier received full fine-tuning from the pinned `google/flan-t5-base` checkpoint. AdamW updated the model parameters for one epoch, using batch size 1, gradient accumulation of 8, learning rate `5e-5`, and seed 42. The run completed 35 optimizer steps. The selected checkpoint was saved locally and used by the application in the evaluated setup. To reproduce training from the repository, install the inference dependencies and run `uv run --extra inference python scripts/train_classifier.py --epochs 1 --output-dir artifacts/models/clinic-support-candidate` from `Assignment-2`. Set `CLASSIFIER_MODEL_NAME=./artifacts/models/clinic-support-candidate` in `.env` and restart the API to use the new checkpoint. The tracked training and validation partitions are used by this command; the final test partition is excluded. A new run must be evaluated separately before attributing the recorded scores to it. The comparison below measures the effect of this task-specific adaptation against the prompted base model.
 
 ### Validation and held-out results
 
@@ -162,7 +143,7 @@ The configured base summariser was evaluated on 20 reviewed synthetic message/su
 
 The indexed corpus is prepared from one public source: the WHO page *Diabetes: Questions and Answers* (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in the local source manifest. The corpus contains eight curated passages covering diabetes basics, common symptoms, prevention, and high-level education and self-management support. Each passage carries its source title, section, URL, and chunk ID.
 
-The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. It embeds the question and WHO passages, ranks passages by cosine similarity, and returns the three highest-ranked passages. The answer model receives the question together with this retrieved context and generates a response; `/chat` returns the answer with the source passages for staff review. Retrieval is used because a pretrained language model can generate fluent text without showing which approved source supports it. RAG supplies relevant evidence at inference time, improves traceability, and allows the indexed source material to be updated without fine-tuning the answer model. Personal-care and clinic-specific requests receive a fixed staff referral, while selected urgent phrases receive a separate fixed urgent-care response.
+The retriever uses `sentence-transformers/all-MiniLM-L6-v2`, pinned to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. It embeds the question and WHO passages, ranks passages by cosine similarity, and returns the three highest-ranked passages. The answer model receives the question together with this retrieved context and generates a response; `/chat` returns the answer with the source passages for staff review. Retrieval is used because a pretrained language model can generate fluent text without showing which approved source supports it. RAG supplies relevant evidence at inference time, improves traceability, and allows the indexed source material to be updated without fine-tuning the answer model. Requests matching the personal-care and clinic-process patterns receive a fixed staff referral, while selected urgent phrases receive a separate fixed urgent-care response. Other questions proceed through the retrieval-score and output-format checks shown in the architecture flow.
 
 ### API demonstration
 
@@ -196,11 +177,15 @@ The RAG evaluation used 30 reviewed cases: 20 answerable from the indexed source
 
 The results show that retrieval returned relevant passages for all 20 answerable questions. Review found 18 supported answers and 16 answers that were both correct and complete. Expected answer/referral decisions matched in 23 of 30 cases. These figures describe the evaluated baseline, not a post-refinement evaluation.
 
+### Current routing regression check
+
+The current application was also checked on 15 existing development cases: eight answerable questions and seven expected referrals. Retrieval found an expected source in all eight answerable cases. The answer/referral decision matched in 14/15 cases (93.3%), and all seven expected referrals were returned. One answerable question was abstained on (1/8). These cases had informed routing development, so this check measures known-case behaviour; the preceding 30-case baseline remains the recorded evaluation of its earlier configuration. Answer support and completeness were not rescored in this regression run.
+
 ## IV. Situated Learning – Workplace Application
 
 ### Anchor - Identify a workplace problem
 
-The workplace analogue is a diabetes-clinic support desk. In the scenario, staff read incoming messages, identify whether they concern appointments, education, portal access, records, or personal clinical care, and route them to the relevant team. They prepare a handoff and separately consult education material for general questions. The proposed benefit is to bring first-pass categories, handoff summaries, and source passages into one staff workflow. The scenario uses synthetic messages and public education material.
+The team used a diabetes-clinic support desk as the industry analogue. The contribution table records the members responsible for the interface and API, model adaptation, knowledge retrieval, and workplace analysis. All four work areas support this same workflow. In the scenario, staff read incoming messages, identify whether they concern appointments, education, portal access, records, or personal clinical care, and route them to the relevant team. They prepare a handoff and separately consult education material for general questions. In this scenario, manually reading each message and consulting a separate education source can lead to repeated work and omitted handoff details. The proposed benefit is to bring first-pass categories, handoff summaries, and source passages into one staff workflow. The scenario uses synthetic messages and public education material.
 
 ### Apply - Adapt the AI solution
 
@@ -214,9 +199,22 @@ For selected urgent phrases, `/chat` returns the fixed urgent-care response befo
 
 ![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 
+### Application of each member's contribution
+
+The members applied their documented project responsibilities to the same clinic support-desk analogue.
+
+| Member | Contribution applied to the workflow | Evidence and staff use |
+|---|---|---|
+| Bhuvnesh Mishra | Integrated the React interface and FastAPI routes. | Figures 1 and 2 show how a staff member submits a request and receives a category and handoff summary. |
+| Chezrla Raga Suma | Adapted the classifier to the clinic's five support labels. | Figure 3 compares the base and tuned models; staff use the predicted category as a routing suggestion and check it against the message. |
+| Sathish Krishnan V | Prepared WHO passages and retrieval for general information questions. | Figures 4 and 6 show retrieved passages and an answer whose source staff can inspect. |
+| Pushadapu Sanjay Kumar | Defined the workplace workflow and analysed representative outputs. | Figure 7 and the analysis below connect referral behaviour and output quality to staff review and handoff decisions. |
+
 ### Analyse - Evaluate workplace relevance
 
-On the held-out classification set, the tuned model achieved 95.00% accuracy; the 20-case summary review found every output supported by its input and all checklist facts retained in 10 cases. For RAG, retrieval found a relevant passage in all 20 answerable cases, with 18 answers judged supported and 16 judged correct and complete. These results address output quality on the reviewed cases. They do not measure staff time, request throughput, or performance under a clinic workload. The prototype also has no connection to appointment scheduling, the patient portal, or records systems, so staff-workflow efficiency and integration have not been evaluated.
+On the held-out classification set, the tuned model achieved 95.00% accuracy; the 20-case summary review found every output supported by its input and all checklist facts retained in 10 cases. For RAG, retrieval found a relevant passage in all 20 answerable cases, with 18 answers judged supported and 16 judged correct and complete. These results address output quality on the reviewed cases. They do not measure staff time, request throughput, or performance under a clinic workload. The application also has no connection to appointment scheduling, the patient portal, or records systems, so staff-workflow efficiency and integration have not been evaluated.
+
+For the support desk, 57 correct classifications out of 60 indicate that three requests still needed category correction. Staff should check the category before routing a message. Although all 20 reviewed summaries were supported by their inputs, ten omitted at least one essential fact. Staff must compare handoffs with the original message, particularly appointment timing, secondary requests, and confirmation status. The baseline RAG review found four incomplete or incorrect answers among 20 answerable cases, showing why the source passages and original question remain visible for staff review.
 
 ### Reflect - Deployment Constraints and Improvements
 
@@ -226,7 +224,7 @@ The single priority improvement is a clinic-approved, access-controlled validati
 
 ## Conclusion
 
-The project successfully demonstrates an API-driven NLP application for a diabetes-clinic support workflow. It combines text classification, text summarisation, and question answering using RAG, with a fully fine-tuned classifier and source-backed responses through the React/FastAPI application. The held-out evaluations compare the base and fine-tuned classifier and assess summary fact retention, retrieval relevance, answer support, and referrals. Screenshots and evidence records document the application and its workplace use. The project demonstrates how supervised domain adaptation and retrieval-grounded generation support a practical staff workflow.
+The project successfully demonstrates an API-driven NLP application for a diabetes-clinic support workflow. It combines text classification, text summarisation, and question answering using RAG, with a fully fine-tuned classifier and source-backed responses through the React/FastAPI application. The classifier evaluation compares the base and fine-tuned model on held-out messages. The summary review measures fact retention, and the RAG baseline measures retrieval relevance, answer support, and referral decisions for its recorded configuration. Screenshots and evidence records document the application and its workplace use. The project demonstrates how supervised domain adaptation and retrieval-grounded generation support a practical staff workflow.
 
 ## Demonstration Video
 

@@ -53,6 +53,7 @@ RESULT_RECORDS = {
     "classifier": "docs/report/evidence/classifier-run-record.json",
     "summarizer": "docs/report/evidence/summarizer-evaluation-record.json",
     "rag": "docs/report/evidence/rag-evaluation-record.json",
+    "rag_regression": "docs/report/evidence/rag-current-regression.json",
 }
 IMAGES_DIR = "docs/report/evidence"
 
@@ -87,11 +88,12 @@ SCENES = [
         "title": "Diabetes Care Support Assistant",
         "subtitle": "Classification · Handoff Summaries · Source-Grounded Answers",
         "lines": MEMBERS,
-        "footnote": "Automated screen recording · synthesized narration",
+        "footnote": "Equal contribution · 25% per member",
         "say": (
             "Group 49 presents the Diabetes Care Support Assistant: a clinic-support application for classification, "
             "handoff summaries, and source-grounded answers. This is our A.I.M.L. C.Z.G. five four nine, Assignment Two project. "
-            "The team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra."
+            "The team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra. "
+            "Each member contributed equally, with a 25 percent share."
         ),
     },
     {
@@ -101,9 +103,16 @@ SCENES = [
         "caption": "Architecture Overview",
         "say": (
             "The React interface sends JSON HTTP requests to FastAPI and receives JSON responses. Inside FastAPI, analyze runs the fine-tuned "
-            "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat routes "
-            "urgent or personal questions to staff; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
+            "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat returns a fixed urgent-care response for matched urgent phrases and a staff referral for matched personal questions; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
         ),
+    },
+    {
+        "id": "chat_checks",
+        "kind": "mermaid",
+        "diagram_index": 1,
+        "title": "Chat Routing and Answer Checks",
+        "caption": "Chat Routing and Answer Checks",
+        "say": "Chat first checks urgent and personal or clinic-specific requests. For other questions, it retrieves WHO passages. Missing passages or a low retrieval score produce a staff referral. The model then generates an answer. Empty output, an abstention marker, or citation-only text also produces a referral. Accepted output is returned with the retrieved passages for staff review.",
     },
     # ------------------------------------------------------------- Part 1
     part_card(
@@ -125,8 +134,7 @@ SCENES = [
         "caption": "Five Support Categories and the Clinical Referral Rule",
         "say": (
         "Requests are routed into five categories: appointment support, education resource request, portal "
-            "technical support, records and insurance administration, and clinical staff referral. Any personal clinical question overrides the other "
-            "labels and is referred to staff. Selected urgent phrases receive a fixed urgent-care response."
+            "technical support, records and insurance administration, and clinical staff referral. The label guide gives personal clinical questions priority over the other labels; the classifier is trained to follow that rule. Selected urgent phrases receive a fixed urgent-care response."
         ),
     },
     # ------------------------------------------------------------- Part 2
@@ -177,7 +185,7 @@ SCENES = [
             "sources. In the {rag_cases}-case "
             "RAG baseline, retrieval found relevant evidence for {retrieval_hits} of {retrieval_total} "
             "answerable questions; the reviewer judged {answers_supported} answers supported and {answers_complete} "
-            "both correct and complete."
+            "both correct and complete. A current regression check matched {regression_matches} of {regression_total} answer or referral decisions on existing development cases. Those checks measure known-case behaviour."
         ),
     },
     # ------------------------------------------------------------- Part 4
@@ -185,7 +193,7 @@ SCENES = [
         4,
         "Situated Learning – Workplace Application",
         MEMBERS[0],
-        "Part four, Situated Learning – Workplace Application, presents Sanjay's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow.",
+        "Part four, Situated Learning – Workplace Application, presents the team's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow.",
     ),
     {
         "id": "app_analysis",
@@ -350,15 +358,15 @@ SCENES = [
 # screen, so these scripts can be recorded on any computer.
 # ---------------------------------------------------------------------------
 SELF_SCRIPTS = {
+    "chat_checks": next(scene["say"] for scene in SCENES if scene["id"] == "chat_checks"),
     "title": (
         "Hello everyone! We're Group 49, and this is our AIMLCZG549, Assignment Two project: the Diabetes "
         "Care Support Assistant for classification, handoff summaries, and source-grounded answers. Our team is Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, "
-        "and Bhuvnesh Mishra."
+        "and Bhuvnesh Mishra. Each member contributed equally, with a 25 percent share."
     ),
     "architecture": (
         "The React interface sends JSON HTTP requests to FastAPI and receives JSON responses. Inside FastAPI, analyse runs the fine-tuned "
-        "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat routes "
-        "urgent or personal questions to staff; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
+        "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat returns a fixed urgent-care response for matched urgent phrases and a staff referral for matched personal questions; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
     ),
     "part1_card": (
         "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic support desk handles requests "
@@ -367,8 +375,7 @@ SELF_SCRIPTS = {
     ),
     "label_guide": (
         "We route requests into five categories: appointment support, education resource request, portal "
-        "technical support, records and insurance administration, and clinical-staff referral. Any personal clinical question overrides the rest and goes "
-        "to staff. Selected urgent phrases receive a fixed urgent-care response."
+        "technical support, records and insurance administration, and clinical-staff referral. The label guide gives personal clinical questions priority; the classifier is trained to follow this rule. Selected urgent phrases receive a fixed urgent-care response."
     ),
     "part2_card": (
         "Part two, fine-tuning, covers Chezrla's reviewed classification data, supervised training, and base-versus-tuned evaluation."
@@ -390,7 +397,7 @@ SELF_SCRIPTS = {
         "judged 18 answers supported and 16 correct and complete."
     ),
     "part4_card": (
-        "Part four, Situated Learning – Workplace Application, presents Sanjay's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow."
+        "Part four, Situated Learning – Workplace Application, presents the team's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow."
     ),
     "app_analysis": (
         "In our live app, a staff member enters a support message. The fine-tuned classifier returns a clinic "

@@ -134,6 +134,14 @@ The recorded RAG result in `docs/report/evidence/rag-evaluation-record.json` is 
 uv run --extra inference python scripts/evaluate_rag.py --dataset data/test/rag-post-fix-reviewed.jsonl --output artifacts/evaluation/rag-post-fix.json
 ```
 
+To reproduce the current development regression check:
+
+```bash
+uv run --extra inference python scripts/evaluate_rag.py --development-regression --dataset data/test/rag_final_check.jsonl --output docs/report/evidence/rag-current-regression.json
+```
+
+This command checks known development cases and labels the output accordingly. It does not produce independent final performance scores.
+
 The evaluator records retrieval and referral decisions. A human must still review whether each answer is supported, complete, and correctly cited. Keep the pre-fix record unchanged as baseline evidence.
 
 ## Checks

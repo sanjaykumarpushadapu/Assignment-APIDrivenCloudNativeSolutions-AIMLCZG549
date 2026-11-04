@@ -526,6 +526,11 @@ def preflight(args, work: Path) -> dict:
     summary = records["summarizer"]["metrics"]
     rag_record = records["rag"]
     rag = rag_record["metrics"]
+    regression = records["rag_regression"]
+    facts["regression_total"] = str(regression["case_count"])
+    facts["regression_matches"] = str(sum(
+        row["decision_matches_expectation"] for row in regression["results"]
+    ))
     facts.update(
         {
             "classifier_model": records["classifier"]["base_model"]["name"],
@@ -686,14 +691,13 @@ def page_html(body: str, extra_css: str = "", script: str = "") -> str:
 
 def mermaid_html(scene: dict) -> str:
     report = (REPO / "docs/report/report.md").read_text(encoding="utf-8")
-    match = re.search(
-        r"## Architecture Overview\s+.*?```mermaid\s*(.*?)```",
-        report,
-        flags=re.DOTALL,
-    )
-    if not match:
-        fail("could not find the Mermaid architecture diagram in docs/report/report.md")
-    diagram = html.escape(match.group(1).strip())
+    # Both overview and chat flow come from the same report section.
+    section = report.split("## Architecture Overview", 1)[-1].split("\n## ", 1)[0]
+    diagrams = re.findall(r"```mermaid\s*(.*?)```", section, flags=re.DOTALL)
+    diagram_index = scene.get("diagram_index", 0)
+    if diagram_index >= len(diagrams):
+        fail(f"missing report architecture diagram {diagram_index}")
+    diagram = html.escape(diagrams[diagram_index].strip())
     title = html.escape(scene.get("title") or scene.get("caption", ""))
     css = """
 body{background:#f1f5f9}
@@ -701,7 +705,8 @@ body{background:#f1f5f9}
  color:#17243a;font-size:30px;line-height:1.25;font-weight:700}
 .diagram-shell{position:fixed;inset:72px 0 64px;display:grid;place-items:center;padding:26px}
 .mermaid{width:100%;height:100%;display:grid;place-items:center;background:#fff;border:1px solid #d8e1ec;border-radius:20px;padding:24px;box-sizing:border-box}
-.mermaid svg{max-width:100%;max-height:100%;font-family:Arial,sans-serif}
+.mermaid{min-height:0;overflow:hidden}
+.mermaid svg{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%;font-family:Arial,sans-serif}
 """
     script = """
 mermaid.initialize({startOnLoad:false,theme:'base',themeVariables:{
