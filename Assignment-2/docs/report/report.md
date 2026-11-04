@@ -22,7 +22,7 @@ The group agreed on equal 25% contribution shares. The table below records each 
 
 ## Project and Platform Details
 
-**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a category, a handoff summary, or a generated answer with source passages. It provides three NLP tasks: text classification, text summarisation, and question answering. The question-answering task uses retrieval-augmented generation (RAG) to ground responses in retrieved documents. The React and TypeScript interface presents the three tasks through one FastAPI-backed staff workflow.
+**Selected application category: Natural Language Processing (NLP).** The domain is healthcare support for a diabetes-clinic desk. The system processes unstructured natural-language messages and questions and returns a category, a handoff summary, or a generated answer with source passages. It provides three NLP tasks: text classification, text summarisation, and question answering. The question-answering task uses retrieval-augmented generation (RAG) to ground responses in retrieved documents. The React interface presents the three tasks through one FastAPI-backed staff workflow.
 
 | NLP task | Natural-language input and output | Method/model |
 |---|---|---|
@@ -34,42 +34,63 @@ The base FLAN-T5 revision is `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. Classif
 
 ## Architecture Overview
 
-The React and TypeScript interface sends support messages and questions to FastAPI. The diagram traces the API routes through classification, summarisation, and RAG question answering. The classifier has a separate runtime; summarisation and answer generation share a FLAN-T5 runtime. Chat routing can return a staff referral or an urgent-care response before generation.
+The React interface sends JSON HTTP requests to the FastAPI application and receives JSON HTTP responses. FastAPI handles `/analyze`, `/retrieve`, and `/chat`; the model and retrieval components run inside the application process. `/analyze` returns a category and handoff summary. `/retrieve` returns ranked WHO passages. `/chat` checks urgent and staff-referral conditions before generating a source-grounded answer. The classifier has its own fine-tuned runtime; summarisation and answer generation share the base FLAN-T5 runtime.
 
 ```mermaid
 flowchart LR
-    Staff[Clinic staff] --> UI[React and TypeScript UI]
-    UI --> API[FastAPI]
-    APIResponse[API response] --> UI
+    Staff[Clinic staff] --> UI[React UI]
+    UI -->|HTTP JSON request| Routes
+    HttpResponse[HTTP JSON response] --> UI
 
-    API -->|POST /analyze · message| Classifier[Fine-tuned FLAN-T5 classifier]
-    Classifier --> Category[Support category]
-    API -->|POST /analyze · message| BaseModel[Shared base FLAN-T5 runtime]
-    BaseModel --> Summary[Handoff summary]
-    Category --> APIResponse
-    Summary --> APIResponse
+    subgraph Service[FastAPI application process]
+        direction LR
+        Routes[FastAPI route handlers]
+        Routes --> AnalyzeRoute[POST /analyze]
+        Routes --> RetrieveRoute[POST /retrieve]
+        Routes --> ChatRoute[POST /chat]
+        Routes --> StatusRoute[GET /health and GET /metadata]
 
-    API -->|POST /chat · question| Guard[Urgent and staff-referral checks]
-    Guard -->|Urgent| Urgent[Urgent-care response]
-    Guard -->|Personal or clinic-specific| Referral[Staff referral]
-    Guard -->|General information question| Retriever[all-MiniLM-L6-v2 retrieval · cosine top 3]
-    API -->|POST /retrieve · question| Retriever
-    WHO[Curated local WHO passages] --> Retriever
-    Retriever -->|POST /retrieve result| RetrievalResult[Ranked passages]
-    Retriever -->|Top three for /chat| Context[Question plus retrieved passages]
-    Guard -->|General question| Context
-    Context --> BaseModel
-    BaseModel --> GroundedAnswer[Answer with source passages]
-    GroundedAnswer --> APIResponse
-    RetrievalResult --> APIResponse
-    Urgent --> APIResponse
-    Referral --> APIResponse
+        AnalyzeRoute --> AnalyzeUseCase[Analyze support request]
+        AnalyzeUseCase -->|in-process model call| Classifier[Fine-tuned FLAN-T5 classifier]
+        AnalyzeUseCase -->|in-process model call| BaseRuntime[Shared base FLAN-T5 runtime]
+        Classifier --> Category[Support category]
+        BaseRuntime --> Summary[Handoff summary]
+        Category --> AnalyzeResult[Classification and summary]
+        Summary --> AnalyzeResult
+        AnalyzeResult --> HttpResponse
+
+        RetrieveRoute --> RetrieveUseCase[Retrieve knowledge]
+        RetrieveUseCase --> Retriever[Shared passage retriever]
+        WHO[Curated local WHO passages] --> Retriever
+        Embedder[all-MiniLM-L6-v2 embeddings] --> Retriever
+        Retriever --> Ranked[Top three ranked passages]
+        Ranked --> RetrieveResult[Question and source passages]
+        RetrieveResult --> HttpResponse
+
+        ChatRoute --> AnswerUseCase[Answer question]
+        AnswerUseCase --> Guard[Urgent and staff-referral checks]
+        Guard -->|urgent| Urgent[Fixed urgent-care response]
+        Guard -->|personal or clinic-specific| Referral[Staff referral]
+        Guard -->|general question| Retriever
+        Guard --> Context[Question and retrieved passages]
+        Ranked --> Context
+        Context -->|in-process model call| BaseRuntime
+        BaseRuntime --> Generated[Grounded answer]
+        Generated --> ChatResult[Answer and source passages]
+        Ranked --> ChatResult
+        ChatResult --> HttpResponse
+        Urgent --> HttpResponse
+        Referral --> HttpResponse
+
+        StatusRoute --> Status[Health status or component metadata]
+        Status --> HttpResponse
+    end
 
     classDef api fill:#e9f2ff,stroke:#5479ad,color:#17243a,stroke-width:2px
     classDef model fill:#f2edff,stroke:#8068b0,color:#17243a,stroke-width:2px
     classDef data fill:#eaf6ee,stroke:#548b65,color:#17243a,stroke-width:2px
-    class API,APIResponse api
-    class Classifier,BaseModel,Retriever model
+    class Routes,AnalyzeRoute,RetrieveRoute,ChatRoute,StatusRoute,HttpResponse api
+    class Classifier,BaseRuntime,Embedder,Retriever model
     class WHO data
 ```
 

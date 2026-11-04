@@ -1321,7 +1321,13 @@ def build_segment(
 
 
 SPOKEN_TO_WRITTEN = [
-    ("A.I.M.L. C.Z.G. 5 4 9", "AIMLCZG549"),
+    ("AIMLCZG549", "AIMLCZG549"),
+    ("AIMLCZG549", "AIMLCZG549"),
+    ("Assignment Two", "Assignment II"),
+    ("Part one", "Part 1"),
+    ("Part two", "Part 2"),
+    ("Part three", "Part 3"),
+    ("Part four", "Part 4"),
 ]
 
 

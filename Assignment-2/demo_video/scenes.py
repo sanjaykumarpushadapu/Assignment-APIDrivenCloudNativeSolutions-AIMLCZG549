@@ -100,10 +100,9 @@ SCENES = [
         "title": "Architecture Overview",
         "caption": "Architecture Overview",
         "say": (
-            "The architecture overview traces the React interface and its FastAPI routes. The analyze endpoint sends a support message "
-            "to the fine-tuned classifier and shared FLAN-T5 runtime for a category and handoff summary. The retrieve endpoint returns "
-            "ranked WHO passages. The chat endpoint checks for urgent or personal requests first; general questions use the same retriever "
-            "and shared model runtime to return an answer with sources."
+            "The React interface sends JSON HTTP requests to FastAPI and receives JSON responses. Inside FastAPI, analyze runs the fine-tuned "
+            "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat routes "
+            "urgent or personal questions to staff; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
         ),
     },
     # ------------------------------------------------------------- Part 1
@@ -357,10 +356,9 @@ SELF_SCRIPTS = {
         "and Bhuvnesh Mishra."
     ),
     "architecture": (
-        "The architecture overview traces the React interface and its FastAPI routes. The analyse endpoint sends a support message "
-        "to the fine-tuned classifier and shared FLAN-T5 runtime for a category and handoff summary. The retrieve endpoint returns "
-        "ranked WHO passages. The chat endpoint checks for urgent or personal requests first; general questions use the same retriever "
-        "and shared model runtime to return an answer with sources."
+        "The React interface sends JSON HTTP requests to FastAPI and receives JSON responses. Inside FastAPI, analyse runs the fine-tuned "
+        "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat routes "
+        "urgent or personal questions to staff; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
     ),
     "part1_card": (
         "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic support desk handles requests "

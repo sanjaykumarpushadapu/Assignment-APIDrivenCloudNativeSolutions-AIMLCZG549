@@ -49,7 +49,7 @@ The classifier checkpoint is stored locally and is not included in Git. Before t
 | `POST /retrieve` | Return ranked passages from the local knowledge index |
 | `POST /chat` | Answer a general question from retrieved passages or return a staff referral |
 
-The React and TypeScript frontend calls the FastAPI service. Classification uses the fine-tuned `clinic-support` checkpoint. Summarisation and answer generation use the configured FLAN-T5 model. Retrieval uses `sentence-transformers/all-MiniLM-L6-v2` and the local WHO passage index.
+The React frontend calls the FastAPI service. Classification uses the fine-tuned `clinic-support` checkpoint. Summarisation and answer generation use the configured FLAN-T5 model. Retrieval uses `sentence-transformers/all-MiniLM-L6-v2` and the local WHO passage index.
 
 ## Configure models and retrieval
 
@@ -172,7 +172,7 @@ The command starts the API and frontend if they are not already running, loads t
 ```text
 backend/src/diabetes_support/   FastAPI application and model adapters
 backend/tests/                 API, model-configuration, and summariser tests
-frontend/                      React and TypeScript user interface
+frontend/                      React user interface
 data/training/                 Training datasets
 data/validation/               Validation datasets
 data/test/                     Held-out evaluation datasets
