@@ -1851,14 +1851,6 @@ def main() -> None:
     images_dir = REPO / S.IMAGES_DIR
 
     scenes = [sc for sc in S.SCENES if not args.only or sc["id"] in args.only]
-    footnote = {
-        "files": "Automated screen recording · narrated by the team",
-        "none": "Automated screen recording · captions only",
-    }.get(args.tts)
-    if footnote:
-        scenes = [
-            dict(sc, footnote=footnote) if sc.get("footnote") else sc for sc in scenes
-        ]
     if not scenes:
         fail("no scenes selected; see --list")
 

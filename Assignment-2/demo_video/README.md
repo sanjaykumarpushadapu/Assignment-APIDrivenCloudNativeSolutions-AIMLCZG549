@@ -36,8 +36,9 @@ The recorder starts the API and React frontend on their default local addresses 
    | `rag-evaluation-record.json` | Retrieval, answer-support, and referral results from the explicitly labelled pre-fix baseline |
 
 3. The report screenshots exist in `docs/report/evidence/`. The video reuses the classifier-results,
-   request-analysis, source-grounded-answer, and staff-referral images. Its architecture scene renders the
-   Mermaid source from `report.md`, so the report and video show the same flowchart.
+   request-analysis, source-grounded-answer, and staff-referral images. Its two diagram scenes render the
+   Mermaid source from `report.md`: the system architecture overview and the detailed chat routing and
+   answer-check flow.
 
 The report and its screenshot names are kept in sync by using stable embedded filenames. Refresh the screenshots
 after a final successful API/UI run; the script checks that all requests succeeded before replacing any image.
