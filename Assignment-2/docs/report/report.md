@@ -183,44 +183,85 @@ The current application was also checked on 15 existing development cases: eight
 
 ## IV. Situated Learning – Workplace Application
 
-### Anchor - Identify a workplace problem
+The workplace example is a diabetes-clinic support desk, used as an industry analogue. Its staff review incoming appointment, education, portal, records, and clinical-care messages; prepare handoffs; and consult public education material when answering general questions. Repeated reading and switching between message and reference material can add work and omit details from handoffs. The application brings first-pass classification, summaries, and source passages into one staff workflow. It uses synthetic messages and public WHO material.
 
-The team used a diabetes-clinic support desk as the industry analogue. The contribution table records the members responsible for the interface and API, model adaptation, knowledge retrieval, and workplace analysis. All four work areas support this same workflow. In the scenario, staff read incoming messages, identify whether they concern appointments, education, portal access, records, or personal clinical care, and route them to the relevant team. They prepare a handoff and separately consult education material for general questions. In this scenario, manually reading each message and consulting a separate education source can lead to repeated work and omitted handoff details. The proposed benefit is to bring first-pass categories, handoff summaries, and source passages into one staff workflow. The scenario uses synthetic messages and public education material.
+The four role-based applications below show how the shared system supports distinct parts of the same clinic workflow. Each focuses on a member's documented project responsibility and follows the assessed Anchor, Apply, Analyse, and Reflect areas.
 
-### Apply - Adapt the AI solution
+### Bhuvnesh Mishra — API-Based AI Application
 
-The support-message interface accepts a message and displays its primary category and handoff-summary field. In the representative appointment case, the system classified the request as `appointment_support`. The summary evaluation is reported in Part II. The knowledge assistant accepts a question, displays an answer, and lists retrieved WHO passages.
+#### Anchor — Identify a Workplace Problem
 
-For a general symptoms question, `/chat` returned an answer based on WHO01-003, “Common symptoms.” Figure 6 in Part III shows the answer and retrieved source sections. For “Should I change my diabetes medication?”, the interface displayed the fixed staff-referral response and no sources, shown in Figure 7. Together, these cases demonstrate classification, summarisation, source-grounded question answering, and referral in the staff workflow.
+Clinic support staff need a single intake workflow for messages that may involve scheduling, education material, portal access, records, or clinical questions. Without a shared intake screen, staff must identify the request, prepare a handoff, and locate information in separate steps. The diabetes-clinic support desk is a synthetic industry analogue for this workflow.
 
-For selected urgent phrases, `/chat` returns the fixed urgent-care response before retrieval, as shown by the tested example “My father is unconscious, what is the next step?”.
+#### Apply — Adapt the AI Solution to the Workplace
+
+The React staff interface sends support messages and questions to FastAPI. `POST /analyze` returns a category and handoff summary; `POST /retrieve` returns ranked WHO passages; and `POST /chat` returns a source-backed answer or routes selected questions to a staff referral or urgent-care response. Figures 1 and 2 show the request-analysis flow, while Figures 6 and 7 show a source-backed answer and a medication-question referral. The Swagger examples in Figures 1, 4, and 5 document successful API requests.
+
+#### Analyse — Evaluate Workplace Relevance
+
+The API examples returned HTTP 200 for `/metadata`, `/analyze`, `/retrieve`, and `/chat` during the recorded demonstration. In the reviewed outputs, the classifier produced 57 correct categories out of 60; the summary review found every output supported by its input, but all checklist facts were retained in only 10 of 20 cases. The routes connect the tasks in one interface, while the evaluation shows why staff must review the category and summary before using them.
+
+#### Reflect — Deployment Constraints and Improvements
+
+The demonstration uses synthetic messages and public WHO information. A workplace deployment would need privacy and security controls for access, transfer, storage, and retention; review of applicable health-data regulation; approved infrastructure and storage; cost planning; and integration with existing staff systems. The most important improvement for this application perspective is a clinic-approved, access-controlled validation pilot using deidentified representative messages before any connection to scheduling, portal, or records systems. This would check both the API workflow and its outputs with staff while establishing data-handling controls.
+
+### Chezrla Raga Suma — Fine-Tuned Classification
+
+#### Anchor — Identify a Workplace Problem
+
+At a diabetes-clinic support desk, staff manually read messages about several operational categories as well as personal clinical questions before routing them. Inconsistent first-pass sorting can send a request to the wrong team or require repeat review. A consistent category suggestion can support initial routing while staff retain responsibility for checking the message. This example uses the same synthetic clinic workflow and does not use patient records.
+
+#### Apply — Adapt the AI Solution to the Workplace
+
+The classifier was fine-tuned on reviewed examples for five clinic-support labels: appointment support, education resource request, portal technical support, records/insurance administration, and clinical staff referral. A representative rescheduling message is classified as `appointment_support` in Figure 2. Figure 3 documents the fine-tuning method and compares the prompted base model with the tuned classifier.
+
+#### Analyse — Evaluate Workplace Relevance
+
+On the held-out 60-message test set, the fine-tuned classifier achieved 95.00% accuracy and 94.74% macro-F1, compared with 86.67% accuracy and 88.74% macro-F1 for the base model. The tuned model still misclassified three messages, so the predicted category is a routing aid that staff should check against the original message. The evaluation uses synthetic messages and measures category prediction, not clinic throughput or staff time.
+
+#### Reflect — Deployment Constraints and Improvements
+
+Using identifiable messages would require privacy and security controls for access, transfer, storage, and retention, plus review of applicable health-data regulations. Model hosting also requires approved computing and storage, cost planning, and integration with the clinic's message channels. The most important improvement for classification is to validate the label guide and model with a larger, clinic-reviewed set of deidentified examples that reflects the wording and category mix staff actually receive. This addresses the three observed errors before the classifier is used to route live requests.
+
+### Sathish Krishnan V — Retrieval-Augmented Generation
+
+#### Anchor — Identify a Workplace Problem
+
+Clinic staff may need to answer general diabetes-education questions using a reliable reference while directing personal-care questions to the clinical team. Finding the relevant passage manually can slow the response, while an unsupported answer may mislead. This industry analogue uses public WHO material and synthetic questions.
+
+#### Apply — Adapt the AI Solution to the Workplace
+
+The local knowledge set contains eight curated passages from WHO's *Diabetes: Questions and Answers*. `/retrieve` ranks passages and returns the top three with section and source details. `/chat` uses retrieved text to answer a general symptoms question and includes its passages, as shown in Figure 6; a medication-change question receives a staff referral, as shown in Figure 7. This lets staff inspect the supporting text before using an answer.
+
+#### Analyse — Evaluate Workplace Relevance
+
+In the recorded 30-case baseline, retrieval found a relevant passage in all 20 answerable cases. Reviewers judged 18 answers supported by the source and 16 both correct and complete; four of the 20 answerable outputs were incomplete or incorrect. These results show that source retrieval worked on the reviewed questions, while answer completeness still needs staff review. The later 15-case check used development cases and is reported separately as a regression check, not as an independent evaluation.
+
+#### Reflect — Deployment Constraints and Improvements
+
+The current corpus contains public WHO information rather than clinic-specific guidance. Any workplace use would need a reviewed and maintained source set, privacy and security controls for any submitted patient information, and review of applicable health-data regulation. Hosting the embedding model and index requires approved infrastructure, storage, and cost planning; integration with clinic systems would also need governance. The most important improvement for this RAG component is a clinic-approved, versioned knowledge collection with a staff-reviewed question set to check retrieval, answer support, completeness, and referral behaviour before it is used in the workflow.
+
+### Pushadapu Sanjay Kumar — Situated Learning and Workflow Analysis
+
+#### Anchor — Identify a Workplace Problem
+
+The clinic support desk receives compound requests that may combine an appointment change with an education-resource question, as well as questions that require clinical staff rather than general education. Staff need a handoff that preserves the request details and a clear way to distinguish general questions from personal-care questions. The examples below are synthetic and use a diabetes-clinic industry analogue.
+
+#### Apply — Adapt the AI Solution to the Workplace
+
+The representative message asking to move a diabetes-education appointment and locate a preparation leaflet exercises classification and handoff summarisation together. A general symptoms question exercises WHO-grounded answer generation, while “Should I change my diabetes medication?” exercises the staff-referral path. The urgent phrase example exercises the fixed urgent-care response. Figures 2, 6, and 7 show these outputs in the application.
+
+#### Analyse — Evaluate Workplace Relevance
+
+The 20-case summary review found all summaries supported by their input, but only 10 retained every checklist fact; staff must compare appointment details and secondary requests with the original. The classifier got 57 of 60 held-out cases correct. In the RAG baseline, 16 of 20 answerable questions received a response judged both correct and complete. Together, these results support using the workflow as a staff aid with source and input review, but they do not demonstrate time savings or performance under clinic workload.
+
+#### Reflect — Deployment Constraints and Improvements
+
+Identifiable support messages would require safeguards for privacy, access, transfer, storage, and retention, and review against applicable health-data regulation. The models and index need approved infrastructure and storage, a cost plan, and approved integration with scheduling, portal, and records systems. The single most important improvement is a clinic-approved, staff-supervised validation pilot with deidentified representative cases, measuring handoff fact retention and safe referral decisions before any live system integration. This tests whether the combined workflow addresses the staff problem while controlling how its outputs are used.
 
 **Figure 7. Medication question referred to clinic staff in the web interface.**
 
 ![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
-
-### Application of each member's contribution
-
-The members applied their documented project responsibilities to the same clinic support-desk analogue.
-
-| Member | Contribution applied to the workflow | Evidence and staff use |
-|---|---|---|
-| Bhuvnesh Mishra | Integrated the React interface and FastAPI routes. | Figures 1 and 2 show how a staff member submits a request and receives a category and handoff summary. |
-| Chezrla Raga Suma | Adapted the classifier to the clinic's five support labels. | Figure 3 compares the base and tuned models; staff use the predicted category as a routing suggestion and check it against the message. |
-| Sathish Krishnan V | Prepared WHO passages and retrieval for general information questions. | Figures 4 and 6 show retrieved passages and an answer whose source staff can inspect. |
-| Pushadapu Sanjay Kumar | Defined the workplace workflow and analysed representative outputs. | Figure 7 and the analysis below connect referral behaviour and output quality to staff review and handoff decisions. |
-
-### Analyse - Evaluate workplace relevance
-
-On the held-out classification set, the tuned model achieved 95.00% accuracy; the 20-case summary review found every output supported by its input and all checklist facts retained in 10 cases. For RAG, retrieval found a relevant passage in all 20 answerable cases, with 18 answers judged supported and 16 judged correct and complete. These results address output quality on the reviewed cases. They do not measure staff time, request throughput, or performance under a clinic workload. The application also has no connection to appointment scheduling, the patient portal, or records systems, so staff-workflow efficiency and integration have not been evaluated.
-
-For the support desk, 57 correct classifications out of 60 indicate that three requests still needed category correction. Staff should check the category before routing a message. Although all 20 reviewed summaries were supported by their inputs, ten omitted at least one essential fact. Staff must compare handoffs with the original message, particularly appointment timing, secondary requests, and confirmation status. The baseline RAG review found four incomplete or incorrect answers among 20 answerable cases, showing why the source passages and original question remain visible for staff review.
-
-### Reflect - Deployment Constraints and Improvements
-
-The demonstration uses synthetic support messages and public WHO information. The API has no authentication, and the application is not connected to clinic systems. Before using identifiable patient messages, a clinic would need to set privacy and security controls for access, transfer, storage, and retention, and review applicable health-data regulations and clinical governance. Hosting the models and retrieval index also requires approved computing and storage, ongoing cost planning, and integration with the staff workflow.
-
-The single priority improvement is a clinic-approved, access-controlled validation pilot using deidentified representative cases and staff review before any live workflow connection. This would allow the clinic to verify output quality and workflow fit while establishing the required data-handling and review process.
 
 ## Conclusion
 
