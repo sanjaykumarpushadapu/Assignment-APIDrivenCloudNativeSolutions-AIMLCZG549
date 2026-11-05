@@ -738,7 +738,7 @@ ul{list-style:none;margin-top:40px;display:flex;flex-wrap:wrap;justify-content:c
 li{font-size:27px;color:#e2e8f0;animation:fadein .8s ease both}
 li:nth-child(1){animation-delay:.4s}li:nth-child(2){animation-delay:.6s}
 li:nth-child(3){animation-delay:.8s}li:nth-child(4){animation-delay:1s}
-.foot{position:fixed;bottom:26px;left:0;right:0;text-align:center;font-size:17px;color:#94a3b8}
+.foot{position:fixed;bottom:190px;left:0;right:0;text-align:center;font-size:21px;color:#bbf7d0}
 """
     body = (
         f"<div class='card'><div class='eyebrow'>{e(scene.get('eyebrow', ''))}</div>"
