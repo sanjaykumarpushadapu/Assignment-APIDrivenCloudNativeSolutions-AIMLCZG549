@@ -6,6 +6,8 @@
 **Institution:** BITS Pilani, Work Integrated Learning Programmes
 **Source repository:** [GitHub](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
 
+> **MASTER REPORT WORKING NOTE — REMOVE FROM STUDENT SUBMISSION COPIES.** This file keeps the shared report and all four student-specific versions of Part IV together. When preparing each student's upload, copy the same Sections I–III and include only that student's Part IV section below. Leave the other three Part IV sections out of that student's copy; keep the rest of the report identical.
+
 Our team built an interactive application for a diabetes-clinic support desk. This report follows the four parts of Assignment II: the API-based application, fine-tuning, retrieval-augmented generation, and workplace application.
 
 ## Team Contribution and Work Allocation
@@ -101,7 +103,7 @@ The Swagger UI request below demonstrates `POST /analyze` with a synthetic resch
 
 ![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
-Functional validation covered support-message analysis, question answering with displayed sources, and the urgent-care response. Ten urgent-routing checks passed, and the frontend production build succeeded.
+Functional validation covered support-message analysis, question answering with displayed sources, and an urgent-care response. The frontend production build succeeded.
 
 ## II. Fine-Tuning
 
@@ -115,7 +117,7 @@ We fully fine-tuned the pinned `google/flan-t5-base` checkpoint. For this run, A
 
 ### Validation and held-out results
 
-The fine-tuned checkpoint achieved 98.33% accuracy and 98.33% macro-F1 on the 60-example validation set. The original model scored 71.67% accuracy and 71.81% macro-F1 on the same validation set. The validation set was used during model development, so these figures are validation results.
+The fine-tuned checkpoint achieved 98.33% accuracy and 98.33% macro-F1 on the 60-example validation set. The validation set was used during model development, so these figures are validation results. The held-out test comparison below is the reported base-versus-tuned comparison.
 
 The base and fine-tuned models were then evaluated on the same 60-example held-out test set, with the same application prompt and greedy decoding. The test set was not used for training or model selection.
 
@@ -185,9 +187,9 @@ The current application was also checked on 15 existing development cases: eight
 
 The workplace example is a diabetes-clinic support desk, used as an industry analogue. Its staff review incoming appointment, education, portal, records, and clinical-care messages; prepare handoffs; and consult public education material when answering general questions. Repeated reading and switching between message and reference material can add work and omit details from handoffs. The application brings first-pass classification, summaries, and source passages into one staff workflow. It uses synthetic messages and public WHO material.
 
-The four role-based applications below show how the shared system supports distinct parts of the same clinic workflow. Each focuses on a member's documented project responsibility and follows the assessed Anchor, Apply, Analyse, and Reflect areas.
+The four student-specific versions below apply the shared system to different views of the same clinic workflow. Each follows the assessed Anchor, Apply, Analyse, and Reflect areas. Their different workplace focuses do not assign exclusive ownership of an assessment part; the equal contribution shares above apply across the project.
 
-### Bhuvnesh Mishra — API-Based AI Application
+### Part IV — Bhuvnesh Mishra: Staff Workflow Integration
 
 #### Anchor — Identify a Workplace Problem
 
@@ -205,7 +207,7 @@ The API examples returned HTTP 200 for `/metadata`, `/analyze`, `/retrieve`, and
 
 The demonstration uses synthetic messages and public WHO information. A workplace deployment would need privacy and security controls for access, transfer, storage, and retention; review of applicable health-data regulation; approved infrastructure and storage; cost planning; and integration with existing staff systems. The most important improvement for this application perspective is a clinic-approved, access-controlled validation pilot using deidentified representative messages before any connection to scheduling, portal, or records systems. This would check both the API workflow and its outputs with staff while establishing data-handling controls.
 
-### Chezrla Raga Suma — Fine-Tuned Classification
+### Part IV — Chezrla Raga Suma: Request Routing
 
 #### Anchor — Identify a Workplace Problem
 
@@ -223,7 +225,7 @@ On the held-out 60-message test set, the fine-tuned classifier achieved 95.00% a
 
 Using identifiable messages would require privacy and security controls for access, transfer, storage, and retention, plus review of applicable health-data regulations. Model hosting also requires approved computing and storage, cost planning, and integration with the clinic's message channels. The most important improvement for classification is to validate the label guide and model with a larger, clinic-reviewed set of deidentified examples that reflects the wording and category mix staff actually receive. This addresses the three observed errors before the classifier is used to route live requests.
 
-### Sathish Krishnan V — Retrieval-Augmented Generation
+### Part IV — Sathish Krishnan V: Source-Based Staff Answers
 
 #### Anchor — Identify a Workplace Problem
 
@@ -241,7 +243,7 @@ In the recorded 30-case baseline, retrieval found a relevant passage in all 20 a
 
 The current corpus contains public WHO information rather than clinic-specific guidance. Any workplace use would need a reviewed and maintained source set, privacy and security controls for any submitted patient information, and review of applicable health-data regulation. Hosting the embedding model and index requires approved infrastructure, storage, and cost planning; integration with clinic systems would also need governance. The most important improvement for this RAG component is a clinic-approved, versioned knowledge collection with a staff-reviewed question set to check retrieval, answer support, completeness, and referral behaviour before it is used in the workflow.
 
-### Pushadapu Sanjay Kumar — Situated Learning and Workflow Analysis
+### Part IV — Pushadapu Sanjay Kumar: Handoffs and Workflow Review
 
 #### Anchor — Identify a Workplace Problem
 
