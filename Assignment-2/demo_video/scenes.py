@@ -90,10 +90,11 @@ SCENES = [
         "lines": MEMBERS,
         "footnote": "Equal contribution · 25% per member",
         "say": (
-            "Group 49 presents the Diabetes Care Support Assistant: a clinic-support application for classification, "
-            "handoff summaries, and source-grounded answers. This is our A.I.M.L. C.Z.G. five four nine, Assignment Two project. "
-            "The team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra. "
-            "Each member contributed equally, with a 25 percent share."
+            "Hello, we are Group 49. Our project is the Diabetes Care Support Assistant. It brings three tasks together "
+            "for a diabetes-clinic support desk: sorting requests, preparing handoff summaries, and answering general "
+            "questions from trusted sources. This is our A.I.M.L. C.Z.G. five four nine, Assignment Two project. "
+            "Our team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra. "
+            "We contributed equally, with 25 percent each."
         ),
     },
     {
@@ -102,8 +103,11 @@ SCENES = [
         "title": "Architecture Overview",
         "caption": "Architecture Overview",
         "say": (
-            "The React interface sends JSON HTTP requests to FastAPI and receives JSON responses. Inside FastAPI, analyze runs the fine-tuned "
-            "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat returns a fixed urgent-care response for matched urgent phrases and a staff referral for matched personal questions; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
+            "Here is how the pieces work together. Our React interface sends a JSON request to FastAPI and displays the response. "
+            "The analyze route returns a category from the fine-tuned classifier and a handoff summary from FLAN-T5. "
+            "Retrieve shows the highest-ranked WHO passages. Chat sends selected urgent phrases to a fixed urgent-care response "
+            "and personal-care questions to clinic staff. For general questions, it uses retrieved passages to prepare an answer "
+            "and show its sources."
         ),
     },
     {
@@ -112,17 +116,16 @@ SCENES = [
         "diagram_index": 1,
         "title": "Chat Routing and Answer Checks",
         "caption": "Chat Routing and Answer Checks",
-        "say": "Chat first checks urgent and personal or clinic-specific requests. For other questions, it retrieves WHO passages. Missing passages or a low retrieval score produce a staff referral. The model then generates an answer. Empty output, an abstention marker, or citation-only text also produces a referral. Accepted output is returned with the retrieved passages for staff review.",
+        "say": "When someone uses chat, we check urgent phrases first, then check whether the question is personal or clinic-specific. Those cases get a fixed response or a staff referral. For a general question, we retrieve WHO passages. If none meets our score check, we refer the question. Otherwise, FLAN-T5 drafts an answer from the question and passages. We return it with the passages so staff can review both.",
     },
     # ------------------------------------------------------------- Part 1
     part_card(
         1,
         "API-Based AI Application",
         MEMBERS[3],
-        "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic "
-        "support desk handles requests about appointments, education, portal access, records and clinical questions. "
-        "Bhuvnesh built the React and FastAPI application integrating text classification, text summarisation, "
-        "and question answering grounded in retrieved WHO passages.",
+        "For Part One, we chose a diabetes-clinic support desk as our workplace example. Staff may need to route "
+        "appointment, education, portal, records, or clinical questions. Bhuvnesh built the React and FastAPI application "
+        "that brings our three NLP tasks into one workflow: classification, handoff summarisation, and question answering from WHO passages.",
     ),
     {
         "id": "label_guide",
@@ -133,8 +136,9 @@ SCENES = [
         "highlight": r"clinical_staff_referral",
         "caption": "Five Support Categories and the Clinical Referral Rule",
         "say": (
-        "Requests are routed into five categories: appointment support, education resource request, portal "
-            "technical support, records and insurance administration, and clinical staff referral. The label guide gives personal clinical questions priority over the other labels; the classifier is trained to follow that rule. Selected urgent phrases receive a fixed urgent-care response."
+            "We use five request categories: appointments, education resources, portal support, records and insurance, and "
+            "clinical staff referral. When a message asks for personal clinical advice, our label guide prioritises referral. "
+            "The classifier was trained with that rule in mind. We check selected urgent phrases separately and return a fixed urgent-care response."
         ),
     },
     # ------------------------------------------------------------- Part 2
@@ -142,7 +146,7 @@ SCENES = [
         2,
         "Fine-Tuning",
         MEMBERS[2],
-        "Part two, fine-tuning, covers Chezrla's reviewed classification data, supervised training, and base-versus-tuned evaluation.",
+        "Part Two is our fine-tuning work. Raga prepared and reviewed the classification examples, and we compared the tuned classifier with the original model.",
     ),
     {
         "id": "fine_tuning",
@@ -150,10 +154,9 @@ SCENES = [
         "images": ["03-classifier-fine-tuning.png"],
         "caption": "Classifier full fine-tuning method and held-out test results",
         "say": (
-            "Each training input combined the classification instruction with a support message; its target "
-            "was the reviewed category name. This supervised full fine-tuning adapted {classifier_model} to "
-            "the clinic's local taxonomy. On {test_messages} held-out messages, macro F1 increased from "
-            "{macro_f1_base} for the prompted base model to {macro_f1_tuned}."
+            "For training, we gave the model an instruction and a support message, then asked it to produce the reviewed category name. "
+            "We fully fine-tuned {classifier_model} for our five clinic-support labels. On {test_messages} held-out messages, "
+            "macro F1 went from {macro_f1_base} with the prompted base model to {macro_f1_tuned} with our tuned model."
         ),
     },
     {
@@ -162,9 +165,8 @@ SCENES = [
         "images": ["02-request-analysis.png"],
         "caption": "Example support-message analysis and handoff summary",
         "say": (
-            "The base FLAN-T5 summariser turns the support message into a handoff field. In a separate "
-            "{summary_total}-message review, all outputs were supported by their inputs and {summary_ok} "
-            "retained every essential fact."
+            "We kept summarisation separate from classifier fine-tuning. The app uses base FLAN-T5 to prepare a handoff summary. "
+            "We reviewed {summary_total} messages: every summary stayed within its original message, and {summary_ok} kept every fact marked as essential."
         ),
     },
     # ------------------------------------------------------------- Part 3
@@ -172,7 +174,7 @@ SCENES = [
         3,
         "Retrieval-Augmented Generation (RAG)",
         MEMBERS[1],
-        "Part three, retrieval-augmented generation, covers Sathish's WHO source preparation, curated passages, retrieval, and question answering.",
+        "Part Three covers retrieval-augmented generation. Sathish prepared the WHO passages, and we use them to answer general diabetes questions with sources staff can inspect.",
     ),
     {
         "id": "rag_pipeline",
@@ -180,12 +182,11 @@ SCENES = [
         "images": ["03-source-grounded-answer.png"],
         "caption": "Grounded answer with retrieved WHO source sections",
         "say": (
-            "For each general question, the retriever ranks the WHO passages by embedding similarity and returns "
-            "the top three. FLAN-T5 uses those passages as context, and the API returns the answer with its "
-            "sources. In the {rag_cases}-case "
-            "RAG baseline, retrieval found relevant evidence for {retrieval_hits} of {retrieval_total} "
-            "answerable questions; the reviewer judged {answers_supported} answers supported and {answers_complete} "
-            "both correct and complete. A current regression check matched {regression_matches} of {regression_total} answer or referral decisions on existing development cases. Those checks measure known-case behaviour."
+            "When a staff member asks a general question, we rank the WHO passages by similarity and send the top three, along with the question, to FLAN-T5. "
+            "The API returns the answer with those sources. In our {rag_cases}-case baseline, retrieval found a relevant passage for {retrieval_hits} of {retrieval_total} "
+            "answerable questions. Reviewers found {answers_supported} answers supported and {answers_complete} both correct and complete. "
+            "We also checked {regression_total} existing development cases; the answer or referral decision matched in {regression_matches}. "
+            "Those familiar cases make this a regression check, not a fresh evaluation."
         ),
     },
     # ------------------------------------------------------------- Part 4
@@ -193,7 +194,7 @@ SCENES = [
         4,
         "Situated Learning – Workplace Application",
         MEMBERS[0],
-        "Part four, Situated Learning – Workplace Application, presents the team's workplace case: a diabetes-clinic support desk. In this scenario, staff read incoming messages, route appointment, education, portal, and records requests, prepare handoffs, and consult public education material for general questions. The application brings a first-pass category, summary, and relevant passages into one workflow.",
+        "For Part Four, we apply the project to a diabetes-clinic support desk. Staff sort incoming requests, prepare handoffs, and look up public education information for general questions. Our app brings the category, summary, and source passages into one workflow, with staff reviewing the results.",
     ),
     {
         "id": "app_analysis",
@@ -210,8 +211,8 @@ SCENES = [
             {"expect": "appointment support"},
         ],
         "say": (
-            "A staff member enters a natural-language request. The fine-tuned classifier maps it to a primary "
-            "clinic category, and the base summariser prepares a handoff field for staff review."
+            "Let’s try a support message. The tuned classifier suggests a category, and the summariser prepares a short handoff. "
+            "A staff member can compare both with the original message before routing it."
         ),
     },
     {
@@ -226,8 +227,8 @@ SCENES = [
             {"expect": "Sources"},
         ],
         "say": (
-            "The question-answering task uses RAG: the system retrieves WHO passages, conditions answer generation "
-            "on that context, and displays the passages so staff can verify the source."
+            "For a general question, the app first retrieves relevant WHO passages. FLAN-T5 uses them to draft an answer, "
+            "and the app displays the passages so staff can check where the information came from."
         ),
     },
     {
@@ -244,8 +245,8 @@ SCENES = [
             {"expect": "clinical staff referral"},
         ],
         "say": (
-            "A personal medication question is routed to clinical staff. The assistant does not give clinical "
-            "advice."
+            "Here the question is about changing diabetes medication, so the assistant sends it to clinic staff. "
+            "It does not try to recommend a treatment change."
         ),
     },
     {
@@ -265,8 +266,8 @@ SCENES = [
             },
         ],
         "say": (
-            "When the question describes someone unconscious, the chat returns a fixed urgent-care response "
-            "before retrieval or answer generation."
+            "We also checked an urgent example about someone who is unconscious. The chat returns a fixed urgent-care "
+            "message straight away, without trying to generate an answer from the documents."
         ),
     },
     {
@@ -275,15 +276,14 @@ SCENES = [
         "url": API_URL + "/docs",
         "wait_for": ".opblock",
         "caption": "Swagger / OpenAPI — FastAPI backend",
-        "say": "The same capabilities are available through the documented API.",
+        "say": "We can use the same features through FastAPI's Swagger page. I’ll show the request and response for each route.",
     },
     {
         "id": "api_metadata",
         "kind": "swagger",
         "path": "/metadata",
         "say": (
-            "The metadata endpoint reports which classifier, summariser and index versions are loaded. "
-            "HTTP {status_/metadata}."
+            "First, `/metadata` shows which classifier, summariser, and knowledge index are loaded. This request returned HTTP {status_/metadata}."
         ),
     },
     {
@@ -291,7 +291,7 @@ SCENES = [
         "kind": "swagger",
         "path": "/analyze",
         "body": ANALYZE_BODY,
-        "say": "The analyse endpoint returns the category and the handoff summary.",
+        "say": "Here I send a support message to `/analyze`. The response includes the predicted category and the handoff summary.",
     },
     {
         "id": "api_retrieve",
@@ -299,8 +299,7 @@ SCENES = [
         "path": "/retrieve",
         "body": RETRIEVE_BODY,
         "say": (
-            "The retrieve endpoint returns ranked source passages before answer generation, allowing staff "
-            "to inspect which information the knowledge assistant selected."
+            "Next, `/retrieve` lets us inspect the passages before an answer is generated. They are ranked by similarity to the question."
         ),
     },
     {
@@ -308,7 +307,7 @@ SCENES = [
         "kind": "swagger",
         "path": "/chat",
         "body": CHAT_BODY,
-        "say": "The chat endpoint returns a grounded answer with its source passages.",
+        "say": "Finally, `/chat` returns an answer with the passages used to prepare it. Staff can read the answer and check its sources together.",
     },
     # ------------------------------------------------------- workplace + end
     {
@@ -317,9 +316,9 @@ SCENES = [
         "images": ["04-staff-referral.png"],
         "caption": "Staff referral for a personal medication question",
         "say": (
-            "In this example, the assistant refers a personal medication question to clinic staff. The wider "
-            "staff workflow brings request categories, handoff summaries, and source passages into one place. "
-            "The evaluation used synthetic cases."
+            "This medication question is referred to clinic staff rather than answered with treatment advice. "
+            "Across the workflow, staff can see a request category, a handoff summary, and source passages in one place. "
+            "We used synthetic examples for the evaluation."
         ),
     },
     {
@@ -329,12 +328,11 @@ SCENES = [
         "title": "Analyse and Reflect",
         "subtitle": "Workplace Evidence and Priority Improvement",
         "say": (
-            "Under Analyse, the reviewed cases assess classification accuracy, summary fact retention, retrieval relevance, and answer support. "
-            "They do not measure staff time, request throughput, or live-clinic performance. Under Reflect, the demonstration uses synthetic "
-            "messages and public WHO text; its API has no authentication and it is not integrated with scheduling, the patient portal, or records. "
-            "Use with identifiable health information would require privacy and security controls, health-data and clinical review, approved "
-            "computing, cost planning, and system integration. The single priority before any live workflow is a clinic-approved, access-controlled "
-            "pilot with deidentified representative cases and staff review."
+            "We checked category accuracy, summary fact retention, retrieval relevance, and whether answers were supported. "
+            "We did not measure staff time or test the system in a live clinic. For this demo, we used synthetic messages and public WHO text. "
+            "Before a clinic used identifiable information, it would need to approve privacy and security controls, review health-data rules, "
+            "plan computing and storage costs, and decide how the system should connect to existing services. Our first step would be a "
+            "clinic-approved pilot with deidentified cases and staff review."
         ),
     },
     {
@@ -345,9 +343,9 @@ SCENES = [
         "subtitle": "Classification · Handoff Summaries · Question Answering with RAG",
         "lines": MEMBERS,
         "say": (
-            "Project summary: the Diabetes Care Support Assistant provides classification, handoff summaries, and question "
-            "answering with RAG. The classifier is fully fine-tuned for clinic-support labels, and staff can "
-            "inspect answers alongside their retrieved WHO sources. Thank you for watching."
+            "To wrap up, we built one staff workflow that combines request classification, handoff summaries, and question answering from WHO passages. "
+            "We fully fine-tuned the classifier, and we show the sources beside general answers so staff can review them. "
+            "Thanks for watching our project demonstration."
         ),
     },
 ]
