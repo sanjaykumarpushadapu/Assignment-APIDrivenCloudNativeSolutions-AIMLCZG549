@@ -17,8 +17,8 @@ What it does, in order:
    report figures, source files, live terminal output, the live React app
    (typing real requests) and Swagger "Try it out -> Execute".
 4. Assembly: trims each clip, lays the narration over it, and joins everything
-   with ffmpeg into ``Group49_AIMLCZG549_Assignment2_Demo_<mode>.mp4`` plus a
-   matching ``.srt`` subtitle file and a ``_report.json``.
+   with ffmpeg into a named MP4 plus matching ``.srt`` captions and a
+   ``_report.json`` recording summary.
 
 See ``demo_video/README.md`` for setup and options.
 """
@@ -1417,7 +1417,7 @@ VOICE_EXTS = (".wav", ".m4a", ".mp3", ".aiff", ".aac", ".caf")
 
 
 def speaker_for(scene_id: str) -> str:
-    """Who should read this scene: the member who owns that part of the project."""
+    """Group scenes for optional voice recording without assigning part ownership."""
     owner = "intro"
     for sc in S.SCENES:
         m = re.fullmatch(r"part(\d)_card", sc["id"])
@@ -1434,7 +1434,7 @@ def speaker_label(key: str) -> str:
     if key in ("intro", "closing"):
         return f"{key.title()} (any member)"
     card = next(sc for sc in S.SCENES if sc["id"] == f"part{key}_card")
-    return f"Part {key}: {card['subtitle']}"
+    return f"Part {key}: {card['title']} (any member)"
 
 
 def find_take(scene_id: str) -> Path | None:
@@ -1715,7 +1715,7 @@ def parse_args():
     ap.add_argument(
         "--out",
         default=None,
-        help="final MP4 path (default: demo_video/output/Group49_..._Demo_<NoVoice|TeamVoice|AIVoice>.mp4)",
+        help="final MP4 path (default for Edge TTS: demo_video/output/Group49_AIMLCZG549_Assignment2_Demo.mp4)",
     )
     ap.add_argument("--work", default=None, help="scratch folder for clips and audio")
     ap.add_argument(
@@ -1800,9 +1800,20 @@ def parse_args():
 def main() -> None:
     args = parse_args()
     args.api_url = args.api_url.rstrip("/")
-    mode = {"none": "NoVoice", "files": "TeamVoice"}.get(args.tts, "AIVoice")
+    mode = {
+        "none": "NoVoice",
+        "files": "TeamVoice",
+        "say": "SystemVoice",
+        "edge": "PrabhatVoice",
+    }[args.tts]
+    suffix = {
+        "none": "_NoVoice",
+        "files": "_TeamVoice",
+        "say": "_SystemVoice",
+        "edge": "",
+    }[args.tts]
     args.out = args.out or str(
-        HERE / "output" / DEFAULT_OUT.replace(".mp4", f"_{mode}.mp4")
+        HERE / "output" / DEFAULT_OUT.replace(".mp4", f"{suffix}.mp4")
     )
     args.work = args.work or str(HERE / "output" / "work" / mode)
     if args.clean or args.clean_all:

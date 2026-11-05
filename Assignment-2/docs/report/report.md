@@ -10,14 +10,14 @@ Our team built an interactive application for a diabetes-clinic support desk. Th
 
 ## Team Contribution and Work Allocation
 
-We agreed to equal contribution shares of 25% each. The table shows each member's primary responsibility across the assessed parts; the percentages are equal for all four members.
+We shared the work across the project and report an equal contribution of 25% for each of the four members. The descriptions below identify each member's main tasks; they are not an assignment of one whole assessment part to one person.
 
 | Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
 |---:|---|---|---|---:|
-| 1 | 2025ae05391 | Bhuvnesh Mishra | **Part I – API-Based AI Application:** built the FastAPI and React application and integrated classification, summarisation, and question answering in the staff workflow. | 25% |
-| 2 | 2025ae05828 | Chezrla Raga Suma | **Part II – Fine-Tuning:** prepared and reviewed classification examples and labels, fine-tuned the FLAN-T5 classifier, and evaluated the base and tuned checkpoints. | 25% |
-| 3 | 2025ae05425 | Sathish Krishnan V | **Part III – RAG:** selected and checked the WHO source, prepared the local knowledge passages, and implemented retrieval for question answering. | 25% |
-| 4 | 2025ae05898 | Pushadapu Sanjay Kumar | **Part IV – Situated Learning:** defined the diabetes clinic support-desk workflow, selected representative synthetic cases, and analysed the evaluation against workplace needs. | 25% |
+| 1 | 2025ae05391 | Bhuvnesh Mishra | Developed the React interface and FastAPI routes; integrated classification, handoff summaries, and RAG question answering in one workflow. | 25% |
+| 2 | 2025ae05828 | Chezrla Raga Suma | Prepared and reviewed classification messages and labels; fine-tuned the FLAN-T5 classifier and evaluated it against the base model. | 25% |
+| 3 | 2025ae05425 | Sathish Krishnan V | Selected and checked the WHO source, prepared the local knowledge passages, and implemented the embedding retrieval used for question answering. | 25% |
+| 4 | 2025ae05898 | Pushadapu Sanjay Kumar | Defined the clinic-support workflow, prepared representative synthetic cases, and analysed the results against workplace needs. | 25% |
 | **Total** |  |  |  | **100%** |
 
 ## Project and Platform Details

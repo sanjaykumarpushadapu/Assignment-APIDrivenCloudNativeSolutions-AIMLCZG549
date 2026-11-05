@@ -69,13 +69,12 @@ RETRIEVE_BODY = (
 )
 
 
-def part_card(number, title, member, say):
+def part_card(number, title, say):
     return {
         "id": f"part{number}_card",
         "kind": "card",
         "eyebrow": f"Part {number} of 4",
         "title": title,
-        "subtitle": member,
         "say": say,
     }
 
@@ -95,6 +94,27 @@ SCENES = [
             "questions from trusted sources. This is our A.I.M.L. C.Z.G. five four nine, Assignment Two project. "
             "Our team members are Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, and Bhuvnesh Mishra. "
             "We contributed equally, with 25 percent each."
+        ),
+    },
+    {
+        "id": "team_contributions",
+        "kind": "card",
+        "eyebrow": "Group 49 · Equal contribution · 25% each",
+        "title": "Team Contributions",
+        "subtitle": "Shared project work across the four assessment parts",
+        "lines": [
+            "Bhuvnesh Mishra · React interface, FastAPI routes, and workflow integration",
+            "Chezrla Raga Suma · Classification examples, fine-tuning, and model evaluation",
+            "Sathish Krishnan V · WHO source review, local passages, and embedding retrieval",
+            "Pushadapu Sanjay Kumar · Clinic workflow, synthetic cases, and workplace analysis",
+        ],
+        "footnote": "Each member contributed 25%",
+        "say": (
+            "We shared the work across all four assessment parts, and each of us contributed 25 percent. "
+            "Bhuvnesh worked on the React interface, FastAPI routes, and integration. Raga prepared classification examples, "
+            "fine-tuned the classifier, and evaluated it. Sathish reviewed the WHO source, prepared local passages, and worked "
+            "on embedding retrieval. Sanjay developed the clinic workflow, prepared synthetic cases, and analysed the workplace fit. "
+            "These are our main contributions; the tasks overlap across the project."
         ),
     },
     {
@@ -122,10 +142,9 @@ SCENES = [
     part_card(
         1,
         "API-Based AI Application",
-        MEMBERS[3],
-        "For Part One, we chose a diabetes-clinic support desk as our workplace example. Staff may need to route "
-        "appointment, education, portal, records, or clinical questions. Bhuvnesh built the React and FastAPI application "
-        "that brings our three NLP tasks into one workflow: classification, handoff summarisation, and question answering from WHO passages.",
+        "Part One is our API-Based AI Application. We chose a diabetes-clinic support desk as our workplace example. Staff may need to route "
+        "appointment, education, portal, records, or clinical questions. The React interface sends requests to FastAPI, which connects "
+        "classification, handoff summarisation, and question answering from WHO passages.",
     ),
     {
         "id": "label_guide",
@@ -145,8 +164,7 @@ SCENES = [
     part_card(
         2,
         "Fine-Tuning",
-        MEMBERS[2],
-        "Part Two is our fine-tuning work. Raga prepared and reviewed the classification examples, and we compared the tuned classifier with the original model.",
+        "Part Two is our fine-tuning work. We prepared and reviewed classification examples, then compared the tuned classifier with the original model.",
     ),
     {
         "id": "fine_tuning",
@@ -173,8 +191,7 @@ SCENES = [
     part_card(
         3,
         "Retrieval-Augmented Generation (RAG)",
-        MEMBERS[1],
-        "Part Three covers retrieval-augmented generation. Sathish prepared the WHO passages, and we use them to answer general diabetes questions with sources staff can inspect.",
+        "Part Three covers retrieval-augmented generation. We prepared WHO passages and use them to answer general diabetes questions with sources staff can inspect.",
     ),
     {
         "id": "rag_pipeline",
@@ -193,7 +210,6 @@ SCENES = [
     part_card(
         4,
         "Situated Learning – Workplace Application",
-        MEMBERS[0],
         "For Part Four, we apply the project to a diabetes-clinic support desk. Staff sort incoming requests, prepare handoffs, and look up public education information for general questions. Our app brings the category, summary, and source passages into one workflow, with staff reviewing the results.",
     ),
     {
@@ -357,6 +373,7 @@ SCENES = [
 # ---------------------------------------------------------------------------
 SELF_SCRIPTS = {
     "chat_checks": next(scene["say"] for scene in SCENES if scene["id"] == "chat_checks"),
+    "team_contributions": next(scene["say"] for scene in SCENES if scene["id"] == "team_contributions"),
     "title": (
         "Hello everyone! We're Group 49, and this is our AIMLCZG549, Assignment Two project: the Diabetes "
         "Care Support Assistant for classification, handoff summaries, and source-grounded answers. Our team is Pushadapu Sanjay Kumar, Sathish Krishnan V, Chezrla Raga Suma, "
@@ -367,16 +384,16 @@ SELF_SCRIPTS = {
         "classifier and shared FLAN-T5 runtime to return a category and handoff summary. Retrieve returns ranked WHO passages. Chat returns a fixed urgent-care response for matched urgent phrases and a staff referral for matched personal questions; general questions use the shared retriever and FLAN-T5 runtime to return an answer with sources."
     ),
     "part1_card": (
-        "Part one, API-based AI application, presents the workplace scenario: a fictional diabetes clinic support desk handles requests "
-        "about appointments, education, portal access, records, and clinical questions. Bhuvnesh built the "
-        "React and FastAPI application integrating classification, summarisation, and source-grounded answers."
+        "Part one is our API-based AI Application. We use a fictional diabetes-clinic support desk where staff handle requests "
+        "about appointments, education, portal access, records, and clinical questions. The React interface sends requests to FastAPI, "
+        "which connects classification, handoff summaries, and source-grounded answers."
     ),
     "label_guide": (
         "We route requests into five categories: appointment support, education resource request, portal "
         "technical support, records and insurance administration, and clinical-staff referral. The label guide gives personal clinical questions priority; the classifier is trained to follow this rule. Selected urgent phrases receive a fixed urgent-care response."
     ),
     "part2_card": (
-        "Part two, fine-tuning, covers Chezrla's reviewed classification data, supervised training, and base-versus-tuned evaluation."
+        "Part two covers our classification examples, supervised fine-tuning, and base-versus-tuned evaluation."
     ),
     "fine_tuning": (
         "We fully fine-tuned the pretrained FLAN-T5 model on reviewed synthetic support-message and category "
@@ -386,7 +403,7 @@ SELF_SCRIPTS = {
         "The base summariser was reviewed on 20 messages. All outputs were supported by their input, and 10 retained every essential fact."
     ),
     "part3_card": (
-        "Part three, retrieval-augmented generation, covers Sathish's WHO source preparation, curated passages, retrieval, and question answering."
+        "Part three covers our WHO source preparation, curated passages, retrieval, and question answering."
     ),
     "rag_pipeline": (
         "For each general question, the retriever ranks the WHO passages by embedding similarity and returns "
