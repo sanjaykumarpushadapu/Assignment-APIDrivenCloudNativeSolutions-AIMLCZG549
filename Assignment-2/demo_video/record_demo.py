@@ -620,27 +620,36 @@ def synthesize(text: str, dest: Path, args) -> Path:
                 "edge-tts is not installed in this Python environment. Run: pip install edge-tts"
             )
         out = dest.with_suffix(".mp3")
-        proc = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "edge_tts",
-                "--voice",
-                args.voice or "en-US-AriaNeural",
-                "--text",
-                text,
-                "--write-media",
-                str(out),
-            ],
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:
-            fail(
-                "edge-tts could not create the narration:\n"
-                + "\n".join((proc.stderr or proc.stdout).splitlines()[-8:])
+        last_error = ""
+        for attempt in range(3):
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "edge_tts",
+                    "--voice",
+                    args.voice or "en-US-AriaNeural",
+                    "--text",
+                    text,
+                    "--write-media",
+                    str(out),
+                ],
+                capture_output=True,
+                text=True,
             )
-        return out
+            if proc.returncode == 0 and out.exists() and out.stat().st_size > 0:
+                return out
+
+            out.unlink(missing_ok=True)
+            last_error = proc.stderr or proc.stdout or "empty audio output"
+            if attempt < 2:
+                log(f"    edge-tts request failed; retrying ({attempt + 1}/2)")
+                time.sleep(2**attempt)
+
+        fail(
+            "edge-tts could not create the narration after three attempts:\n"
+            + "\n".join(last_error.splitlines()[-8:])
+        )
     # "none": silent track sized to a natural reading pace, for a later voice-over
     out = dest.with_suffix(".wav")
     seconds = max(1.8, len(text.split()) / 2.4 + 0.4)
