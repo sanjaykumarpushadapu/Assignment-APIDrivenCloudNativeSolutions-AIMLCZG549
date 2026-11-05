@@ -193,7 +193,7 @@ The four student-specific versions below apply the shared system to different vi
 
 #### Anchor — Identify a Workplace Problem
 
-Clinic support staff need a single intake workflow for messages that may involve scheduling, education material, portal access, records, or clinical questions. Without a shared intake screen, staff must identify the request, prepare a handoff, and locate information in separate steps. The diabetes-clinic support desk is a synthetic industry analogue for this workflow.
+Clinic support staff need a single intake workflow for messages that may involve scheduling, education material, portal access, records, or clinical questions. Without a shared intake screen, staff must identify the request, prepare a handoff, and locate information in separate steps. A shared interface is expected to reduce switching between those steps and make the next action easier to see. The diabetes-clinic support desk is a synthetic industry analogue for this workflow.
 
 #### Apply — Adapt the AI Solution to the Workplace
 
@@ -229,7 +229,7 @@ Using identifiable messages would require privacy and security controls for acce
 
 #### Anchor — Identify a Workplace Problem
 
-Clinic staff may need to answer general diabetes-education questions using a reliable reference while directing personal-care questions to the clinical team. Finding the relevant passage manually can slow the response, while an unsupported answer may mislead. This industry analogue uses public WHO material and synthetic questions.
+Clinic staff may need to answer general diabetes-education questions using a reliable reference while directing personal-care questions to the clinical team. Finding the relevant passage manually can slow the response, while an unsupported answer may mislead. A retrieved passage shown with its source is expected to make general information easier for staff to locate and verify. This industry analogue uses public WHO material and synthetic questions.
 
 #### Apply — Adapt the AI Solution to the Workplace
 
@@ -247,7 +247,7 @@ The current corpus contains public WHO information rather than clinic-specific g
 
 #### Anchor — Identify a Workplace Problem
 
-The clinic support desk receives compound requests that may combine an appointment change with an education-resource question, as well as questions that require clinical staff rather than general education. Staff need a handoff that preserves the request details and a clear way to distinguish general questions from personal-care questions. The examples below are synthetic and use a diabetes-clinic industry analogue.
+The clinic support desk receives compound requests that may combine an appointment change with an education-resource question, as well as questions that require clinical staff rather than general education. Staff need a handoff that preserves the request details and a clear way to distinguish general questions from personal-care questions. A summary that retains both requests is expected to help staff prepare a complete handoff without losing secondary details. The examples below are synthetic and use a diabetes-clinic industry analogue.
 
 #### Apply — Adapt the AI Solution to the Workplace
 

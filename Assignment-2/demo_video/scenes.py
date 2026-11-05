@@ -346,9 +346,29 @@ SCENES = [
         "say": (
             "We checked category accuracy, summary fact retention, retrieval relevance, and whether answers were supported. "
             "We did not measure staff time or test the system in a live clinic. For this demo, we used synthetic messages and public WHO text. "
-            "Before a clinic used identifiable information, it would need to approve privacy and security controls, review health-data rules, "
-            "plan computing and storage costs, and decide how the system should connect to existing services. Our first step would be a "
-            "clinic-approved pilot with deidentified cases and staff review."
+            "Before workplace use, the clinic would need to approve privacy and security controls, review health-data rules, plan computing and "
+            "storage costs, and decide how the system should connect to existing services. Our first step would be a clinic-approved pilot "
+            "with deidentified cases and staff review."
+        ),
+    },
+    {
+        "id": "workplace_perspectives",
+        "kind": "card",
+        "eyebrow": "Situated Learning · Part IV",
+        "title": "Four Workplace Perspectives",
+        "subtitle": "One clinic workflow, four individual applications",
+        "lines": [
+            "Bhuvnesh · bring analysis, handoffs, and answers into one staff workflow",
+            "Raga · use the fine-tuned labels to support request routing",
+            "Sathish · retrieve WHO passages for general questions and refer personal-care questions",
+            "Sanjay · preserve details when a message combines requests",
+        ],
+        "say": (
+            "For Part Four, we prepared four individual workplace perspectives on the same diabetes-clinic example. "
+            "Bhuvnesh focuses on bringing analysis, handoffs, and answers into one staff workflow. Raga focuses on using the "
+            "fine-tuned labels to support request routing. Sathish focuses on retrieving WHO passages for general questions and "
+            "referring personal-care questions to staff. Sanjay focuses on preserving details in compound requests and their "
+            "handoff summaries. In the report, each perspective follows Anchor, Apply, Analyse, and Reflect."
         ),
     },
     {
@@ -442,10 +462,15 @@ SELF_SCRIPTS = {
     "workplace_analysis": (
         "Under Analyse, the reviewed cases assess classification accuracy, summary fact retention, retrieval relevance, and answer support. "
         "They do not measure staff time, request throughput, or live-clinic performance. Under Reflect, the demonstration uses synthetic "
-        "messages and public WHO text; its API has no authentication and it is not integrated with scheduling, the patient portal, or records. "
-        "Use with identifiable health information would require privacy and security controls, health-data and clinical review, approved "
-        "computing, cost planning, and system integration. The single priority before any live workflow is a clinic-approved, access-controlled "
-        "pilot with deidentified representative cases and staff review."
+        "messages and public WHO text. Workplace use would require clinic-approved privacy and security controls, review of health-data "
+        "requirements, approved computing and storage, cost planning, and decisions about integration with existing systems. The single "
+        "priority before applying the workflow is a clinic-approved pilot with deidentified representative cases and staff review."
+    ),
+    "workplace_perspectives": (
+        "For Part Four, we prepared four individual workplace perspectives on the same diabetes-clinic example. Bhuvnesh focuses on bringing "
+        "analysis, handoffs, and answers into one staff workflow. Raga focuses on using the fine-tuned labels to support request routing. "
+        "Sathish focuses on retrieving WHO passages for general questions and referring personal-care questions to staff. Sanjay focuses on "
+        "preserving details in compound requests and their handoff summaries. In the report, each perspective follows Anchor, Apply, Analyse, and Reflect."
     ),
     "closing": (
         "Project summary: our Diabetes Care Support Assistant provides classification, handoff summaries, and question "

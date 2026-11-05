@@ -671,6 +671,8 @@ BASE_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0f172a;color:#e2e8f0;
  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{isolation:isolate}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:inherit;pointer-events:none}
 .caption{position:fixed;left:0;right:0;bottom:0;padding:14px 32px;font-size:22px;
  background:rgba(15,23,42,.88);color:#f8fafc;border-top:2px solid #38bdf8;letter-spacing:.2px}
 @keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
