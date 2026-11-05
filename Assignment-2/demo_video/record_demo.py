@@ -669,11 +669,10 @@ def synthesize(text: str, dest: Path, args) -> Path:
 
 BASE_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#0f172a;color:#e2e8f0;
+/* Keep HTML-only scene content inside the recorded area; FFmpeg repairs any canvas footer. */
+html,body{width:100%;height:812px;overflow:hidden;background:#0f172a;color:#e2e8f0;
  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-body{isolation:isolate}
-body::before{content:"";position:fixed;inset:0;z-index:-1;background:inherit;pointer-events:none}
-.caption{position:fixed;left:0;right:0;bottom:0;padding:14px 32px;font-size:22px;
+.caption{position:fixed;left:0;right:0;bottom:100px;padding:14px 32px;font-size:22px;
  background:rgba(15,23,42,.88);color:#f8fafc;border-top:2px solid #38bdf8;letter-spacing:.2px}
 @keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 """
@@ -705,7 +704,7 @@ def mermaid_html(scene: dict) -> str:
 body{background:#f1f5f9}
 .diagram-title{position:fixed;top:22px;left:0;right:0;z-index:2;text-align:center;
  color:#17243a;font-size:30px;line-height:1.25;font-weight:700}
-.diagram-shell{position:fixed;inset:72px 0 64px;display:grid;place-items:center;padding:26px}
+.diagram-shell{position:fixed;inset:72px 0 152px;display:grid;place-items:center;padding:26px}
 .mermaid{width:100%;height:100%;display:grid;place-items:center;background:#fff;border:1px solid #d8e1ec;border-radius:20px;padding:24px;box-sizing:border-box}
 .mermaid{min-height:0;overflow:hidden}
 .mermaid svg{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%;font-family:Arial,sans-serif}
@@ -769,7 +768,7 @@ def images_html(scene: dict, dur: float, images_dir: Path) -> str:
     )
     css = f"""
 body{{background:#f8fafc}}
-.stage{{position:fixed;inset:0 0 64px 0;display:flex;align-items:center;justify-content:center}}
+.stage{{position:fixed;inset:0 0 152px 0;display:flex;align-items:center;justify-content:center}}
 .stage img{{position:absolute;max-width:94%;max-height:92%;object-fit:contain;opacity:0;
  transition:opacity .7s ease;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:6px;background:#fff}}
 .stage img.on{{opacity:1;animation:zoom {slot:.2f}s linear both}}
@@ -868,7 +867,7 @@ body{background:#272822}
 .head{position:fixed;top:0;left:0;right:0;height:52px;background:#1e1f1c;display:flex;align-items:center;
  padding:0 22px;gap:9px;border-bottom:1px solid #3e3d32;z-index:2}
 .dot{width:13px;height:13px;border-radius:50%}.file{margin-left:14px;color:#cfcfc2;font:16px Menlo,Consolas,monospace}
-#scroller{position:fixed;top:52px;bottom:64px;left:0;right:0;overflow:hidden;padding:18px 34px}
+#scroller{position:fixed;top:52px;bottom:152px;left:0;right:0;overflow:hidden;padding:18px 34px}
 .highlight,.highlight pre,pre{background:#272822!important;font:21px/1.5 Menlo,Consolas,"DejaVu Sans Mono",monospace;
  color:#f8f8f2;white-space:pre-wrap}
 .highlight .hll{background:#49483e!important;display:block}
@@ -1029,7 +1028,7 @@ def json_html(scene: dict, dur: float) -> str:
 body{background:#272822}
 .head{position:fixed;top:0;left:0;right:0;height:52px;background:#1e1f1c;display:flex;align-items:center;
  padding:0 24px;color:#cfcfc2;font:16px Menlo,Consolas,monospace;border-bottom:1px solid #3e3d32}
-#scroller{position:fixed;top:52px;bottom:64px;left:0;right:0;overflow:hidden;padding:18px 40px}
+#scroller{position:fixed;top:52px;bottom:152px;left:0;right:0;overflow:hidden;padding:18px 40px}
 .highlight,.highlight pre,pre{background:#272822!important;font:21px/1.5 Menlo,Consolas,monospace;color:#f8f8f2}
 """
     body = (
@@ -1268,6 +1267,51 @@ def record_scene(
 # ======================================================================
 
 
+def capture_footer_crop(clip: Path) -> tuple[int, int] | None:
+    """Find Playwright's solid gray canvas padding at the bottom of a clip."""
+    frame = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-ss",
+            "1",
+            "-i",
+            str(clip),
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "pipe:1",
+        ],
+        check=True,
+        capture_output=True,
+    ).stdout
+    width, height = VIEWPORT["width"], VIEWPORT["height"]
+    if len(frame) < width * height * 3:
+        return None
+
+    # The footer is the neutral gray padding added by Playwright's video canvas.
+    padding = 0
+    for y in range(height - 1, -1, -1):
+        row = [frame[(y * width + x) * 3 : (y * width + x) * 3 + 3] for x in range(0, width, 32)]
+        if all(max(pixel) - min(pixel) <= 3 and abs(sum(pixel) / 3 - 128) <= 3 for pixel in row):
+            padding += 1
+        else:
+            break
+
+    if padding < 32:
+        return None
+
+    # Drop the gray footer and its one-pixel transition, then smear the image
+    # edge into the replacement area so captions can be added after assembly.
+    crop_height = height - padding - 2
+    crop_height -= crop_height % 2
+    return crop_height, height - crop_height
+
+
 def build_segment(
     clip: Path,
     start: float,
@@ -1278,8 +1322,16 @@ def build_segment(
     out: Path,
 ) -> None:
     """Cut [start, start+span] from the clip, retime it by `speed`, and lay the narration over it."""
+    footer = capture_footer_crop(clip)
+    source_filter = ""
+    if footer:
+        crop_height, pad_height = footer
+        source_filter = (
+            f"crop=iw:{crop_height}:0:0,pad={VIEWPORT['width']}:{VIEWPORT['height']}:0:0:color=gray,"
+            f"fillborders=bottom={pad_height}:mode=smear,"
+        )
     vf = (
-        f"[0:v]setpts=PTS-STARTPTS,trim=start={start:.3f}:duration={span:.3f},"
+        f"[0:v]{source_filter}setpts=PTS-STARTPTS,trim=start={start:.3f}:duration={span:.3f},"
         f"setpts=(PTS-STARTPTS)/{speed:.5f},"
         f"fps=30,scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=decrease,"
         f"pad={OUT_W}:{OUT_H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,"
