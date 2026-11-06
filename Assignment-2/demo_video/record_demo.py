@@ -60,6 +60,7 @@ except ImportError:
 import scenes as S  # noqa: E402
 
 VIEWPORT = {"width": 1600, "height": 900}
+STATIC_SCENE_HEIGHT = 812
 OUT_W, OUT_H = 1920, 1080
 LEAD_IN = 0.35  # seconds of picture before the narrator starts
 TAIL = 0.75  # seconds of picture after the narrator stops
@@ -1314,9 +1315,9 @@ def capture_footer_crop(clip: Path) -> tuple[int, int] | None:
     if padding < 32:
         return None
 
-    # Drop the gray footer and its one-pixel transition, then smear the image
-    # edge into the replacement area so captions can be added after assembly.
-    crop_height = height - padding - 2
+    # Static-page content is laid out to 812px; discard the gray footer and its
+    # transition, then smear that last real image row into the replacement area.
+    crop_height = min(height - padding, STATIC_SCENE_HEIGHT)
     crop_height -= crop_height % 2
     return crop_height, height - crop_height
 
@@ -1670,6 +1671,99 @@ def burn_captions(
         ],
         check=True,
     )
+
+
+def repair_video_footer(video_path: Path, scenes: list[dict]) -> None:
+    """Blend residual neutral Playwright padding into each static scene's background."""
+    kinds = {scene["id"]: scene["kind"] for scene in S.SCENES}
+    regions: dict[tuple[str, tuple[int, int, int] | None], list[tuple[float, float]]] = {}
+    backgrounds = {
+        "mermaid": (241, 245, 249),
+        "image": (248, 250, 252),
+        "code": (39, 40, 34),
+        "url": (255, 255, 255),
+        "terminal": (13, 17, 23),
+    }
+    for scene in scenes:
+        kind = kinds.get(scene["id"])
+        if kind in ("app", "swagger"):
+            continue
+        color = backgrounds.get(kind)
+        regions.setdefault((kind or "card", color), []).append(
+            (scene["start"], scene["start"] + scene["duration"])
+        )
+
+    if not regions:
+        return
+
+    # Reuse a clean interior row for gradient scenes; static page types use their
+    # known background color. The mask leaves burned captions and UI content intact.
+    replacement = {"r": "r(X,800)", "g": "g(X,800)", "b": "b(X,800)"}
+    active_masks = []
+    for (kind, color), intervals in regions.items():
+        if color:
+            replacement_for_kind = dict(zip(("r", "g", "b"), map(str, color)))
+        else:
+            replacement_for_kind = replacement
+        time_mask = "+".join(
+            f"between(T,{start:.3f},{end:.3f})" for start, end in intervals
+        )
+        gray_mask = (
+            f"gte(Y,974)*({time_mask})*"
+            "lt(abs(r(X,Y)-128)+abs(g(X,Y)-128)+abs(b(X,Y)-128),55)"
+        )
+        active_masks.append((gray_mask, replacement_for_kind))
+
+    expressions = {}
+    for channel in ("r", "g", "b"):
+        expression = f"{channel}(X,Y)"
+        for mask, colors in active_masks:
+            expression = f"if({mask},{colors[channel]},{expression})"
+        expressions[channel] = expression
+
+    filter_text = ",".join(
+        [
+            "format=rgb24",
+            "geq=" + ":".join(
+                f"{channel}='{expressions[channel]}'" for channel in ("r", "g", "b")
+            ),
+            "format=yuv420p",
+        ]
+    )
+    temp_path = video_path.with_name(video_path.stem + ".footer-fixed.mp4")
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            str(video_path),
+            "-vf",
+            filter_text,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-map",
+            "0:s?",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "18",
+            "-c:a",
+            "copy",
+            "-c:s",
+            "copy",
+            "-movflags",
+            "+faststart",
+            str(temp_path),
+        ],
+        check=True,
+    )
+    temp_path.replace(video_path)
 
 
 def finalize(
@@ -2081,6 +2175,7 @@ def main() -> None:
         encoding="utf-8",
     )
     finalize(joined, srt, srt_path, out_path, args.burn_subtitles, work)
+    repair_video_footer(out_path, report["scenes"])
 
     report["total_seconds"] = round(t, 1)
     report_path = out_path.with_name(out_path.stem + "_report.json")
