@@ -1,35 +1,37 @@
-# Diabetes Care Support Assistant
+# Group Details
 
-**Course:** AIMLCZG549 - API-Driven Cloud-Native Solutions
+**Course:** AIMLCZG549 - API-Driven Cloud-Native Solutions  
 **Assignment:** Assignment II
-**Group:** 49
-**Institution:** BITS Pilani, Work Integrated Learning Programmes
+**Institution:** BITS Pilani, Work Integrated Learning Programmes  
+**Group No.:** 49
 **Source repository:** [GitHub](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
+
+## Group Member Names with Contribution
+
+We shared the work across the project and report an equal contribution of 25% for each of the four members. The descriptions below identify each member's main tasks; they are not an assignment of one whole assessment part to one person.
+
+|   Sl. No. | BITS ID     | Name                   | Contribution of team member (Qualitative)                                                                                                        | Percentage Contribution (Out of 100) Quantitative |
+| --------: | ----------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------: |
+|         1 | 2025ae05391 | Bhuvnesh Mishra        | Developed the React interface and FastAPI routes; integrated classification, handoff summaries, and RAG question answering in one workflow.      |                                               25% |
+|         2 | 2025ae05828 | Chezrla Raga Suma      | Prepared and reviewed classification messages and labels; fine-tuned the FLAN-T5 classifier and evaluated it against the base model.             |                                               25% |
+|         3 | 2025ae05425 | Sathish Krishnan V     | Selected and checked the WHO source, prepared the local knowledge passages, and implemented the embedding retrieval used for question answering. |                                               25% |
+|         4 | 2025ae05898 | Pushadapu Sanjay Kumar | Defined the clinic-support workflow, prepared representative synthetic cases, and analysed the results against workplace needs.                  |                                               25% |
+| **Total** |             |                        |                                                                                                                                                  |                                          **100%** |
+
+# Diabetes Care Support Assistant
 
 > **MASTER REPORT WORKING NOTE — REMOVE FROM STUDENT SUBMISSION COPIES.** This file keeps the shared report and all four student-specific versions of Part IV together. When preparing each student's upload, copy the same Sections I–III and include only that student's Part IV section below. Leave the other three Part IV sections out of that student's copy; keep the rest of the report identical.
 
 Our team built an interactive application for a diabetes-clinic support desk. This report follows the four parts of Assignment II: the API-based application, fine-tuning, retrieval-augmented generation, and workplace application.
 
-## Team Contribution and Work Allocation
-
-We shared the work across the project and report an equal contribution of 25% for each of the four members. The descriptions below identify each member's main tasks; they are not an assignment of one whole assessment part to one person.
-
-| Sl. No. | BITS ID | Name | Contribution of team member  | Percentage Contribution (Out of 100) |
-|---:|---|---|---|---:|
-| 1 | 2025ae05391 | Bhuvnesh Mishra | Developed the React interface and FastAPI routes; integrated classification, handoff summaries, and RAG question answering in one workflow. | 25% |
-| 2 | 2025ae05828 | Chezrla Raga Suma | Prepared and reviewed classification messages and labels; fine-tuned the FLAN-T5 classifier and evaluated it against the base model. | 25% |
-| 3 | 2025ae05425 | Sathish Krishnan V | Selected and checked the WHO source, prepared the local knowledge passages, and implemented the embedding retrieval used for question answering. | 25% |
-| 4 | 2025ae05898 | Pushadapu Sanjay Kumar | Defined the clinic-support workflow, prepared representative synthetic cases, and analysed the results against workplace needs. | 25% |
-| **Total** |  |  |  | **100%** |
-
 ## Project and Platform Details
 
 **Selected application category: Natural Language Processing (NLP).** We chose healthcare support for a diabetes-clinic desk. Staff can enter a message or ask a question; the app returns a category, a handoff summary, or an answer with its source passages. We connected three NLP tasks in one React and FastAPI workflow: text classification, text summarisation, and question answering using retrieval-augmented generation (RAG).
 
-| NLP task | Natural-language input and output | Method/model |
-|---|---|---|
-| Text classification | Support message → one of five clinic-support labels | Supervised fine-tuning of `google/flan-t5-base` |
-| Text summarisation | Support message → staff handoff summary | `google/flan-t5-base` text generation |
+| NLP task                     | Natural-language input and output                                                | Method/model                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Text classification          | Support message → one of five clinic-support labels                              | Supervised fine-tuning of `google/flan-t5-base`                           |
+| Text summarisation           | Support message → staff handoff summary                                          | `google/flan-t5-base` text generation                                     |
 | Question answering using RAG | Staff question → answer grounded in relevant WHO passages, returned with sources | `sentence-transformers/all-MiniLM-L6-v2` retrieval and FLAN-T5 generation |
 
 We pinned the FLAN-T5 base model to revision `7bcac572ce56db69c1ea7c8af255c5d7c9672fc2`. The classifier runs separately; summarisation and answer generation share a FLAN-T5 runtime. Retrieval uses its configured embedding model. Our API exposes `/health`, `/metadata`, `/analyze`, `/retrieve`, and `/chat`.
@@ -121,13 +123,13 @@ The fine-tuned checkpoint achieved 98.33% accuracy and 98.33% macro-F1 on the 60
 
 The base and fine-tuned models were then evaluated on the same 60-example held-out test set, with the same application prompt and greedy decoding. The test set was not used for training or model selection.
 
-| Measure | Base model | Fine-tuned classifier |
-|---|---:|---:|
-| Accuracy | 86.67% (52/60) | 95.00% (57/60) |
-| Macro precision | 95.00% | 95.39% |
-| Macro recall | 86.67% | 95.00% |
-| Macro-F1 | 88.74% | 94.74% |
-| Invalid category outputs | 4/60 | 0/60 |
+| Measure                  |     Base model | Fine-tuned classifier |
+| ------------------------ | -------------: | --------------------: |
+| Accuracy                 | 86.67% (52/60) |        95.00% (57/60) |
+| Macro precision          |         95.00% |                95.39% |
+| Macro recall             |         86.67% |                95.00% |
+| Macro-F1                 |         88.74% |                94.74% |
+| Invalid category outputs |           4/60 |                  0/60 |
 
 The examples and test set are synthetic; these scores summarise classification on the 60-message set.
 
@@ -143,7 +145,7 @@ The configured base summariser was evaluated on 20 reviewed synthetic message/su
 
 ### Source and retrieval
 
-We prepared the indexed corpus from one public source: WHO's *Diabetes: Questions and Answers* (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in our local source manifest. It contains eight curated passages about diabetes basics, common symptoms, prevention, and general education and self-management support. We kept the title, section, URL, and chunk ID with each passage.
+We prepared the indexed corpus from one public source: WHO's _Diabetes: Questions and Answers_ (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in our local source manifest. It contains eight curated passages about diabetes basics, common symptoms, prevention, and general education and self-management support. We kept the title, section, URL, and chunk ID with each passage.
 
 We pinned the retriever, `sentence-transformers/all-MiniLM-L6-v2`, to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. It embeds the question and WHO passages, ranks them by cosine similarity, and returns the top three. FLAN-T5 receives the question and those passages, then `/chat` returns its answer with the sources for staff to check. We retrieve the passages first so the answer can be reviewed against the selected source; we can also update the source material without fine-tuning the answer model. Personal-care and clinic-process questions get a staff referral, and selected urgent phrases get a fixed urgent-care response. Other questions go through the retrieval-score and output-format checks shown in the architecture flow.
 
@@ -167,15 +169,15 @@ Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat
 
 We reviewed 30 RAG cases: 20 questions answerable from the indexed source and 10 expected referrals. We checked retrieval relevance, answer support, citations, completeness, and answer/referral decisions against the WHO passages and answer key. These results are for the initial routing-rule configuration, before we refined the routing rules.
 
-| Measure | Result |
-|---|---:|
-| Retrieval hit@3 on answerable cases | 20/20 (100%) |
-| Expected answer/referral decisions matched | 23/30 (76.7%) |
-| Expected staff referrals detected | 4/10 (40%) |
-| Answerable questions incorrectly abstained | 1/20 (5%) |
-| Answerable cases producing an answer judged supported by its source | 18/20 (90%) |
-| Answerable cases with a correct source citation | 18/20 (90%) |
-| Answerable cases with a correct and complete response | 16/20 (80%) |
+| Measure                                                             |        Result |
+| ------------------------------------------------------------------- | ------------: |
+| Retrieval hit@3 on answerable cases                                 |  20/20 (100%) |
+| Expected answer/referral decisions matched                          | 23/30 (76.7%) |
+| Expected staff referrals detected                                   |    4/10 (40%) |
+| Answerable questions incorrectly abstained                          |     1/20 (5%) |
+| Answerable cases producing an answer judged supported by its source |   18/20 (90%) |
+| Answerable cases with a correct source citation                     |   18/20 (90%) |
+| Answerable cases with a correct and complete response               |   16/20 (80%) |
 
 Retrieval returned a relevant passage for all 20 answerable questions. Reviewers found 18 answers supported and 16 both correct and complete. The system made the expected answer or referral decision in 23 of 30 cases. These are baseline results; we did not rerun this evaluation after refining the routing rules.
 
@@ -233,7 +235,7 @@ Clinic staff may need to answer general diabetes-education questions using a rel
 
 #### Apply — Adapt the AI Solution to the Workplace
 
-The local knowledge set contains eight curated passages from WHO's *Diabetes: Questions and Answers*. `/retrieve` ranks passages and returns the top three with section and source details. `/chat` uses retrieved text to answer a general symptoms question and includes its passages, as shown in Figure 6; a medication-change question receives a staff referral, as shown in Figure 7. This lets staff inspect the supporting text before using an answer.
+The local knowledge set contains eight curated passages from WHO's _Diabetes: Questions and Answers_. `/retrieve` ranks passages and returns the top three with section and source details. `/chat` uses retrieved text to answer a general symptoms question and includes its passages, as shown in Figure 6; a medication-change question receives a staff referral, as shown in Figure 7. This lets staff inspect the supporting text before using an answer.
 
 #### Analyse — Evaluate Workplace Relevance
 

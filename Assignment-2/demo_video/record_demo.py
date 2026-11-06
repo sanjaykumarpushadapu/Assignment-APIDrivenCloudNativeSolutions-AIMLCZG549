@@ -63,7 +63,7 @@ VIEWPORT = {"width": 1600, "height": 900}
 STATIC_SCENE_HEIGHT = 812
 OUT_W, OUT_H = 1920, 1080
 LEAD_IN = 0.35  # seconds of picture before the narrator starts
-TAIL = 0.75  # seconds of picture after the narrator stops
+TAIL = 0.25  # brief end beat after the narrator stops
 DEFAULT_OUT = "Group49_AIMLCZG549_Assignment2_Demo.mp4"
 HOLD_MS = 5000  # keep completed app and Swagger results readable after they appear
 RESULT_TIMEOUT_MS = 180000  # model inference on a laptop can be slow
@@ -630,6 +630,8 @@ def synthesize(text: str, dest: Path, args) -> Path:
                     "edge_tts",
                     "--voice",
                     args.voice or "en-US-AriaNeural",
+                    "--rate",
+                    args.edge_rate,
                     "--text",
                     text,
                     "--write-media",
@@ -1674,7 +1676,7 @@ def burn_captions(
 
 
 def repair_video_footer(video_path: Path, scenes: list[dict]) -> None:
-    """Blend residual neutral Playwright padding into each static scene's background."""
+    """Replace neutral Playwright footer pixels in static scenes with a nearby row."""
     kinds = {scene["id"]: scene["kind"] for scene in S.SCENES}
     regions: dict[tuple[str, tuple[int, int, int] | None], list[tuple[float, float]]] = {}
     backgrounds = {
@@ -1696,39 +1698,23 @@ def repair_video_footer(video_path: Path, scenes: list[dict]) -> None:
     if not regions:
         return
 
-    # Reuse a clean interior row for gradient scenes; static page types use their
-    # known background color. The mask leaves burned captions and UI content intact.
-    replacement = {"r": "r(X,800)", "g": "g(X,800)", "b": "b(X,800)"}
-    active_masks = []
-    for (kind, color), intervals in regions.items():
-        if color:
-            replacement_for_kind = dict(zip(("r", "g", "b"), map(str, color)))
-        else:
-            replacement_for_kind = replacement
-        time_mask = "+".join(
-            f"between(T,{start:.3f},{end:.3f})" for start, end in intervals
-        )
-        gray_mask = (
-            f"gte(Y,974)*({time_mask})*"
-            "lt(abs(r(X,Y)-128)+abs(g(X,Y)-128)+abs(b(X,Y)-128),55)"
-        )
-        active_masks.append((gray_mask, replacement_for_kind))
-
-    expressions = {}
-    for channel in ("r", "g", "b"):
-        expression = f"{channel}(X,Y)"
-        for mask, colors in active_masks:
-            expression = f"if({mask},{colors[channel]},{expression})"
-        expressions[channel] = expression
-
-    filter_text = ",".join(
-        [
-            "format=rgb24",
-            "geq=" + ":".join(
-                f"{channel}='{expressions[channel]}'" for channel in ("r", "g", "b")
-            ),
-            "format=yuv420p",
-        ]
+    intervals = [
+        (start, end)
+        for group in regions.values()
+        for start, end in group
+    ]
+    enabled = "+".join(
+        f"between(t,{start:.3f},{end:.3f})" for start, end in intervals
+    )
+    # Key only neutral gray in the narrow footer. This keeps subtitles and any
+    # other visible pixels, while a nearby row supplies the matching background.
+    filter_text = (
+        "[0:v]split=3[base][row_src][footer_src];"
+        "[row_src]format=rgb24,crop=1920:1:0:800,scale=1920:106:flags=neighbor[row];"
+        "[footer_src]format=rgb24,crop=1920:106:0:974,"
+        "chromakey=0x808080:0.06:0[footer];"
+        "[row][footer]overlay=0:0[patch];"
+        f"[base][patch]overlay=0:974:enable='{enabled}',format=yuv420p[out]"
     )
     temp_path = video_path.with_name(video_path.stem + ".footer-fixed.mp4")
     subprocess.run(
@@ -1739,10 +1725,10 @@ def repair_video_footer(video_path: Path, scenes: list[dict]) -> None:
             "error",
             "-i",
             str(video_path),
-            "-vf",
+            "-filter_complex",
             filter_text,
             "-map",
-            "0:v:0",
+            "[out]",
             "-map",
             "0:a?",
             "-map",
@@ -1753,6 +1739,8 @@ def repair_video_footer(video_path: Path, scenes: list[dict]) -> None:
             "fast",
             "-crf",
             "18",
+            "-pix_fmt",
+            "yuv420p",
             "-c:a",
             "copy",
             "-c:s",
@@ -1890,6 +1878,11 @@ def parse_args():
     )
     ap.add_argument(
         "--rate", type=int, default=178, help="say speaking rate in words per minute"
+    )
+    ap.add_argument(
+        "--edge-rate",
+        default="+12%",
+        help="Edge TTS speaking-rate adjustment (default: +12%%)",
     )
     ap.add_argument("--api-url", default=S.API_URL)
     ap.add_argument("--app-url", default=S.APP_URL)
@@ -2065,7 +2058,11 @@ def main() -> None:
     }[args.tts]
     report = {
         "facts": facts,
-        "narration": {"engine": args.tts, "voice": args.voice or default_voice},
+        "narration": {
+            "engine": args.tts,
+            "voice": args.voice or default_voice,
+            "rate": args.edge_rate if args.tts == "edge" else None,
+        },
         "scenes": [],
     }
     log("Recording scenes")
@@ -2115,11 +2112,27 @@ def main() -> None:
         speed = (
             min(2.0, max(0.5, media_duration(item["clip"]) / wall)) if wall > 0 else 1.0
         )
-        seg_dur = max(item["visible"], item["target"])
+        trim_to_result = (
+            item["scene"]["kind"] in ("app", "swagger")
+            and item["visible"] > item["target"]
+        )
+        seg_dur = (
+            item["target"]
+            if trim_to_result
+            else max(item["visible"], item["target"])
+        )
+        clip_start = (
+            max(0.0, (item["lead"] + item["visible"] - seg_dur) * speed)
+            if trim_to_result
+            else item["lead"] * speed
+        )
+        clip_span = (
+            seg_dur * speed if trim_to_result else item["visible"] * speed
+        )
         build_segment(
             item["clip"],
-            item["lead"] * speed,
-            item["visible"] * speed,
+            clip_start,
+            clip_span,
             speed,
             seg_dur,
             item["audio"],
