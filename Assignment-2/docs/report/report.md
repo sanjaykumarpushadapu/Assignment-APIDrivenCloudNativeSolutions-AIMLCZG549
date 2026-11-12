@@ -273,4 +273,4 @@ We built a React and FastAPI application that brings classification, handoff sum
 
 ## Demonstration Video
 
-**Demonstration video:** Google Drive link to be added after the required project demonstration is uploaded.
+**Demonstration video:** [Watch the project demonstration](https://drive.google.com/file/d/14HXkwKq-wtKhHBS7WEBegZ5TLE7CgGb0/view)
