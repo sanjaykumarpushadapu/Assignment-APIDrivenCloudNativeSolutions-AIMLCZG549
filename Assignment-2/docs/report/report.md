@@ -1,6 +1,6 @@
 # Group Details
 
-**Course:** AIMLCZG549 - API-Driven Cloud-Native Solutions  
+**Course:** AIMLZG 549 - API-Driven Cloud-Native Solutions  
 **Assignment:** Assignment II
 **Institution:** BITS Pilani, Work Integrated Learning Programmes  
 **Group No.:** 49
@@ -148,7 +148,7 @@ The configured base summariser was evaluated on 20 reviewed synthetic message/su
 
 We prepared the indexed corpus from one public source: WHO's _Diabetes: Questions and Answers_ (https://www.who.int/news-room/questions-and-answers/item/diabetes), dated 1 September 2026 in our local source manifest. It contains eight curated passages about diabetes basics, common symptoms, prevention, and general education and self-management support. We kept the title, section, URL, and chunk ID with each passage.
 
-We pinned the retriever, `sentence-transformers/all-MiniLM-L6-v2`, to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. It embeds the question and WHO passages, ranks them by cosine similarity, and returns the top three. FLAN-T5 receives the question and those passages, then `/chat` returns its answer with the sources for staff to check. We retrieve the passages first so the answer can be reviewed against the selected source; we can also update the source material without fine-tuning the answer model. Personal-care and clinic-process questions get a staff referral, and selected urgent phrases get a fixed urgent-care response. Other questions go through the retrieval-score and output-format checks shown in the architecture flow.
+We pinned the retriever, `sentence-transformers/all-MiniLM-L6-v2`, to revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. It embeds the question and WHO passages, ranks them by cosine similarity, and returns the top three. For questions that proceed to retrieval, the `/chat` handler passes those passages with the question to FLAN-T5 and returns the answer with its sources for staff to check. The separate `/retrieve` endpoint returns ranked passages without generating an answer. This lets us update the source material without fine-tuning the answer model. Personal-care and clinic-process questions get a staff referral, and selected urgent phrases get a fixed urgent-care response. Other questions go through the retrieval-score and output-format checks shown in the architecture flow.
 
 ### API demonstration
 
@@ -165,6 +165,10 @@ Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat
 **Figure 6. General-information answer and retrieved source sections in the web interface.**
 
 ![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
+
+**Figure 7. Medication question referred to clinic staff in the web interface.**
+
+![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 
 ### Evaluation results
 
@@ -240,7 +244,7 @@ Clinic staff may need to answer general diabetes-education questions using a rel
 
 At intake, staff submit a support message to `/analyze`. In Figure 2, the fine-tuned classifier suggests appointment support. The handoff summary tells the appointments team to check availability for Friday after 2 pm and records that the booking is still unconfirmed.
 
-When staff need to answer a general education question, they enter it in the knowledge assistant. The local knowledge set contains eight curated passages from WHO's _Diabetes: Questions and Answers_. For the symptoms question in Figure 6, `/retrieve` ranks the passages, and `/chat` returns an answer with the retrieved sections. Staff can open “Common symptoms” to check the answer against the passage. Figure 7 shows the staff referral returned for a personal medication question.
+When staff enter a general education question in the knowledge assistant, `/chat` retrieves relevant passages from the local set of eight curated WHO passages and returns an answer with those sources. Figure 6 shows the symptoms answer and its source sections; staff can open “Common symptoms” to check the answer against the passage. The separate `/retrieve` endpoint lets staff inspect ranked passages without generating an answer. Figure 7 shows `/chat` referring a personal medication question to clinic staff.
 
 #### Analyse — Evaluate Workplace Relevance
 
@@ -269,10 +273,6 @@ The 20-case summary review found all summaries supported by their input, but onl
 #### Reflect — Deployment Constraints and Improvements
 
 Identifiable support messages would require safeguards for privacy, access, transfer, storage, and retention, and review against applicable health-data regulation. The models and index need approved infrastructure and storage, a cost plan, and approved integration with scheduling, portal, and records systems. The single most important improvement is a clinic-approved, staff-supervised validation pilot with deidentified representative cases, measuring handoff fact retention and safe referral decisions before any live system integration. This tests whether the combined workflow addresses the staff problem while controlling how its outputs are used.
-
-**Figure 7. Medication question referred to clinic staff in the web interface.**
-
-![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 
 ## Conclusion
 
