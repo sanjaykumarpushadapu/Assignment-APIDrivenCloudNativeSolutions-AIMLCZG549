@@ -4,7 +4,8 @@
 **Assignment:** Assignment II
 **Institution:** BITS Pilani, Work Integrated Learning Programmes  
 **Group No.:** 49
-**Source repository:** [GitHub](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)
+**Source repository:** [GitHub](https://github.com/sanjaykumarpushadapu/Assignment-APIDrivenCloudNativeSolutions-AIMLCZG549)  
+**Demonstration video:** [Watch the project demonstration](https://drive.google.com/file/d/14HXkwKq-wtKhHBS7WEBegZ5TLE7CgGb0/view)
 
 ## Group Member Names with Contribution
 
@@ -203,7 +204,7 @@ The React staff interface sends support messages and questions to FastAPI. `POST
 
 #### Analyse — Evaluate Workplace Relevance
 
-The API examples returned HTTP 200 for `/metadata`, `/analyze`, `/retrieve`, and `/chat` during the recorded demonstration. In the reviewed outputs, the classifier produced 57 correct categories out of 60; the summary review found every output supported by its input, but all checklist facts were retained in only 10 of 20 cases. The routes connect the tasks in one interface, while the evaluation shows why staff must review the category and summary before using them.
+The API examples returned HTTP 200 for `/metadata`, `/analyze`, `/retrieve`, and `/chat`. In the reviewed outputs, the classifier produced 57 correct categories out of 60; the summary review found every output supported by its input, but all checklist facts were retained in only 10 of 20 cases. The routes connect the tasks in one interface, while the evaluation shows why staff must review the category and summary before using them.
 
 #### Reflect — Deployment Constraints and Improvements
 
@@ -217,7 +218,9 @@ At a diabetes-clinic support desk, staff manually read messages about several op
 
 #### Apply — Adapt the AI Solution to the Workplace
 
-The classifier was fine-tuned on reviewed examples for five clinic-support labels: appointment support, education resource request, portal technical support, records/insurance administration, and clinical staff referral. A representative rescheduling message is classified as `appointment_support` in Figure 2. Figure 3 documents the fine-tuning method and compares the prompted base model with the tuned classifier.
+In Figure 2, a patient asks to move an appointment to Friday after 2 pm. The fine-tuned classifier suggests `appointment_support`. The handoff summary preserves the requested time and says the new booking is unconfirmed. Staff can use the label to choose the appointments team and the summary to tell that team what still needs confirmation. Figure 3 compares the fine-tuned classifier with the prompted base model.
+
+For a general education question, staff can use the knowledge assistant in the same interface. Figure 6 shows a question about diabetes symptoms. The chatbot returns an answer with the retrieved WHO section on common symptoms so staff can check the wording before replying.
 
 #### Analyse — Evaluate Workplace Relevance
 
@@ -235,7 +238,9 @@ Clinic staff may need to answer general diabetes-education questions using a rel
 
 #### Apply — Adapt the AI Solution to the Workplace
 
-The local knowledge set contains eight curated passages from WHO's _Diabetes: Questions and Answers_. `/retrieve` ranks passages and returns the top three with section and source details. `/chat` uses retrieved text to answer a general symptoms question and includes its passages, as shown in Figure 6; a medication-change question receives a staff referral, as shown in Figure 7. This lets staff inspect the supporting text before using an answer.
+At intake, staff submit a support message to `/analyze`. In Figure 2, the fine-tuned classifier suggests appointment support. The handoff summary tells the appointments team to check availability for Friday after 2 pm and records that the booking is still unconfirmed.
+
+When staff need to answer a general education question, they enter it in the knowledge assistant. The local knowledge set contains eight curated passages from WHO's _Diabetes: Questions and Answers_. For the symptoms question in Figure 6, `/retrieve` ranks the passages, and `/chat` returns an answer with the retrieved sections. Staff can open “Common symptoms” to check the answer against the passage. Figure 7 shows the staff referral returned for a personal medication question.
 
 #### Analyse — Evaluate Workplace Relevance
 
@@ -253,7 +258,9 @@ The clinic support desk receives compound requests that may combine an appointme
 
 #### Apply — Adapt the AI Solution to the Workplace
 
-The representative message asking to move a diabetes-education appointment and locate a preparation leaflet exercises classification and handoff summarisation together. A general symptoms question exercises WHO-grounded answer generation, while “Should I change my diabetes medication?” exercises the staff-referral path. The urgent phrase example exercises the fixed urgent-care response. Figures 2, 6, and 7 show these outputs in the application.
+Figure 2 shows a request to reschedule for Friday after 2 pm. The summary preserves both the requested time and the fact that the booking is unconfirmed. Staff can compare these details with the original message before passing it to the appointments team.
+
+Figure 6 shows a general symptoms question answered from WHO passages. Figure 7 shows the staff referral for “Should I change my diabetes medication?”
 
 #### Analyse — Evaluate Workplace Relevance
 
@@ -271,6 +278,3 @@ Identifiable support messages would require safeguards for privacy, access, tran
 
 We built a React and FastAPI application that brings classification, handoff summaries, and RAG question answering into one diabetes-clinic support workflow. We fully fine-tuned the classifier and evaluated it against the prompted base model on held-out messages. We also reviewed summary fact retention and measured retrieval, answer support, and referral decisions for the recorded RAG baseline. The screenshots show the application and example outputs. Our results show how the three tasks can support staff review in this workflow.
 
-## Demonstration Video
-
-**Demonstration video:** [Watch the project demonstration](https://drive.google.com/file/d/14HXkwKq-wtKhHBS7WEBegZ5TLE7CgGb0/view)
