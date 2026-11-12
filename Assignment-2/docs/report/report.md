@@ -98,13 +98,11 @@ The classifier uses the Hugging Face Transformers sequence-to-sequence interface
 
 The Swagger UI request below demonstrates `POST /analyze` with a synthetic rescheduling request. The React screenshot shows the category and handoff-summary field in the interactive application.
 
+![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)\
 **Figure 1. Swagger request and response for `POST /analyze`.**
 
-![Swagger request and successful response for support message analysis](evidence/swagger-analyze.png)
-
+![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)\
 **Figure 2. Live support-message analysis in the interactive application.**
-
-![Interactive application showing a support request, its category, and handoff summary](evidence/02-request-analysis.png)
 
 Functional validation covered support-message analysis, question answering with displayed sources, and an urgent-care response. The frontend production build succeeded.
 
@@ -134,9 +132,8 @@ The base and fine-tuned models were then evaluated on the same 60-example held-o
 
 The examples and test set are synthetic; these scores summarise classification on the 60-message set.
 
+![Full fine-tuning setup and base versus tuned held-out metrics](evidence/03-classifier-fine-tuning.png)\
 **Figure 3. Fine-tuning method and held-out classifier results.**
-
-![Full fine-tuning setup and base versus tuned held-out metrics](evidence/03-classifier-fine-tuning.png)
 
 ### Summary quality check
 
@@ -154,21 +151,17 @@ We pinned the retriever, `sentence-transformers/all-MiniLM-L6-v2`, to revision `
 
 Swagger UI confirms that `/retrieve` returns ranked WHO passages and that `/chat` returns a staff referral for an individual medication question.
 
+![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)\
 **Figure 4. Swagger response from `POST /retrieve` with ranked WHO passages.**
 
-![Swagger request and retrieved WHO passages](evidence/swagger-retrieve.png)
-
+![Swagger request and staff referral response](evidence/swagger-chat.png)\
 **Figure 5. Swagger response from `POST /chat` for a medication question.**
 
-![Swagger request and staff referral response](evidence/swagger-chat.png)
-
+![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)\
 **Figure 6. General-information answer and retrieved source sections in the web interface.**
 
-![Knowledge assistant answer with retrieved WHO source sections listed](evidence/03-source-grounded-answer.png)
-
+![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)\
 **Figure 7. Medication question referred to clinic staff in the web interface.**
-
-![Knowledge assistant staff referral for a medication-change question](evidence/04-staff-referral.png)
 
 ### Evaluation results
 
